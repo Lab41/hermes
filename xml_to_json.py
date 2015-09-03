@@ -118,38 +118,41 @@ def fill_rev(revision, element, in_revision_tree, namespace=''):
         revision["redirect_target"] = element.get("title")
 
 
-in_page = False
-in_revision = False
-for event, elem in ET.iterparse(sys.stdin, events=("start", "end")):
-    # When a page element is started we set up a new revisions dictionary
-    # with the article title, id, namespace, and redirection information.
-    # This dictionary is then deepcopied for each revision. It is deleted
-    # when a page ends.
-    if event == "start" and elem.tag == NAMESPACE + "page":
-        in_page = True
-        page_rev = deepcopy(revision)
-    elif event == "end" and elem.tag == NAMESPACE + "page":
-        in_page = False
-        del page_rev
+# Run only if this script is being called directly
+if __name__ == "__main__":
 
-    # When a revision starts we copy the current page dictionary and fill
-    # it. Revisions are sorted last in the XML tree, so the page_rev
-    # dictionary will be filled out by the time we reach them.
-    if event == "start" and elem.tag == NAMESPACE + "revision":
-        in_revision = True
-        cur_rev = deepcopy(page_rev)
-    elif event == "end" and elem.tag == NAMESPACE + "revision":
-        for child in elem:
-            fill_rev(cur_rev, child, in_revision, NAMESPACE)
-            child.clear()
-        in_revision = False
-        print json.dumps(cur_rev)
-        del cur_rev
-        elem.clear()
+    in_page = False
+    in_revision = False
+    for event, elem in ET.iterparse(sys.stdin, events=("start", "end")):
+        # When a page element is started we set up a new revisions dictionary
+        # with the article title, id, namespace, and redirection information.
+        # This dictionary is then deepcopied for each revision. It is deleted
+        # when a page ends.
+        if event == "start" and elem.tag == NAMESPACE + "page":
+            in_page = True
+            page_rev = deepcopy(revision)
+        elif event == "end" and elem.tag == NAMESPACE + "page":
+            in_page = False
+            del page_rev
 
-    # Otherwise if we are not in a revision, but are in a page, then the
-    # elements are about the article and we save them into the page_rev
-    # dictionary
-    if event == "end" and in_page and not in_revision:
-        fill_rev(page_rev, elem, in_revision, NAMESPACE)
-        elem.clear()
+        # When a revision starts we copy the current page dictionary and fill
+        # it. Revisions are sorted last in the XML tree, so the page_rev
+        # dictionary will be filled out by the time we reach them.
+        if event == "start" and elem.tag == NAMESPACE + "revision":
+            in_revision = True
+            cur_rev = deepcopy(page_rev)
+        elif event == "end" and elem.tag == NAMESPACE + "revision":
+            for child in elem:
+                fill_rev(cur_rev, child, in_revision, NAMESPACE)
+                child.clear()
+            in_revision = False
+            print json.dumps(cur_rev)
+            del cur_rev
+            elem.clear()
+
+        # Otherwise if we are not in a revision, but are in a page, then the
+        # elements are about the article and we save them into the page_rev
+        # dictionary
+        if event == "end" and in_page and not in_revision:
+            fill_rev(page_rev, elem, in_revision, NAMESPACE)
+            elem.clear()
