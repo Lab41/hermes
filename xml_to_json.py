@@ -1,5 +1,55 @@
 #!/usr/bin/env python
 
+"""Tran
+
+This script assumes that the Wikipedia edit history XML files are ordered as
+follows:
+
+    <mediawiki>
+        ...
+        <page>
+            <title></title>
+            <ns></ns>
+            <id></id>
+            <redirect title="" /> <!-- Optional -->
+            <revision>
+                <id>236939</id>
+                <timestamp></timestamp>
+                <contributor>
+                    <username></username>
+                    <id></id>
+                </contributor>
+                <comment></comment>
+                <model></model>
+                <format></format>
+                <text xml:space="preserve"></text>
+                <sha1></sha1>
+            </revision>
+            ...
+        </page>
+    </mediawiki>
+
+Specifically, it assumes that:
+
+    1) the title, ns, id, redirect tags for a page appear before the revisions
+    2) the revisions for a page are order from oldest to newest
+
+This is the format the files are in when they are downloaded from:
+https://dumps.wikimedia.org/enwiki/latest/
+
+Example:
+    This script is designed to be placed in the middle of a series of piped
+    commands. Most often it will read data on stdin from a 7zip program and
+    output JSON on stdout, often to a file or compression program, as follows:
+
+        $ 7z e -so input_file.7z | xml_to_json.py | gzip > output_file.json.gz
+
+Attributes:
+    NAMESPACE (str): The default namespace of all tags in the Wikipedia edit
+        history XML file.
+
+"""
+
 from copy import deepcopy
 import sys
 import xml.etree.cElementTree as ET
@@ -8,21 +58,21 @@ import json
 
 NAMESPACE = "{http://www.mediawiki.org/xml/export-0.10/}"
 
-#JSON revision object
+# JSON revision object
 revision = {
         # General article information
-        "article_title": None, # string
-        "article_id": None, # int
-        "article_namespace": None, # int
-        "redirect_target": None, # String
+        "article_title": None,  # string
+        "article_id": None,  # int
+        "article_namespace": None,  # int
+        "redirect_target": None,  # String
         # Revision specific information
         "revision_id": None,  # int
         "parent_id": None,  # int
-        "timestamp": None, # date and time
-        "user_name": None, # string or ip as string
-        "user_id": None, # int if user, otherwise None
-        "comment": None, # string
-        "minor": False, # bool
+        "timestamp": None,  # date and time
+        "user_name": None,  # string or ip as string
+        "user_id": None,  # int if user, otherwise None
+        "comment": None,  # string
+        "minor": False,  # bool
         }
 
 
@@ -33,8 +83,8 @@ def fill_rev(revision, element, in_revision_tree, namespace=''):
     Args:
         - revision (dict): A revision dictionary with fields already in place.
         - element (ElementTree Element): An element from ElementTree.
-        - in_revision_tree (bool): True if inside a <revision> element, otherwise
-            should be set to False.
+        - in_revision_tree (bool): True if inside a <revision> element,
+            otherwise should be set to False.
         - namespace (Optional[str]): The XML name space that the tags exist in.
 
     Returns:
