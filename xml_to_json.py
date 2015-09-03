@@ -92,6 +92,7 @@ REVISION = {
         "user_id": None,  # int if user, otherwise None
         "comment": None,  # string
         "minor": False,  # bool
+        "full_text": None, # str
         }
 
 
@@ -135,6 +136,8 @@ def fill_rev(revision, element, in_revision_tree, namespace=''):
         revision["article_namespace"] = int(element.text)
     elif element.tag == namespace + "redirect":
         revision["redirect_target"] = element.get("title")
+    elif element.tag == namespace + "text":
+        revision["redirect_target"] = element.get("title")
 
 
 # Run only if this script is being called directly
@@ -149,7 +152,7 @@ if __name__ == "__main__":
         # when a page ends.
         if event == "start" and elem.tag == NAMESPACE + "page":
             in_page = True
-            page_rev = deepcopy(revision)
+            page_rev = deepcopy(REVISION)
         elif event == "end" and elem.tag == NAMESPACE + "page":
             in_page = False
             del page_rev
