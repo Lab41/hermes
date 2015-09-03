@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tran
+"""Translate Wikipedia edit history XML files to JSON.
 
 This script assumes that the Wikipedia edit history XML files are ordered as
 follows:
