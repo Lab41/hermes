@@ -118,21 +118,6 @@ def fill_rev(revision, element, in_revision_tree, namespace=''):
         revision["redirect_target"] = element.get("title")
 
 
-# We _assumes_ that the XML tree is ordered in the same way as the dumps from
-# en.wikipedia.org, specifically:
-#
-#    <page>
-#      <title>Hermes (mythology)</title>
-#      <ns>0</ns>
-#      <id>38235488</id>
-#      <!-- redirect is optional -->
-#      <redirect title="Hermes" />
-#      <revision>
-#        ...
-#      </revision>
-#    </page>
-
-
 in_page = False
 in_revision = False
 for event, elem in ET.iterparse(sys.stdin, events=("start", "end")):
