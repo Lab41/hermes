@@ -47,6 +47,25 @@ Example:
 Attributes:
     NAMESPACE (str): The default namespace of all tags in the Wikipedia edit
         history XML file.
+    REVISION (dict): A dictionary that stores the information from each
+        revision as well as some information about the article in general. The
+        variables are as follows:
+            - article_title (str): The title of the article.
+            - article_id (int): A unique identifier for each article.
+            - article_namespace (int): The namespace of the article, as defined
+                by Wikipedia.
+            - redirect_target (str): If the article is a redirect, the target
+                article's article_title, otherwise None.
+            - revision_id (int): Unique identifier of the revision.
+            - parent_id (int): Unique identifier of the parent of the revision.
+            - timestamp (str): Time the revision was made.
+            - user_name (str): The name of the user, or their IP address if not
+                logged in.
+            - user_id (int): A unique id of the user, or None if they were not
+                logged in.
+            - comment (str): The comment the user left about their edit.
+            - minor (bool): True if the edit was marked as "minor", otherwise
+                False.
 
 """
 
@@ -59,7 +78,7 @@ import json
 NAMESPACE = "{http://www.mediawiki.org/xml/export-0.10/}"
 
 # JSON revision object
-revision = {
+REVISION = {
         # General article information
         "article_title": None,  # string
         "article_id": None,  # int
