@@ -29,10 +29,8 @@ follows:
         </page>
     </mediawiki>
 
-Specifically, it assumes that:
-
-    1) the title, ns, id, redirect tags for a page appear before the revisions
-    2) the revisions for a page are order from oldest to newest
+Specifically, it assumes that the title, ns, id, redirect tags for a page
+appear before the revisions.
 
 This is the format the files are in when they are downloaded from:
 https://dumps.wikimedia.org/enwiki/latest/
@@ -70,6 +68,8 @@ Attributes:
 """
 
 from copy import deepcopy
+from datetime import datetime
+import argparse
 import sys
 import xml.etree.cElementTree as ET
 import json
@@ -96,7 +96,7 @@ REVISION = {
         }
 
 
-def fill_rev(revision, element, in_revision_tree, namespace=''):
+def fill_rev(revision, element, in_revision_tree, namespace='', save_full_text=False):
     """Fill the fields of a revision dictionary given an element from an XML
     Element Tree.
 
@@ -106,6 +106,8 @@ def fill_rev(revision, element, in_revision_tree, namespace=''):
         - in_revision_tree (bool): True if inside a <revision> element,
             otherwise should be set to False.
         - namespace (Optional[str]): The XML name space that the tags exist in.
+        - save_full_text (Optional [bool]): Save the full text of the article
+            if True, otherwise set it to None.
 
     Returns:
         None
@@ -137,11 +139,37 @@ def fill_rev(revision, element, in_revision_tree, namespace=''):
     elif element.tag == namespace + "redirect":
         revision["redirect_target"] = element.get("title")
     elif element.tag == namespace + "text":
-        revision["redirect_target"] = element.get("title")
+        if save_full_text:
+            revision["full_text"] = element.text
+
+
+# Set up command line flag handling
+parser = argparse.ArgumentParser(
+        description="Transform Wikipedia XML to JSON.",
+        usage="7z e -so input.7z | %(prog)s [options] > output.json",
+    )
+parser.add_argument(
+        '-f',
+        '--full-text',
+        help="keep the full text of each article, otherwise set it to None",
+        action="store_true",
+        dest="save_full_text",
+        default=False,
+    )
+parser.add_argument(
+        '-l',
+        '--latest-revision-only',
+        help="keep only the latest revision of an article",
+        action="store_true",
+        dest="save_newest_only",
+        default=False,
+    )
 
 
 # Run only if this script is being called directly
 if __name__ == "__main__":
+
+    args = parser.parse_args()
 
     in_page = False
     in_revision = False
@@ -153,8 +181,16 @@ if __name__ == "__main__":
         if event == "start" and elem.tag == NAMESPACE + "page":
             in_page = True
             page_rev = deepcopy(REVISION)
+            if args.save_newest_only:
+                newest = None
+                newest_date = None
         elif event == "end" and elem.tag == NAMESPACE + "page":
+            if args.save_newest_only:
+                print json.dumps(newest)
+                del newest
+                del newest_date
             in_page = False
+            del cur_rev
             del page_rev
 
         # When a revision starts we copy the current page dictionary and fill
@@ -165,16 +201,26 @@ if __name__ == "__main__":
             cur_rev = deepcopy(page_rev)
         elif event == "end" and elem.tag == NAMESPACE + "revision":
             for child in elem:
-                fill_rev(cur_rev, child, in_revision, NAMESPACE)
+                fill_rev(cur_rev, child, in_revision, NAMESPACE, args.save_full_text)
                 child.clear()
             in_revision = False
-            print json.dumps(cur_rev)
-            del cur_rev
+            if not args.save_newest_only:
+                print json.dumps(cur_rev)
+            else:
+                if not newest:
+                    newest = cur_rev
+                    newest_date = datetime.strptime(cur_rev["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+                else:
+                    test_date = datetime.strptime(cur_rev["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+                    if test_date > newest_date:
+                        newest = cur_rev
+                        newest_date = test_date
+
             elem.clear()
 
         # Otherwise if we are not in a revision, but are in a page, then the
         # elements are about the article and we save them into the page_rev
         # dictionary
         if event == "end" and in_page and not in_revision:
-            fill_rev(page_rev, elem, in_revision, NAMESPACE)
+            fill_rev(page_rev, elem, in_revision, NAMESPACE, args.save_full_text)
             elem.clear()
