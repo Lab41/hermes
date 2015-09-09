@@ -29,10 +29,8 @@ follows:
         </page>
     </mediawiki>
 
-Specifically, it assumes that:
-
-    1) the title, ns, id, redirect tags for a page appear before the revisions
-    2) the revisions for a page are order from oldest to newest
+Specifically, it assumes that the title, ns, id, redirect tags for a page
+appear before the revisions.
 
 This is the format the files are in when they are downloaded from:
 https://dumps.wikimedia.org/enwiki/latest/
@@ -70,6 +68,7 @@ Attributes:
 """
 
 from copy import deepcopy
+from datetime import datetime
 import argparse
 import sys
 import xml.etree.cElementTree as ET
@@ -182,9 +181,14 @@ if __name__ == "__main__":
         if event == "start" and elem.tag == NAMESPACE + "page":
             in_page = True
             page_rev = deepcopy(REVISION)
+            if args.save_newest_only:
+                newest = None
+                newest_date = None
         elif event == "end" and elem.tag == NAMESPACE + "page":
             if args.save_newest_only:
-                print json.dumps(cur_rev)
+                print json.dumps(newest)
+                del newest
+                del newest_date
             in_page = False
             del cur_rev
             del page_rev
@@ -202,6 +206,16 @@ if __name__ == "__main__":
             in_revision = False
             if not args.save_newest_only:
                 print json.dumps(cur_rev)
+            else:
+                if not newest:
+                    newest = cur_rev
+                    newest_date = datetime.strptime(cur_rev["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+                else:
+                    test_date = datetime.strptime(cur_rev["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+                    if test_date > newest_date:
+                        newest = cur_rev
+                        newest_date = test_date
+
             elem.clear()
 
         # Otherwise if we are not in a revision, but are in a page, then the
