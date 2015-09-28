@@ -1,6 +1,10 @@
 import rdflib
 from rdflib.graph import Graph
 import pandas as pd
+from collections import defaultdict
+import itertools
+import networkx as nx
+
 
 
 
@@ -42,6 +46,30 @@ def create_linked_list(file_path):
 
     return category_list
 
+def create_category_idx_dicts(category_list):
+    g = defaultdict(list)
+    for idx, row in category_list.iterrows():
+        parent = row[0]
+        child = row[1]
+        g[parent].append(child)
+        g[child].append(parent)
+
+    idx_dict = defaultdict(list)
+    idx = 1
+    for key in g.keys():
+        idx_dict[key]=idx
+        idx += 1
+
+    g_idx_dict = defaultdict(list)
+    for idx, row in category_list.iterrows():
+        parent = idx_dict[row[0]]
+        child = idx_dict[row[1]]
+        g_idx_dict[parent].append(child)
+        g_idx_dict[child].append(parent)
+
+    return [g, g_idx_dict, idx_dict]
+
+
 def linked_list_to_dict(graph_list, formated_df, top_name = 'Category:Fundamental_categories'):
 
     print 'Creating graph dictionary from linked elements'
@@ -61,7 +89,7 @@ def linked_list_to_dict(graph_list, formated_df, top_name = 'Category:Fundamenta
 def populate_elem(graph_list, elem_name, elem_list, formated_df):
     for elem in elem_list:
         if elem not in graph_list.iterkeys():
-            print elem
+            #print elem
             elem_list = get_children_elements(elem, formated_df)
             #by appending the parent name we are ensuring that the data is bi-directional
             elem_list.append(elem_name)
