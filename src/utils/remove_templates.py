@@ -1,41 +1,36 @@
 def remove_templates(text):
-    """Remove all text contained between '{{' and '}}', even in the case of
-    nested templates.
+    """Remove all text contained between matched pairs of '{{' and '}}'.
 
     Args:
         text (str): Full text of a Wikipedia article as a single string.
 
     Returns:
-        str: The full text with all templates removed.
+        str: A copy of the full text with all templates removed.
 
     """
-    start_char = 0
-    while '{{' in text:
-        depth = 0
-        prev_char = None
-        open_pos = None
-        close_pos = None
+    good_char_list = []
 
-        for pos in xrange(start_char, len(text)):
-            char = text[pos]
-            # Open Marker
-            if char == '{' and prev_char == '{':
-                if depth == 0:
-                    open_pos = pos-1
-                    # When we scan the string again after removing the chunk
-                    # that starts here, we know all text before is template
-                    # free, so we mark this position for the next while
-                    # iteration
-                    start_char = open_pos
-                depth += 1
-            # Close Marker
-            elif char == '}' and prev_char == '}':
-                depth -= 1
-                if depth == 0:
-                    close_pos = pos
-                    # Remove all text between the open and close markers
-                    text = text[:open_pos] + text[close_pos+1:]
-                    break
-            prev_char = char
+    prev_char = None
+    next_char = None
 
-    return text
+    depth = 0
+    open_pos = None
+    close_pos = None
+
+    for pos,char in enumerate(text):
+        try:
+            next_char = text[pos+1]
+        except IndexError:
+            next_char = None
+
+        if char == '{' and next_char == '{':
+            depth += 1
+        elif char == '}' and prev_char == '}':
+            depth -= 1
+        # Add characters if we are at depth 0
+        elif depth == 0:
+            good_char_list.append(char)
+
+        prev_char = char
+
+    return ''.join(good_char_list)
