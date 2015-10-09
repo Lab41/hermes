@@ -39,7 +39,8 @@ class Glove(object):
         self.__vector_space = np.array(space)
 
         # Null vector for unrecognized words
-        self.__null_vector = np.zeros(len(vector))
+        self.vector_size = len(vector)
+        self.__null_vector = np.zeros(self.vector_size)
 
     def __getitem__(self, key):
         """Return the vector representation of a word.
