@@ -2,7 +2,7 @@
 
 import argparse
 
-from movielens import ratings_to_json, tags_to_json, movies_to_json
+from movielens import ratings_to_json_20m, tags_to_json_20m, movies_to_json
 
 # Set up command line flag handling
 parser = argparse.ArgumentParser(
@@ -43,6 +43,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ratings_to_json(args.ratings_csv, args.output_directory)
-    tags_to_json(args.tags_csv, args.output_directory)
+    ratings_to_json_20m(args.ratings_csv, args.output_directory)
+    tags_to_json_20m(args.tags_csv, args.output_directory)
     movies_to_json(args.movies_csv, args.links_csv, args.output_directory)

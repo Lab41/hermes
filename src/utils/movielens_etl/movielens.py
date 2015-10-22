@@ -6,12 +6,6 @@ This script takes the four files from the MovieLens 20M dataset and
 rewrites each row as a JSON object. This makes it very easy to work
 with in Spark.
 
-Example:
-    Generally this script will be used as follows:
-
-        ./movielens_to_json.py ./movielens_to_json.py glinks.csv
-        movies.csv ratings.csv gtags.csv
-
 Attributes:
     RATINGS (dict): A dictionary that stores information from all of
         the rating actions taken by the users in the dataset. The
@@ -138,9 +132,9 @@ MOVIES = {
 }
 
 
-def ratings_to_json(ratings_csv, output_directory):
+def ratings_to_json_20m(ratings_csv, output_directory):
     """Convert the ratings.csv file to a file containing a collection of JSON
-    objects.
+    objects for the 20M dataset.
 
     Args:
         - ratings_csv (str): The ratings file.
@@ -166,9 +160,36 @@ def ratings_to_json(ratings_csv, output_directory):
                 del row
 
 
-def tags_to_json(tags_csv, output_directory):
+def ratings_to_json_1m(ratings_csv, output_directory):
+    """Convert the ratings.csv file to a file containing a collection of JSON
+    objects for the 1M and 10M datasets.
+
+    Args:
+        - ratings_csv (str): The ratings file.
+        - output_directory (str): The directory to write the output
+            file to.
+
+    Returns:
+        None
+
+    """
+    with open(ratings_csv, 'rb') as csv_file:
+        with open(output_directory + "/movielens_20m_ratings.json", 'w') as out:
+            for line in csv_file:
+                line = line.split("::")
+                row = deepcopy(RATINGS)
+                row['user_id'] = int(line[0])
+                row['movie_id'] = int(line[1])
+                row['rating'] = float(line[2])
+                row['timestamp'] = int(line[3])
+                row_str = json.dumps(row)
+                out.write(row_str + '\n')
+                del row
+
+
+def tags_to_json_20m(tags_csv, output_directory):
     """Convert the tags.csv file to a file containing a collection of JSON
-    objects.
+    objects for the 20M dataset.
 
     Args:
         - tags_csv (str): The tags file.
@@ -184,6 +205,33 @@ def tags_to_json(tags_csv, output_directory):
             reader = csv.reader(csv_file)
             next(reader, None)  # Skip the header
             for line in reader:
+                row = deepcopy(TAGS)
+                row['user_id'] = int(line[0])
+                row['movie_id'] = int(line[1])
+                row['tag'] = line[2]
+                row['timestamp'] = int(line[3])
+                row_str = json.dumps(row)
+                out.write(row_str + '\n')
+                del row
+
+
+def tags_to_json_1m(tags_csv, output_directory):
+    """Convert the tags.csv file to a file containing a collection of JSON
+    objects for the 1M and 10M datasets.
+
+    Args:
+        - tags_csv (str): The tags file.
+        - output_directory (str): The directory to write the output
+            file to.
+
+    Returns:
+        None
+
+    """
+    with open(tags_csv, 'rb') as csv_file:
+        with open(output_directory + "/movielens_20m_tags.json", 'w') as out:
+            for line in csv_file:
+                line = line.split('::')
                 row = deepcopy(TAGS)
                 row['user_id'] = int(line[0])
                 row['movie_id'] = int(line[1])
