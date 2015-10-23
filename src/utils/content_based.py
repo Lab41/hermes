@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def predict(user_info, content_array):
+def predict(user_info, content_array, max_prediction=1):
     """
     Creates a user preference profile by determining the rating of a particular vector item
     For example if we are looking at movies and a user highly rates sci-fi movies over drama, then the sci-fi row will be a higher number than the drama row
@@ -15,7 +15,7 @@ def predict(user_info, content_array):
         content_array: content feature array of the items which should be in the format of (item [content_feature vector])
 
     Returns:
-        predictions: an rdd which is in the format of (user, item, predicted_rating)
+        predictions_norm: an rdd which is in the format of (user, item, predicted_rating) normalized to be between 0 and the max prediction
     """
 
     user_keys = user_info.map(lambda (user, page, value): (page, (user, value)))
@@ -25,7 +25,16 @@ def predict(user_info, content_array):
     predictions = user_prefs.cartesian(content_array).map(lambda ((user_id, user_vect), (page_id, page_vect)):\
                                     (user_id, page_id, vect_mult(user_vect, page_vect)))
 
-    return predictions
+    #renormalize the predictions
+    #this assumes that the minimum is zero which is a fair assumption
+    max_val = predictions.map(lambda (user_id, page_id, pred_val): pred_val).max()
+    min_val = 0
+    diff = max_val-min_val
+
+    predictions_norm = predictions.map(lambda \
+                (user_id, page_id, pred_val):(user_id, page_id, (((pred_val-min_val)**0*(max_val-pred_val))/diff)*max_prediction))
+
+    return predictions_norm
 
 
 
@@ -59,6 +68,4 @@ def sum_components(array):
 
 def vect_mult(user_vect, page_vect):
     prod = np.multiply(page_vect, user_vect)
-    #dividing by the length of the vector and then multiplying by two renormalizes
-    #different normalization method could be used here
-    return sum(prod)/len(prod)*2
+    return sum(prod)
