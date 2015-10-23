@@ -19,7 +19,7 @@ def create_linked_list(file_path):
         file_path: link to where the original file is located
         top_name: the top name of the category graph: typically Fundamental Categories
 
-    Retruns:
+    Returns:
         category_list: List of parent_child edges
     """
 

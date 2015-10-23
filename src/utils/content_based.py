@@ -1,0 +1,71 @@
+import numpy as np
+
+
+def predict(user_info, content_array, max_prediction=1):
+    """
+    Creates a user preference profile by determining the rating of a particular vector item
+    For example if we are looking at movies and a user highly rates sci-fi movies over drama, then the sci-fi row will be a higher number than the drama row
+    Then this user preference vector is used to determine a prediction rating for each product
+
+    There needs to be some cleaning still to renormalize the final answer so that predictions go from 0-1
+    Something similar to this is shown in sum_components
+
+    Args:
+        user_info: user rdd of ratings (or interactions) which should be in the format of (user, item, rating)
+        content_array: content feature array of the items which should be in the format of (item [content_feature vector])
+
+    Returns:
+        predictions_norm: an rdd which is in the format of (user, item, predicted_rating) normalized to be between 0 and the max prediction
+    """
+
+    user_keys = user_info.map(lambda (user, page, value): (page, (user, value)))
+    user_prefs = content_array.join(user_keys).groupBy(lambda (page, ((array), (user, rating))): user)\
+        .map(lambda(user, array): (user,sum_components(array)))
+
+    predictions = user_prefs.cartesian(content_array).map(lambda ((user_id, user_vect), (page_id, page_vect)):\
+                                    (user_id, page_id, vect_mult(user_vect, page_vect)))
+
+    #renormalize the predictions
+    #this assumes that the minimum is zero which is a fair assumption
+    max_val = predictions.map(lambda (user_id, page_id, pred_val): pred_val).max()
+    min_val = 0
+    diff = max_val-min_val
+
+    predictions_norm = predictions.map(lambda \
+                (user_id, page_id, pred_val):(user_id, page_id, (((pred_val-min_val)**0*(max_val-pred_val))/diff)*max_prediction))
+
+    return predictions_norm
+
+
+
+def sum_components(array):
+    info = []
+    ratings = []
+    for a in array:
+        ratings.append(a[1][1][1])
+        info.append(a[1][0])
+
+    rated_info = []
+    info_arr = np.array(info)
+    r_arr = np.array(ratings)
+    for i in range(len(r_arr)):
+        r_i = info_arr[i]*r_arr[i]
+        rated_info.append(r_i)
+
+    array_out = map(sum,zip(*np.array(rated_info)))
+    #if necessary renormalize
+    min_val = min(array_out)
+    max_val = max(array_out)
+    diff = max_val-min_val
+    if diff==0: diff=1
+    array_out2 = []
+    for t in array_out:
+        new_val = ((t-min_val)**0*(max_val-t))/diff
+        array_out2.append(new_val)
+
+    return array_out2
+
+
+def vect_mult(user_vect, page_vect):
+    prod = np.multiply(page_vect, user_vect)
+    return sum(prod)
