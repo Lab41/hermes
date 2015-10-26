@@ -76,9 +76,8 @@ Attributes:
                 MovieLens as a war movie, else false.
             - genre_western (bool): True if the movie was categorized
                 by MovieLens as a western, else false.
-            - genre_none (bool):
-            True if the movie was not categorized
-                by MovieLens.
+            - genre_none (bool): True if the movie was not
+                categorized by MovieLens.
 
 """
 
@@ -89,46 +88,46 @@ import csv
 
 # JSON rating object
 RATINGS = {
-        "user_id": None,
-        "movie_id": None,
-        "rating": None,
-        "timestamp": None,
-        }
+    "user_id": None,
+    "movie_id": None,
+    "rating": None,
+    "timestamp": None,
+}
 
 # JSON tag object
 TAGS = {
-        "user_id": None,
-        "movie_id": None,
-        "tag": None,
-        "timestamp": None,
-        }
+    "user_id": None,
+    "movie_id": None,
+    "tag": None,
+    "timestamp": None,
+}
 
 # JSON movie object
 MOVIES = {
-        "movie_id": None,
-        "imdb_id": None,
-        "tmdb_id": None,
-        "title": None,
-        "year": None,
-        "genre_action": False,
-        "genre_adventure": False,
-        "genre_animation": False,
-        "genre_childrens": False,
-        "genre_comedy": False,
-        "genre_crime": False,
-        "genre_documentary": False,
-        "genre_drama": False,
-        "genre_fantasy": False,
-        "genre_filmnoir": False,
-        "genre_horror": False,
-        "genre_musical": False,
-        "genre_mystery": False,
-        "genre_romance": False,
-        "genre_scifi": False,
-        "genre_thriller": False,
-        "genre_war": False,
-        "genre_western": False,
-        "genre_none": False,
+    "movie_id": None,
+    "imdb_id": None,
+    "tmdb_id": None,
+    "title": None,
+    "year": None,
+    "genre_action": False,
+    "genre_adventure": False,
+    "genre_animation": False,
+    "genre_childrens": False,
+    "genre_comedy": False,
+    "genre_crime": False,
+    "genre_documentary": False,
+    "genre_drama": False,
+    "genre_fantasy": False,
+    "genre_filmnoir": False,
+    "genre_horror": False,
+    "genre_musical": False,
+    "genre_mystery": False,
+    "genre_romance": False,
+    "genre_scifi": False,
+    "genre_thriller": False,
+    "genre_war": False,
+    "genre_western": False,
+    "genre_none": False,
 }
 
 
@@ -160,21 +159,23 @@ def ratings_to_json_20m(ratings_csv, output_directory):
                 del row
 
 
-def ratings_to_json_1m(ratings_csv, output_directory):
+def ratings_to_json_10m(ratings_csv, output_directory, output_file="movielens_10m_ratings.json"):
     """Convert the ratings.csv file to a file containing a collection of JSON
-    objects for the 1M and 10M datasets.
+    objects for the 10M dataset.
 
     Args:
         - ratings_csv (str): The ratings file.
         - output_directory (str): The directory to write the output
             file to.
+        - output_file (str,optional): The name of the file to write, by default
+            "movielens_10m_ratings.json"
 
     Returns:
         None
 
     """
     with open(ratings_csv, 'rb') as csv_file:
-        with open(output_directory + "/movielens_20m_ratings.json", 'w') as out:
+        with open(output_directory + "/" + output_file, 'w') as out:
             for line in csv_file:
                 line = line.split("::")
                 row = deepcopy(RATINGS)
@@ -185,6 +186,13 @@ def ratings_to_json_1m(ratings_csv, output_directory):
                 row_str = json.dumps(row)
                 out.write(row_str + '\n')
                 del row
+
+def ratings_to_json_1m(ratings_csv, output_directory):
+    """ Same as ratings_to_json_10m() with output_file hardcoded to
+    "movielens_1m_ratings.json".
+
+    """
+    return ratings_to_json_10m(ratings_csv, output_directory, output_file="movielens_1m_ratings.json")
 
 
 def tags_to_json_20m(tags_csv, output_directory):
@@ -215,7 +223,7 @@ def tags_to_json_20m(tags_csv, output_directory):
                 del row
 
 
-def tags_to_json_1m(tags_csv, output_directory):
+def tags_to_json_10m(tags_csv, output_directory, output_file="movielens_10m_tags.json"):
     """Convert the tags.csv file to a file containing a collection of JSON
     objects for the 1M and 10M datasets.
 
@@ -223,13 +231,15 @@ def tags_to_json_1m(tags_csv, output_directory):
         - tags_csv (str): The tags file.
         - output_directory (str): The directory to write the output
             file to.
+        - output_file (str,optional): The name of the file to write, by default
+            "movielens_10m_tags.json"
 
     Returns:
         None
 
     """
     with open(tags_csv, 'rb') as csv_file:
-        with open(output_directory + "/movielens_20m_tags.json", 'w') as out:
+        with open(output_directory + "/" + output_file, 'w') as out:
             for line in csv_file:
                 line = line.split('::')
                 row = deepcopy(TAGS)
@@ -242,7 +252,15 @@ def tags_to_json_1m(tags_csv, output_directory):
                 del row
 
 
-def extract_title_and_year(orig_title):
+def tags_to_json_1m(tags_csv, output_directory):
+    """ Same as tags_to_json_10m() with output_file hardcoded to
+    "movielens_1m_tags.json".
+
+    """
+    return tags_to_json_10m(tags_csv, output_directory, output_file="movielens_1m_tags.json")
+
+
+def extract_title_and_year(orig_title, encoding=None):
     """Extract the title and year from the title provided in
     movies.csv.
 
@@ -253,6 +271,12 @@ def extract_title_and_year(orig_title):
     Where the movie name portion may contain multiple parenthetical
     pieces. The Year portion, if it exists, is always the last
     parenthetical part.
+
+    Args:
+        - orig_title (str): The title string from the data.
+        - encoding (str): The encoding of the file, often "UTF-8" or "latin-1".
+            If None, than a normal Python string is used.
+
 
     Returns:
         (return_title, return_year) (str, int): Returns the title of
@@ -270,7 +294,10 @@ def extract_title_and_year(orig_title):
 
     # Found a parenthesis
     if paren_location > -1:
-        tmp_title = orig_title[:paren_location].strip()
+        if encoding is None:
+            tmp_title = orig_title[:paren_location].strip()
+        else:
+            tmp_title = unicode(orig_title[:paren_location].strip(), encoding=encoding)
         tmp_year = orig_title[paren_location:]
         # Check that it looks like a year
         if len(tmp_year) == 6 \
@@ -341,9 +368,9 @@ def set_genres(genre_string, row):
     return row
 
 
-def movies_to_json(movies_csv, links_csv, output_directory):
+def movies_to_json_20m(movies_csv, links_csv, output_directory):
     """Convert the movies.csv and links.csv files to a file
-    containing a collection of JSON objects.
+    containing a collection of JSON objects for the 20M dataset.
 
     Args:
         - movies_csv (str): The movies file.
@@ -389,3 +416,42 @@ def movies_to_json(movies_csv, links_csv, output_directory):
                 row_str = json.dumps(row)
                 out.write(row_str + '\n')
                 del row
+
+
+def movies_to_json_10m(movies_csv, output_directory, output_file="movielens_10m_movies.json", encoding=None):
+    """Convert the movies.csv files to a file
+    containing a collection of JSON objects for the 10M dataset.
+
+    Args:
+        - movies_csv (str): The movies file.
+        - output_directory (str): The directory to write the output
+            file to.
+        - output_file (str,optional): The name of the file to write, by default
+            "movielens_10m_movies.json"
+        - encoding (str,optional): The encoding of the file, often "UTF-8" or "latin-1".
+            If None, than a normal Python string is used.
+
+    Returns:
+        None
+
+    """
+    # Process the movie results and join with the links
+    with open(movies_csv, 'rb') as csv_file:
+        with open(output_directory + "/" + output_file, 'w') as out:
+            for line in csv_file:
+                line = line.split('::')
+                row = deepcopy(MOVIES)
+                row['movie_id'] = int(line[0])
+                (row['title'], row['year']) = extract_title_and_year(line[1], encoding=encoding)
+                row = set_genres(line[2], row)
+                row_str = json.dumps(row)
+                out.write(row_str + '\n')
+                del row
+
+
+def movies_to_json_1m(movies_csv, output_directory):
+    """ Same as movies_to_json_10m() with output_file hardcoded to
+    "movielens_1m_movies.json" and encoding hardcoded to "latin-1".
+
+    """
+    return movies_to_json_10m(movies_csv, output_directory, output_file="movielens_1m_movies.json", encoding="latin-1")
