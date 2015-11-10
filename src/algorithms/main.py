@@ -3,18 +3,15 @@
 import itertools
 import json
 
-from pyspark import SparkConf, SparkContext
+from pyspark import SparkConf
 from pyspark.mllib.recommendation import ALS
 
 import data
 import collaborative_filtering as cf
 import content_based as cb
+from singleton import SCSingleton
 
-def testRMSE():
-
-	# set up spark environment
-	conf = SparkConf().setAppName("testRMSE").set("spark.executor.memory", "2g")
-	sc = SparkContext(conf=conf)
+def testSimpleRMSE():
 
 	# load the data, an RDD of [(userId, itemId, rating)]
 	# TODO
@@ -55,9 +52,9 @@ def testRMSE():
 	validationArray = [(4, 1, 1), (3, 2, 1), (2, 1, 1)]
 	testArray = [(2, 0, 1), (0, 1, -1), (0, 3, 1)]
 
-	trainingRDD = sc.parallelize(trainingArray)
-	validationRDD = sc.parallelize(validationArray)
-	testRDD = sc.parallelize(testArray)
+	trainingRDD = scsingleton.sc.parallelize(trainingArray)
+	validationRDD = scsingleton.sc.parallelize(validationArray)
+	testRDD = scsingleton.sc.parallelize(testArray)
 
 	numTraining = trainingRDD.count()
 	numValidation = validationRDD.count()
@@ -90,7 +87,7 @@ def testRMSE():
 
 	# make personalized recommendation
 	predictMeArray = [(1, 1), (2, 3), (3, 1), (3, 3), (4, 2)]
-	predictMeRDD = sc.parallelize(predictMeArray)
+	predictMeRDD = scsingleton.sc.parallelize(predictMeArray)
 	prediction = model.predictAll(predictMeRDD).collect()
 	print prediction
 
@@ -114,10 +111,20 @@ def testRMSE():
 
 	return
 
+def testRMSE():
+
+	return
+
 def testPRFS():
 	return
 
 
 if __name__ == "__main__":
+
+	# set up spark environment
+	conf = SparkConf().setAppName("testSimpleRMSE").set("spark.executor.memory", "2g")
+	scsingleton = SCSingleton(conf)
+
+	testSimpleRMSE()
 	testRMSE()
 	testPRFS()
