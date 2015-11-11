@@ -6,6 +6,11 @@ import json
 from pyspark import SparkConf
 from pyspark.mllib.recommendation import ALS
 
+# TODO: remove these
+from sklearn import datasets, svm, metrics
+from sklearn.cross_validation import train_test_split
+import matplotlib.pyplot as plt
+
 import data
 import collaborative_filtering as cf
 import content_based as cb
@@ -14,18 +19,19 @@ from singleton import SCSingleton
 def testSimpleRMSE():
 
 	# load the data, an RDD of [(userId, itemId, rating)]
-	# TODO
+	# For testing simple RMSE, we are going to use the following given data.
 
 	# split data into train (60%), validation (20%), test(20%)
-	# TODO: how to split the RDD optimally
-	# http://datascience.stackexchange.com/questions/5667/spark-optimally-splitting-a-single-rdd-into-two
 	"""
-		 0	 1	 2	 3 
-	0	 1	-1	 1	 1
-	1		 1	-1	-1
-	2	 1	 1	-1	
-	3	-1		 1	
-	4	 1	 1	 	-1
+	rating ==  1, user likes the item
+	rating == -1, user dislikes the item
+
+                     0	 1	 2	 3  = itemID
+    userId =    0	 1	-1	 1	 1
+                1		 1	-1	-1
+                2	 1	 1	-1	
+                3	-1		 1	
+                4	 1	 1	 	-1
 
 	0:  (0, 0, 1)	x
 	1:  (0, 1, -1)	x
@@ -43,9 +49,11 @@ def testSimpleRMSE():
 	13: (4, 1, 1)	x
 	14: (4, 3, -1)	x
 
-	training (8): 
+	training (8): data to train the model
 	validation (3):  best performing approach using the validation data
 	test (3): estimate accuracy of the selected approach
+
+	splitting this data into training, validation, test is randomly selected
 	"""
 
 	trainingArray = [(4, 3, -1), (1, 1, 1), (3, 0, -1), 
@@ -82,7 +90,7 @@ def testSimpleRMSE():
 	bestRank = 0
 
 	# with validation
-	#for rank, numIter, lmbda in itertools.product(ranks, numIters, lmbdas)
+	#for rank, numIter, lmbda in itertools.product(ranks, numIters, lmbdas):
 	for rank in ranks:
 		if isExplicit:
 			model = ALS.train(trainingRDD, rank)
@@ -95,6 +103,8 @@ def testSimpleRMSE():
 			bestModel = model
 			bestValidationRmse = validationRmse
 			bestRank = rank
+
+	# make a prediction
 	testPredRDD = bestModel.predictAll( testRDD.map( lambda x: (x[0], x[1]) ) ).cache()
 
 	"""
@@ -103,6 +113,7 @@ def testSimpleRMSE():
 	testPredRDD = model.predictAll( testRDD.map( lambda x: (x[0], x[1]) ) )
 	"""
 
+	# calculate RMSE
 	testArray = testRDD.collect()
 	testPredArray = testPredRDD.collect()
 	print "testArray", testArray
@@ -115,21 +126,62 @@ def testSimpleRMSE():
 
 def testRMSE():
 
+	# load the data, an RDD of [(userId, itemId, rating)]
+	# TODO
+
+	# split data into train (60%), validation (20%), test(20%)
+	# TODO: how to split the RDD optimally
+	# http://datascience.stackexchange.com/questions/5667/spark-optimally-splitting-a-single-rdd-into-two
+
 	return
 
-def testPRFS():
-	# make personalized recommendation
-	predictMeArray = [(1, 1), (2, 3), (3, 1), (3, 3), (4, 2)]
-	predictMeRDD = scsingleton.sc.parallelize(predictMeArray)
-	prediction = model.predictAll(predictMeRDD).collect()
-	print prediction
+def testSimpleBinaryPRFS():
 
-	p, r, f, s = cf.calculate_prfs(testArray, testPredArray)
-	print "testPrfs's prediction", p
-	print "testPrfs's recall", r
-	print "testPrfs's fscore", f
-	print "testPrfs's support", s 
+	# load the data
+	digits = datasets.load_digits()
+	data = digits.data
+	labels = digits.target
 
+	print "numData = ", len(digits.data)
+	print "numTarget = ", len(digits.target)
+
+	# split data into train (60%), validation (20%), test(20%)
+	trainingData, testData, trainingLabel, testLabel = train_test_split(data, labels, test_size=0.4)
+
+	print "numTrainingData  = ", len(trainingData)
+	print "numTestData = ", len(testData)
+	print "numTrainingData == numTestData: ", (len(trainingData) == len(testData))
+	print "numTrainingLabel = ", len(trainingLabel)
+	print "numTestLabel == ", len(testLabel)
+	print "numTrainingLabel == numTestLabel: ", (len(trainingLabel) == len(testLabel))
+
+	# train the model
+	model = svm.SVC(gamma=0.001, C=100)
+	model.fit(trainingData, trainingLabel)
+
+	# make a prediction
+	testPredLabel = model.predict(testData)
+
+	# calculate PRFS
+	print "testLabel"
+	print testLabel
+	print "testPredictedLabel"
+	print testPredLabel
+
+	p, r, f, s = cf.calculate_prfs(testLabel, testPredLabel)
+	print "precision = ", p
+	print "recall = ", r
+	print "fscore = ", f
+	print "support = ", s
+
+	print "classification report for classifier model %s:\n%s\n" % \
+		(model, cf.calculate_prfs_in_report(testLabel, testPredLabel))
+
+	print "confusion matrix:\n%s" % cf.get_confusion_matrix(testLabel, testPredLabel)
+
+	return
+
+def testSimpleMultiPRFS():
 	return
 
 
@@ -141,4 +193,6 @@ if __name__ == "__main__":
 
 	testSimpleRMSE()
 	testRMSE()
-	testPRFS()
+
+	testSimpleBinaryPRFS()
+	testSimpleMultiPRFS()
