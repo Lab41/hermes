@@ -109,7 +109,7 @@ def block_to_JSON(block, repo_name=None):
     def clean_email(email): return email.strip("<>")
 
     # Function to convert timezone to hour office integer
-    def tz_int(tz): return int(tz, 10) / 100
+    def tz_int(tz): return int(tz, 10)
 
     # Translation from the porcelain key to the key in our JSON object, as well
     # as an option transformation to apply first
