@@ -1,6 +1,32 @@
 #!/usr/bin/env python
 
-"""
+"""Provides functions to convert the `git blame` information for a file to JSON
+suitable to read in with Spark.
+
+Attributes:
+    JSON_LINE (dict): A dictionary that stores information from `git blame` on
+        a file. Each entry corresponds to the information from one line in the
+        source file. The variables are as follows:
+            - repo_name (str): The name of the repository.
+            - commit_id (str): The commit hash.
+            - author (str): The author of the commit.
+            - author_mail (str): The author's email address.
+            - author_time (int): The time the commit was written in seconds
+                since the unix epoch.
+            - author_timezone (int): The timezone of the author, as an integer.
+                The two right most digits are the minute offsets, and the
+                remaining leftmost digits are the hour offsets.
+            - committer (str): The committer of the commit.
+            - committer_mail (str): The committer's email address.
+            - committer_time (int): The time the commit was written in seconds
+                since the unix epoch.
+            - committer_timezone (int): The timezone of the committer, in the
+                same form as author_timezone.
+            - comment (str): The commit message.
+            - filename (str): The name of the file.
+            - line_num (int): The line number of the text in the file after the
+                commit was applied.
+            - line (str): The text of the source line.
 """
 
 from subprocess import check_output
