@@ -16,15 +16,20 @@ import collaborative_filtering as cf
 import content_based as cb
 from singleton import SCSingleton
 
-def testSimpleRMSE():
+def test_simple_rmse():
+	""" Test RMSE as follows:
+		(1) train the ALS model with a subset of 15 values 
+		(2) predict a subset of 15 values using the trained model 
+		(3) calculate RMSE or how accurately the prediction is 
+			in comparison to the known values
 
-	# load the data, an RDD of [(userId, itemId, rating)]
-	# For testing simple RMSE, we are going to use the following given data.
-
-	# split data into train (60%), validation (20%), test(20%)
-	"""
-	rating ==  1, user likes the item
-	rating == -1, user dislikes the item
+	Values used to train the ALS model are based on a fictitious world where 
+	5 users rate 4 items whether they like or dislike an item. If the user liked
+	the item, he will provide a rating of 1; otherwise, if the user disliked the
+	item, he will provide a rating of -1. No rating means that the user has not
+	rated the item. This data will be formatted in an RDD of [(userId, itemId, rating)].
+	Splitting these 15 values into training, validation, and test dataset is 
+	randomly selected.
 
                      0	 1	 2	 3  = itemID
     userId =    0	 1	-1	 1	 1
@@ -33,28 +38,29 @@ def testSimpleRMSE():
                 3	-1		 1	
                 4	 1	 1	 	-1
 
-	0:  (0, 0, 1)	x
-	1:  (0, 1, -1)	x
-	2:  (0, 2, 1)	x
-	3:  (0, 3, 1)	x
-	4:  (1, 1, 1)	x
-	5:  (1, 2, -1)	x
-	6:  (1, 3, -1)	x
-	7:  (2, 0, 1)	x
-	8:  (2, 1, 1)	x
-	9:  (2, 1, -1)	x
-	10: (3, 0, -1)	x
-	11: (3, 2, 1)	x
-	12: (4, 0, 1)	x
-	13: (4, 1, 1)	x
-	14: (4, 3, -1)	x
+	0:  (0, 0, 1)	
+	1:  (0, 1, -1)	
+	2:  (0, 2, 1)	
+	3:  (0, 3, 1)	
+	4:  (1, 1, 1)	
+	5:  (1, 2, -1)	
+	6:  (1, 3, -1)	
+	7:  (2, 0, 1)	
+	8:  (2, 1, 1)	
+	9:  (2, 1, -1)	
+	10: (3, 0, -1)	
+	11: (3, 2, 1)	
+	12: (4, 0, 1)	
+	13: (4, 1, 1)	
+	14: (4, 3, -1)
 
-	training (8): data to train the model
-	validation (3):  best performing approach using the validation data
-	test (3): estimate accuracy of the selected approach
-
-	splitting this data into training, validation, test is randomly selected
 	"""
+
+	# load the data, an RDD of [(userId, itemId, rating)]
+	# split data into train (60%), validation (20%), test(20%)
+	# training (8): data to train the model
+	# validation (3):  best performing approach using the validation data
+	# test (3): estimate accuracy of the selected approach
 
 	trainingArray = [(4, 3, -1), (1, 1, 1), (3, 0, -1), 
 					 (4, 0, 1), (1, 2, -1), (0, 0, 1), 
@@ -82,6 +88,7 @@ def testSimpleRMSE():
 	#blocks = -1            # default value
 	#nonnegative = False    # default value
 	#seed = None            # default value
+	#alpha = [0.01]         # default value
 	model = None
 
 	validationArray = validationRDD.collect()
@@ -95,7 +102,8 @@ def testSimpleRMSE():
 		if isExplicit:
 			model = ALS.train(trainingRDD, rank)
 		else: 
-			model = ALS.trainImplicit(trainingRDD, rank)
+			# TODO: figure out why trainImplicit crash
+			model = ALS.trainImplicit(trainingRDD, rank, iterations=5, alpha=0.01)
 		validationPredRDD = model.predictAll( validationRDD.map( lambda x: (x[0], x[1]) ) )
 		validationPredArray = validationPredRDD.collect()
 		validationRmse = cf.calculate_rmse(validationArray, validationPredArray)
@@ -124,7 +132,7 @@ def testSimpleRMSE():
 
 	return
 
-def testRMSE():
+def test_rmse():
 
 	# load the data, an RDD of [(userId, itemId, rating)]
 	# TODO
@@ -135,7 +143,15 @@ def testRMSE():
 
 	return
 
-def testSimpleBinaryPRFS():
+def test_simple_prfs():
+	""" Test Precision and Recall at N (as well as F1-score and Support) as follows:
+		(1) train the SVC model with a subset of sklearn's digits dataset
+		(2) predict what the number is using 
+		    the trained model and a subset of sklearn's digits dataset
+		(3) calculate "Precision and Recall at N" or how accurately it classifies the
+		    digit in comparison to the known values
+
+	"""
 
 	# load the data
 	digits = datasets.load_digits()
@@ -145,15 +161,14 @@ def testSimpleBinaryPRFS():
 	print "numData = ", len(digits.data)
 	print "numTarget = ", len(digits.target)
 
-	# split data into train (60%), validation (20%), test(20%)
+	# split data into train (60%), test(40%)
+	# TODO: add validation in the future? train (60%), validation (20%), test(20%)?
 	trainingData, testData, trainingLabel, testLabel = train_test_split(data, labels, test_size=0.4)
 
 	print "numTrainingData  = ", len(trainingData)
 	print "numTestData = ", len(testData)
-	print "numTrainingData == numTestData: ", (len(trainingData) == len(testData))
 	print "numTrainingLabel = ", len(trainingLabel)
 	print "numTestLabel == ", len(testLabel)
-	print "numTrainingLabel == numTestLabel: ", (len(trainingLabel) == len(testLabel))
 
 	# train the model
 	model = svm.SVC(gamma=0.001, C=100)
@@ -169,10 +184,10 @@ def testSimpleBinaryPRFS():
 	print testPredLabel
 
 	p, r, f, s = cf.calculate_prfs(testLabel, testPredLabel)
-	print "precision = ", p
-	print "recall = ", r
-	print "fscore = ", f
-	print "support = ", s
+	print "precision =\n", p
+	print "recall =\n", r
+	print "fscore =\n", f
+	print "support =\n", s
 
 	print "classification report for classifier model %s:\n%s\n" % \
 		(model, cf.calculate_prfs_in_report(testLabel, testPredLabel))
@@ -181,18 +196,18 @@ def testSimpleBinaryPRFS():
 
 	return
 
-def testSimpleMultiPRFS():
+def test_prfs():
 	return
 
 
 if __name__ == "__main__":
 
 	# set up spark environment
-	conf = SparkConf().setAppName("testSimpleRMSE").set("spark.executor.memory", "2g")
+	conf = SparkConf().setAppName("testSimpleRMSE").set("spark.executor.memory", "5g")
 	scsingleton = SCSingleton(conf)
 
-	testSimpleRMSE()
-	testRMSE()
+	test_simple_rmse()
+	test_rmse()
 
-	testSimpleBinaryPRFS()
-	testSimpleMultiPRFS()
+	test_simple_prfs()
+	test_prfs()
