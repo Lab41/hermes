@@ -144,7 +144,7 @@ def block_to_JSON(block, repo_name=None):
     for line in block[1:-1]:
         sline = line.split()
         key = sline[0]
-        content = sline[1]
+        content = ' '.join(sline[1:])
 
         try:
             (json_key, transform) = porcelain_to_json[key]
