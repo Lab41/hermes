@@ -19,7 +19,7 @@ def create_linked_list(file_path):
         file_path: link to where the original file is located
         top_name: the top name of the category graph: typically Fundamental Categories
 
-    Retruns:
+    Returns:
         category_list: List of parent_child edges
     """
 
@@ -45,6 +45,39 @@ def create_linked_list(file_path):
     category_list = pd.DataFrame(category_list, columns=['parent','child'])
 
     return category_list
+
+def clean_categories(category_list):
+    """
+    Removes categoreis from the [parent, child] Panda dataframe list
+    The removed categories are not appropriate for the cateogry graph
+
+    Args:
+        category_list: Panda dataframe of parent_child edges
+
+    Returns:
+        cleaner: Cleaned Panda dataframe of parent_child edges
+    """
+
+    removal_list = []
+    removal_list.append('Category:Main_topic_classifications')
+    removal_list.append('Category:Container_categories')
+    removal_list.append('Category:Applied_sciences')
+    removal_list.append('Category:Academic_disciplines')
+    removal_list.append('Category:Wikipedia_1.0_assessments')
+    removal_list.append('Category:Society')
+    removal_list.append('Category:Wikipedia_administration')
+    cleaner = category_list
+    for r in removal_list:
+        cleaner = cleaner[cleaner["parent"]!=r]
+        cleaner = cleaner[cleaner["child"]!=r]
+    #now remove anything with a _by_country or _by_nationality
+    cleaner = cleaner[cleaner["parent"].str.contains('_by_country')==False]
+    cleaner = cleaner[cleaner["child"].str.contains('_by_country')==False]
+    cleaner = cleaner[cleaner["parent"].str.contains('_by_nationality')==False]
+    cleaner = cleaner[cleaner["child"].str.contains('_by_nationality')==False]
+
+    return cleaner
+
 
 def create_category_idx_dicts(category_list):
     g = defaultdict(list)
