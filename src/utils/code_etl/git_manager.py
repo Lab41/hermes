@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 
-"""
+"""Provides a Repository class to handle the downloading and removal of a
+github repository.
+
+This class should be used as follows:
+
+    with Repository("lab41/hermes") as hermes_repo:
+        # do_stuff()
+
+The repository is downloaded to a temporary directory when the with block
+enters, and is removed when the with block exits even if there is an error.
+
 """
 
 import tempfile
