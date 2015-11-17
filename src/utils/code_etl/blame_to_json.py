@@ -169,7 +169,6 @@ def file_to_json(filename, repo_name=None):
     """Returns a list of JSON objects containing the blame information
     associated with each line of the input file.
 
-
     Args:
         filename (str): The name of the file to run `git blame` on.
         repo_name (str, optional): The name of the repository.
@@ -181,6 +180,6 @@ def file_to_json(filename, repo_name=None):
     """
     lines = []
     for block in block_generator(filename):
-        lines.append(block_to_JSON(block))
+        lines.append(block_to_JSON(block, repo_name))
 
     return lines
