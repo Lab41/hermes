@@ -2,14 +2,13 @@
 
 import itertools
 import json
+import os
 
 from pyspark import SparkConf
 from pyspark.mllib.recommendation import ALS
-
-# TODO: remove these
-from sklearn import datasets, svm, metrics
+from pyspark.sql.types import StructType
+from sklearn import datasets, svm
 from sklearn.cross_validation import train_test_split
-import matplotlib.pyplot as plt
 
 import data
 import collaborative_filtering as cf
@@ -61,6 +60,7 @@ def test_simple_rmse():
 	# training (8): data to train the model
 	# validation (3):  best performing approach using the validation data
 	# test (3): estimate accuracy of the selected approach
+	# TODO: possible split using sklearn's train_test_split?
 
 	trainingArray = [(4, 3, -1), (1, 1, 1), (3, 0, -1), 
 					 (4, 0, 1), (1, 2, -1), (0, 0, 1), 
@@ -134,8 +134,79 @@ def test_simple_rmse():
 
 def test_rmse():
 
+	movies_schema = None
+	ratings_schema = None
+
+	# load the schemas
+	with open("/Users/tiffanyj/datasets/movielens_20m_movies_schema.json", "r") as json_schema_file:
+		movies_schema = StructType.fromJson(json.load(json_schema_file))
+
+	with open("/Users/tiffanyj/datasets/movielens_20m_ratings_schema.json", "r") as json_schema_file:
+		ratings_schema = StructType.fromJson(json.load(json_schema_file))
+
+	# create a hdfs directory
+	os.system("hdfs dfs -mkdir /user/tiffanyj/datasets")
+
+	# load the movie data into the hdfs directory
+	os.system("hdfs dfs -put /Users/tiffanyj/datasets/movielens_10m_movies.json.gz /user/tiffanyj/datasets/movielens_10m_movies.json.gz")
+
+	# load the movie data into sql
+	movies = scsingleton.sqlCtx.read.json("hdfs://localhost:9000/user/tiffanyj/datasets/movielens_10m_movies.json.gz", schema=movies_schema)
+	movies = movies.repartition(100)
+	def genre_vectorizer(row):
+		return np.array((
+			int(row.genre_action),
+            int(row.genre_adventure),
+            int(row.genre_animation),
+            int(row.genre_childrens),
+            int(row.genre_comedy),
+            int(row.genre_crime),
+            int(row.genre_documentary),
+            int(row.genre_drama),
+            int(row.genre_fantasy),
+            int(row.genre_filmnoir),
+            int(row.genre_horror),
+            int(row.genre_musical),
+            int(row.genre_mystery),
+            int(row.genre_romance),
+            int(row.genre_scifi),
+            int(row.genre_thriller),
+            int(row.genre_war),
+            int(row.genre_western),
+			))
+
+	content_array = movies.map(lambda row: (row.movie_id, genre_vectorizer(row)))
+	content_array.cache()
+
+	# load the rating data into the hdfs directory
+	os.system("hdfs dfs -put /Users/tiffanyj/datasets/movielens_10m_ratings.json.gz /user/tiffanyj/datasets/movielens_10m_ratings.json.gz")
+
+	os.system("hdfs dfs -ls /user/tiffanyj/datasets")
+
+	# load the rating data into sql
+	ratings = scsingleton.sqlCtx.read.json("hdfs://localhost:9000/user/tiffanyj/datasets/movielens_10m_ratings.json.gz", schema=ratings_schema)
+	ratings = ratings.repartition(100)
+	ratings.registerTempTable("ratings")
+	
+	# parse ratings data into (userId, itemId, rating)
+	user_info = ratings.map(lambda row: (row.user_id, row.movie_id, row.rating))
+	user_info.cache()
+
+	print "success about to fail"
+
+	print user_info.take(3)
+
+
+
+
 	# load the data, an RDD of [(userId, itemId, rating)]
-	# TODO
+	# TODO: pass file as param
+
+
+
+	movies = scsingleton.sqlCtx.read.json("/users/hdfs/movielens_10m_movies.json.gz", schema=movies_schema)
+	movies.registerTempTable("movies")
+	"success with loading movies"
 
 	# split data into train (60%), validation (20%), test(20%)
 	# TODO: how to split the RDD optimally
@@ -203,11 +274,11 @@ def test_prfs():
 if __name__ == "__main__":
 
 	# set up spark environment
-	conf = SparkConf().setAppName("testSimpleRMSE").set("spark.executor.memory", "5g")
+	conf = SparkConf().setAppName("test_precision_metrics").set("spark.executor.memory", "5g")
 	scsingleton = SCSingleton(conf)
 
-	test_simple_rmse()
+	#test_simple_rmse()
 	test_rmse()
 
-	test_simple_prfs()
+	#test_simple_prfs()
 	test_prfs()
