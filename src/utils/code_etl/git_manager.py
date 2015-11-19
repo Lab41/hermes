@@ -1,61 +1,61 @@
 #!/usr/bin/env python
 
-"""Provides a Repository class to handle the downloading and removal of a
-github repository.
+"""Provides a Repository class to handle the cloning and removal of a git
+repository.
 
 This class should be used as follows:
 
-    with Repository("lab41/hermes") as hermes_repo:
-        # do_stuff()
+    with Repository("git@github.com:Lab41/hermes.git") as hermes_repo:
+        do_stuff()
 
-The repository is downloaded to a temporary directory when the with block
-enters, and is removed when the with block exits even if there is an error.
+The repository is cloned to a temporary directory when the with block enters,
+and is removed when the with block exits even if there is an error.
 
 """
 
-import tempfile
+from cd import cd
+import os
 import shutil
 import subprocess
+import tempfile
 
+#TODO: Replace with GitPython when we have a packaging solution.
 
 class Repository(object):
-    """Manage the download and cleanup of a github.com git repository.
+    """Manage the cloning and cleanup of a git repository.
 
-    Given the name of a github repository, this class will download it to a
+    Given the location of a git repository, this class will clone it to a
     local, temporary directory. The directory will be cleaned up at the end.
 
     The correct way to use this class is with a with statement as follows:
 
-        with Repository("lab41/hermes") as hermes_repo:
-            pass
+        with Repository("git@github.com:Lab41/hermes.git") as hermes_repo:
+            do_stuff()
 
     This insures that the temporary directory is cleaned up regardless of
     exceptions.
 
     Attributes:
-        name (str): The name of the github repository, for example
-            "lab41/hermes"
-        url (str): The url of the git repository.
-        tempdir (str): The directory which houses the repository.
+        remote_location (str): The location of the remote git repository.
+        local_location (str): The location of the local repository.
 
     """
-    def __init__(self, name):
-        """Initialize the class given a github repository name.
+    def __init__(self, location):
+        """Initialize the class given a git location.
 
         Args:
-            name (str): The name of the github repository, for example
-                "lab41/hermes"
+            location (str): The location of the repository to clone
         """
-        self.name = name
-        self.tempdir = tempfile.mkdtemp()
-        self.url = "https://github.com/" + self.name + ".git"
+        self.__tempdir = tempfile.mkdtemp()
+        self.remote_location = location
+        self.local_location = None
 
         self.__clone_remote()
 
     # enter and exit are called when the class is used in a "with" clause,
     # like:
     #
-    # with Repository("lab41/hermes") as hermes_repo:
+    # with Repository("git@github.com:Lab41/hermes.git") as hermes_repo:
     #     pass
     #
     def __enter__(self):
@@ -63,14 +63,19 @@ class Repository(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         # Clean up the directory
-        shutil.rmtree(self.tempdir)
+        shutil.rmtree(self.__tempdir)
 
     def __clone_remote(self):
-        command = [
-            "git",
-            "clone",
-            "--",
-            self.url,
-            self.tempdir,
-        ]
-        subprocess.check_call(command)
+        with cd(self.__tempdir):
+            command = [
+                "git",
+                "clone",
+                "--",
+                self.remote_location,
+            ]
+            subprocess.check_call(command)
+
+        # Set the local directory. The only item in the directory will be the
+        # repository.
+        items = os.listdir(self.__tempdir)
+        self.local_location = self.__tempdir + '/' + items[0]

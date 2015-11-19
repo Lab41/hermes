@@ -153,42 +153,17 @@ def get_local_repo_name(location):
         return base
 
 
-def is_github_like(repo):
-    """Determine if a string looks like a github repository location.
-
-    A github repository takes the form of "word/word". This function tests that
-    there is exactly one '/', and that there are characters on either side. If
-    this is the case, it returns True, otherwise false.
-
-    Args:
-        repo (str): A string indicating the repository location.
-
-    Returns:
-        bool: True if the string looks like a github repository location, False
-        otherwise.
-
-    """
-    split_repo = repo.split('/')
-    if len(split_repo) != 2:
-        return False
-    if not len(split_repo[0]) or not len(split_repo[1]):
-        return False
-
-    return True
-
-
 if __name__ == "__main__":
 
     import argparse
     # Set up command line flag handling
     parser = argparse.ArgumentParser(
-        description="Download and parse a git repository",
+        description="Clone and parse a git repository",
     )
     parser.add_argument(
         'repo_location',
         type=str,
-        help="the location of the repository, either as a github name or a\
-        local file path",
+        help="the location of the repository"
     )
     parser.add_argument(
         'output_directory',
@@ -210,23 +185,11 @@ if __name__ == "__main__":
     repo_name = args.repo_name
 
     # If we are given a valid local path, then use that
-    git_directory = args.repo_location + "/.git/"
-    if os.path.exists(git_directory):
+    with gm.Repository(args.repo_location) as repo:
         if not repo_name:
-            repo_name = get_local_repo_name(args.repo_location)
+            repo_name = get_local_repo_name(repo.local_location)
         process_local_repo(
-            args.repo_location,
+            repo.local_location,
             args.output_directory,
             repo_name
         )
-
-    # Otherwise try to grab it from github
-    elif is_github_like(args.repo_location):
-        with gm.Repository(args.repo_location) as repo:
-            if not repo_name:
-                repo_name = repo.name
-            process_local_repo(repo.tempdir, args.output_directory, repo_name)
-
-    # Total failure!
-    else:
-        sys.exit("Unable to determine if the repository is local or remote!")
