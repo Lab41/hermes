@@ -71,6 +71,7 @@ Examples:
 
 """
 
+from cd import cd
 import blame_to_json as btj
 import git_manager as gm
 import os
@@ -98,27 +99,6 @@ def get_filelist(directory):
     return file_list
 
 
-class cd(object):
-    """Object to change the current working directory safely.
-
-    This object should be used with the python "with" keyword as follows:
-
-        with cd("/target/path/to/change/to"):
-            # do stuff
-
-    The working directory will change to the target when entering the with
-    block, and will change back to the current directory when it exits, even on
-    error.
-    """
-    def __init__(self, directory):
-        self.directory = directory
-
-    def __enter__(self):
-        self.cwd = os.getcwd()
-        os.chdir(self.directory)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        os.chdir(self.cwd)
 
 
 def process_local_repo(location, output_dir, repo_name):
