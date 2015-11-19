@@ -117,7 +117,7 @@ def process_local_repo(location, output_dir, repo_name):
     with cd(location):
         output_file = output_dir + "/" + repo_name.replace('/', '_') + ".json"
         all_lines = []
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w+') as f:
             for file in get_filelist(location):
                 for line in btj.file_to_json(file, repo_name):
                     f.write(line + "\n")
