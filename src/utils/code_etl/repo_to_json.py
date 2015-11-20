@@ -78,6 +78,7 @@ import os
 import os.path
 import subprocess
 import sys
+import errno
 
 
 def get_filelist(directory):
@@ -98,8 +99,12 @@ def get_filelist(directory):
 
     return file_list
 
-
-
+def is_path_exist(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
 
 def process_local_repo(location, output_dir, repo_name):
     """Convert a local repository to a series of JSON objects.
@@ -115,9 +120,10 @@ def process_local_repo(location, output_dir, repo_name):
         None
     """
     with cd(location):
+        is_path_exist(output_dir)
         output_file = output_dir + "/" + repo_name.replace('/', '_') + ".json"
         all_lines = []
-        with open(output_file, 'w+') as f:
+        with open(output_file, 'w') as f:
             for file in get_filelist(location):
                 for line in btj.file_to_json(file, repo_name):
                     f.write(line + "\n")
