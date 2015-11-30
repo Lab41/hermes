@@ -99,12 +99,14 @@ def get_filelist(directory):
 
     return file_list
 
+
 def is_path_exist(path):
     try:
         os.makedirs(path)
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
+
 
 def process_local_repo(location, output_dir, repo_name):
     """Convert a local repository to a series of JSON objects.
