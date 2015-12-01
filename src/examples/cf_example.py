@@ -152,20 +152,20 @@ def test_rmse():
     ratings_schema = None
 
     # load the schemas
-    with open("/Users/tiffanyj/datasets/movielens/movielens_20m_movies_schema.json", "r") as json_schema_file:
+    with open("movielens_20m_movies_schema.json", "r") as json_schema_file:
         movies_schema = StructType.fromJson(json.load(json_schema_file))
 
-    with open("/Users/tiffanyj/datasets/movielens/movielens_20m_ratings_schema.json", "r") as json_schema_file:
+    with open("movielens_20m_ratings_schema.json", "r") as json_schema_file:
         ratings_schema = StructType.fromJson(json.load(json_schema_file))
 
     # create a hdfs directory
-    os.system("hdfs dfs -mkdir /user/tiffanyj/datasets")
+    os.system("hdfs dfs -mkdir datasets")
 
     # load the json file into the hdfs directory
-    os.system("hdfs dfs -put /Users/tiffanyj/datasets/movielens/movielens_10m_ratings.json.gz /user/tiffanyj/datasets/movielens_10m_ratings.json.gz")
+    os.system("hdfs dfs -put movielens_10m_ratings.json.gz datasets/movielens_10m_ratings.json.gz")
 
     # create a DataFrame based on the content of the json file
-    ratingsDF = scsingleton.sqlCtx.read.json("hdfs://localhost:9000/user/tiffanyj/datasets/movielens_10m_ratings.json.gz", schema=ratings_schema)
+    ratingsDF = scsingleton.sqlCtx.read.json("hdfs://localhost:9000/datasets/movielens_10m_ratings.json.gz", schema=ratings_schema)
     # explicitly repartition RDD after loading so that more tasks can run on it in parallel
     # by default, defaultMinPartitions == defaultParallelism == estimated # of cores across all of the machines in your cluster
     ratingsDF = ratingsDF.repartition(scsingleton.sc.defaultParallelism * 3)    
@@ -260,11 +260,11 @@ def test_prfs():
     # load the schemas (if existed)
 
     # create a hdfs directory
-    #os.system("hdfs dfs -mkdir user/tiffanyj/datasets")
+    #os.system("hdfs dfs -mkdir datasets")
 
     # load the data file into the hdfs directory
-    os.system("hdfs dfs -put /Users/tiffanyj/datasets/sample_multiclass_classification_data.txt /user/tiffanyj/datasets/sample_multiclass_classification_data.txt")
-    data = MLUtils.loadLibSVMFile(scsingleton.sc, "hdfs://localhost:9000/user/tiffanyj/datasets/sample_multiclass_classification_data.txt")
+    os.system("hdfs dfs -put sample_multiclass_classification_data.txt datasets/sample_multiclass_classification_data.txt")
+    data = MLUtils.loadLibSVMFile(scsingleton.sc, "hdfs://localhost:9000/datasets/sample_multiclass_classification_data.txt")
    
     # print data.take(1)
     # ie. [LabeledPoint(1.0, (4,[0,1,2,3],[-0.222222,0.5,-0.762712,-0.833333]))] 
