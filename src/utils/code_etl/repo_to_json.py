@@ -74,6 +74,7 @@ Examples:
 from cd import cd
 import blame_to_json as btj
 import git_manager as gm
+import user_to_file_mapper as ufm
 import os
 import os.path
 import subprocess
@@ -99,12 +100,14 @@ def get_filelist(directory):
 
     return file_list
 
+
 def is_path_exist(path):
     try:
         os.makedirs(path)
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
+
 
 def process_local_repo(location, output_dir, repo_name):
     """Convert a local repository to a series of JSON objects.
@@ -121,12 +124,19 @@ def process_local_repo(location, output_dir, repo_name):
     """
     with cd(location):
         is_path_exist(output_dir)
+
+        # Produce a JSON object from the blame of each file
         output_file = output_dir + "/" + repo_name.replace('/', '_') + ".json"
-        all_lines = []
         with open(output_file, 'w') as f:
             for file in get_filelist(location):
                 for line in btj.file_to_json(file, repo_name):
                     f.write(line + "\n")
+
+        # Produce a map of files to the users who edited it
+        output_file_map = output_dir + "/" + repo_name.replace('/', '_') + "_file_to_user_map.json"
+        with open(output_file_map, 'w') as f:
+            for line in ufm.repo_to_file_map_json(repo_name):
+                f.write(line + "\n")
 
 
 def get_local_repo_name(location):
