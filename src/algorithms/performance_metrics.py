@@ -63,7 +63,7 @@ def calculate_mae_using_rdd(y_actual, y_predicted, num_actual):
     """
 
     sum_ratings_diff = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
-        .map( lambda (_, (predictedRating, actualRating)): (predictedRating - actualRating) ) \
+        .map( lambda (_, (predictedRating, actualRating)): abs(predictedRating - actualRating) ) \
         .reduce(add)
 
     return sqrt(sum_ratings_diff) / float(num_actual) 
