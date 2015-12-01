@@ -29,10 +29,10 @@ from timer import Timer
 This entire file is to provide a basic understanding of collaborative filtering
 and its performance metrics. 
 
-* test_simple_rmse() tests RMSE with ALS model and a small dataset. 
-* test_rmse() tests RMSE with ALS model and a large dataset.
-* test_simple_prfs() tests precision and recall with SVD model and a small dataset.
-* test_prfs() tests precision and recall with SVD model and a large dataset.
+* test_simple_rmse() tests RMSE with ALS model and a small dataset using sklearn (meaning it uses array). 
+* test_rmse() tests RMSE with ALS model and a large dataset using pyspark (meaning it uses RDD).
+* test_simple_prfs() tests precision and recall with SVD model and a small dataset using sklearn (meaning it uses array).
+* test_prfs() tests precision and recall with LogisticRegressionWithLBFGS model and a large dataset using pyspark (meaning it uses RDD).
 
 This example assumes that you have installed 
 * pyspark
@@ -266,6 +266,7 @@ def test_prfs():
     
     """
     Test Precision, Recall, Fscore, and Support on multiclass classification data
+    Input data: https://github.com/apache/spark/blob/master/data/mllib/sample_multiclass_classification_data.txt.
     """
 
     # load the schemas (if existed)
@@ -290,13 +291,6 @@ def test_prfs():
         numTest = testRDD.count()
     print "testRDD.count(): %s seconds" % t.secs
 
-    # TODO: remove
-    print trainingRDD.take(1)
-    print testRDD.take(1)
-    numTraining = trainingRDD.count()
-    print "training count:", numTraining
-    print "test count:", numTest
-
     # run training algorithm to build the model
     # without validation
     with Timer() as t:
@@ -307,9 +301,6 @@ def test_prfs():
     with Timer() as t:
         testPredAndLabel = testRDD.map(lambda lp: (float(model.predict(lp.features)), lp.label))
     print "testPredAndLabel: %s seconds" % t.secs
-
-    # TODO: remove
-    print testPredAndLabel.take(1)
 
     # calculate Precision, Recall, F1-score
     metrics = MulticlassMetrics(testPredAndLabel)
@@ -339,8 +330,8 @@ if __name__ == "__main__":
     conf = SparkConf().setAppName("test_precision_metrics").set("spark.executor.memory", "5g")
     scsingleton = SCSingleton(conf)
 
-    #test_simple_rmse()
-    #test_rmse()
+    test_simple_rmse()
+    test_rmse()
 
-    #test_simple_prfs()
+    test_simple_prfs()
     test_prfs()
