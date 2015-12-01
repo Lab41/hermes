@@ -13,7 +13,7 @@ from sklearn.metrics import confusion_matrix
 
 # RMSE -----------------------------------------------------------------    
 
-def calculate_rmse_using_rdd(y_actual, y_predicted, num_actual):
+def calculate_rmse_using_rdd(y_actual, y_predicted):
     """
     Determines the Root Mean Square Error of the predictions. 
 
@@ -26,11 +26,13 @@ def calculate_rmse_using_rdd(y_actual, y_predicted, num_actual):
 
     """
 
-    sum_ratings_diff_sq = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
+    ratings_diff_sq = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
         .map( lambda (_, (predictedRating, actualRating)): (predictedRating - actualRating) ** 2 ) \
-        .reduce(add)
 
-    return sqrt(sum_ratings_diff_sq) / float(num_actual) 
+    sum_ratings_diff_sq = ratings_diff_sq.reduce(add)
+    num = ratings_diff_sq.count()
+
+    return sqrt(sum_ratings_diff_sq) / float(num) 
         
 def calculate_rmse_using_array(y_actual, y_predicted):
     """
@@ -49,7 +51,7 @@ def calculate_rmse_using_array(y_actual, y_predicted):
 
 # MAE ------------------------------------------------------------------
 
-def calculate_mae_using_rdd(y_actual, y_predicted, num_actual):
+def calculate_mae_using_rdd(y_actual, y_predicted):
     """
     Determines the Mean Absolute Error of the predictions.
 
@@ -62,11 +64,13 @@ def calculate_mae_using_rdd(y_actual, y_predicted, num_actual):
 
     """
 
-    sum_ratings_diff = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
+    ratings_diff = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
         .map( lambda (_, (predictedRating, actualRating)): abs(predictedRating - actualRating) ) \
-        .reduce(add)
+    
+    sum_ratings_diff = ratings_diff.reduce(add)
+    num = ratings_diff.count()
 
-    return sqrt(sum_ratings_diff) / float(num_actual) 
+    return sqrt(sum_ratings_diff) / float(num) 
 
 # Accuracy of usage predictions (aka classification metrics) ===================
 

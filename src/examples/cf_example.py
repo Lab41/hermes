@@ -100,14 +100,6 @@ def test_simple_rmse():
     validationRDD = scsingleton.sc.parallelize(validationArray)
     testRDD = scsingleton.sc.parallelize(testArray)
 
-    numTraining = trainingRDD.count()
-    numValidation = validationRDD.count()
-    numTest = testRDD.count()
-
-    print "numTraining = %d\n" % (numTraining)
-    print "numValidation = %d\n" % (numValidation)
-    print "numTest = %d\n" % (numTest)
-
     # run training algorithm to build the model 
     isExplicit = True 
     ranks = [3, 5, 7]
@@ -132,7 +124,7 @@ def test_simple_rmse():
             # TODO: figure out why trainImplicit crash
             model = ALS.trainImplicit(trainingRDD, rank, iterations=5, alpha=0.01)
         validationPredRDD = model.predictAll( validationRDD.map( lambda x: (x[0], x[1]) ) )
-        validationRmse = pm.calculate_rmse_using_rdd(validationRDD, validationPredRDD, numValidation)
+        validationRmse = pm.calculate_rmse_using_rdd(validationRDD, validationPredRDD)
         if (validationRmse < bestValidationRmse):
             bestModel = model
             bestValidationRmse = validationRmse
@@ -148,7 +140,7 @@ def test_simple_rmse():
     """
 
     # calculate RMSE
-    testRmse = pm.calculate_rmse_using_rdd(testRDD, testPredRDD, numTest)
+    testRmse = pm.calculate_rmse_using_rdd(testRDD, testPredRDD)
     print "testRmse using RDD = ", testRmse
 
     return
@@ -188,10 +180,6 @@ def test_rmse():
     trainingRDD.cache()
     testRDD.cache()
 
-    with Timer() as t:
-        numTest = testRDD.count()
-    print "testRDD.count(): %s seconds" % t.secs
-
     # run training algorithm to build the model
     # without validation
     with Timer() as t:
@@ -205,7 +193,7 @@ def test_rmse():
 
     # calculate RMSE
     with Timer() as t:
-        testRmse = pm.calculate_rmse_using_rdd(testRDD, testPredRDD, numTest)
+        testRmse = pm.calculate_rmse_using_rdd(testRDD, testPredRDD)
     print "testRmse: %s seconds" % t.secs
     print "testRmse", testRmse
 
