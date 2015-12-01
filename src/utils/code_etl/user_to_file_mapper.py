@@ -167,3 +167,21 @@ def file_map_to_json(file_map, repo_name):
             jsons.append(json.dumps(current_json))
 
     return jsons
+
+
+def repo_to_file_map_json(repo_name):
+    """Returns a list of JSON objects as strings containing the `git log`
+    of the current directory.
+
+    Args:
+        repo_name (str): The name of the repository.
+
+    Returns:
+        list: A list containing strings of the JSON objects.
+
+    """
+    file_map = {}
+    for block in log_block_generator():
+        parse_block(block, file_map)
+
+    return file_map_to_json(file_map, repo_name)
