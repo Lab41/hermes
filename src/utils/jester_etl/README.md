@@ -29,3 +29,33 @@ The converting script is run as follows:
 ```bash
 ./jester.py jester_items.dat jester-data-1.xls jester-data-2.xls jester-data-3.xls jesterfinal151cols.xls
 ```
+
+On MAC OS, you might need to install:
+* xlrd (tested on version 0.9.4) 
+```bash
+// download xlrd from https://pypi.python.org/pypi/xlrd
+// cd xlrd-0.9.4
+python setup.py install
+```
+* libxml2
+```bash
+brew install libxml2
+brew link libxml2 --force
+```
+* libxslt: brew install libxslt; brew link libxslt --force
+```bash
+brew install libxslt
+brew link libxslt --force
+```
+* lxml
+```bash
+pip install lxml
+```
+* beautiful soup 
+```bash
+pip install beautifulsoup4
+```
+
+
+Tested on xlrd version 0.9.4, beautifulsoup4.
+
