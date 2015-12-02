@@ -140,7 +140,7 @@ def joke_to_json(path):
 
         # All remaining lines are the text of the joke as HTML
         text = '\n'.join(block[1:])
-        current_joke["joke_text"] = bs4.BeautifulSoup(text, "lxml").get_text()
+        current_joke["joke_text"] = bs4.BeautifulSoup(text, "lxml").get_text().strip()
 
         output.append(json.dumps(current_joke))
 
