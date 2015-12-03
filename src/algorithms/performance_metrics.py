@@ -2,6 +2,7 @@
 
 from math import sqrt
 from operator import add
+import numpy as np
 
 # for arrays
 from sklearn.metrics import classification_report
@@ -127,3 +128,35 @@ def predictions_to_n(y_predicted, number_recommended=10):
         return sorted_vals
 
     return sorted_predictions
+
+def calculate_population_category_diversity(y_predicted, content_array):
+    """
+    Sorts the predicted ratings for a user then cuts at the specified N.  Useful when calculating metrics @N
+    The higher the category diversity the better.
+
+    Function determines the total sum of the categories for all people (rating_array).
+    So for a random group of users resulting in 330 predictions in MovieLens this could look like:
+        [71, 34, 11, 22, 126, 128, 0, 165, 21, 0, 35, 0, 62, 100, 5, 131, 3, 0]
+    The average of each component (by total number of predictions) is then taken
+        [0.21, 0.1, 0.03....0]
+    The component averages are summed
+        2.79
+    Finally a scaling factor is utilized to take into consideration the number of categories and the average categories for an item
+        0.31
+    This final step is to help normalize across datasets where some may have many more/less categories and/or more/less dense item categorization
+
+    Args:
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ]. Should be the n predicted ratings
+        content_array: content feature array of the items which should be in the format of (item [content_feature vector])
+
+    Returns:
+        cat_diversity:
+
+    """
+    ave_coverage = content_array.map(lambda (id, array): sum(array)).mean()
+    rating_array_raw = y_predicted.keyBy(lambda row: row[1]).join(content_array)\
+        .map(lambda (id, (rating, array)): array).collect()
+    rating_array = map(sum,zip(*np.array(rating_array_raw)))
+    cat_diversity = sum([r/float(len(rating_array_raw)) for r in rating_array])*ave_coverage/float(len(rating_array))
+
+    return cat_diversity
