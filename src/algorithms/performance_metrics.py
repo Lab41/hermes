@@ -161,7 +161,7 @@ def calculate_population_category_diversity(y_predicted, content_array):
 
     return cat_diversity
 
-def item_coverage(y_training_data, y_predicted):
+def calculate_item_coverage(y_training_data, y_predicted):
     """
     Calculates the percentage of user-item pairs that were predicted by the algorithm.
     The training data is passed in to determine the total number of potential user-item pairs
@@ -187,3 +187,29 @@ def item_coverage(y_training_data, y_predicted):
     item_coverage = prediction_count/float(potential_predict)*100
 
     return item_coverage
+
+def calculate_prediction_coverage(y_actual, y_predicted):
+    """
+    Calculates the percentage of known user-item pairs which were predicted by the algorithm.
+    It is different from the item_coverage in that only the user's actual ratings are analyzed vs all potential ratings
+    In this manner it is likely that very low occuring items or users wouldn't hurt the final metric as much calculate_item_coverage will
+    It is very important to NOT pass in the sorted and cut prediction RDD
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
+
+
+    Returns:
+        item_coverage: value representing the percentage of user-item pairs that were able to be predicted
+    """
+
+    predictionsAndRatings = y_predicted.map(lambda x: ((x[0], x[1]), x[2])) \
+      .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))
+
+    num_found_predictions = predictionsAndRatings.count()
+    num_test_set = y_actual.count()
+
+    prediction_coverage = num_found_predictions/float(num_test_set)*100
+
+    return prediction_coverage
