@@ -103,3 +103,27 @@ def calculate_prfs_using_array(y_actual, y_predicted):
 # TODO
 
 # ============================================================================
+
+def predictions_to_n(y_predicted, number_recommended=10):
+    """
+    Sorts the predicted ratings for a user then cuts at the specified N.  Useful when calculating metrics @N
+
+    Args:
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ]
+        number_recommended: the number of ratings desired for each user. default is set to 10 items
+
+    Returns:
+        sorted_predictions: RDD of the sorted and cut predictions in the form of of [ (userId, itemId, predictedRating) ]
+
+    """
+
+    sorted_predictions = y_predicted.groupBy(lambda row: row[0])\
+        .map(lambda (user_id, ratings):(user_id,sort_and_cut(list(ratings),number_recommended)))\
+        .map(lambda (user, ratings): ratings).flatMap(lambda x: x)
+
+    def sort_and_cut(ratings_list, numberOfItems):
+        sorted_vals = sorted(ratings_list, key=lambda ratings: ratings[2], reverse=True)
+        sorted_vals = sorted_vals[:numberOfItems]
+        return sorted_vals
+
+    return sorted_predictions
