@@ -160,3 +160,30 @@ def calculate_population_category_diversity(y_predicted, content_array):
     cat_diversity = sum([r/float(len(rating_array_raw)) for r in rating_array])*ave_coverage/float(len(rating_array))
 
     return cat_diversity
+
+def item_coverage(y_training_data, y_predicted):
+    """
+    Calculates the percentage of user-item pairs that were predicted by the algorithm.
+    The training data is passed in to determine the total number of potential user-item pairs
+    Then the predicted data is passed in to determine how many user-item pairs were predicted.
+    It is very important to NOT pass in the sorted and cut prediction RDD and that the algorithm trys to predict all pairs
+    The use the function 'cartesian' as shown in line 25 of content_based.py is helpful in that regard
+
+    Args:
+        y_training_data: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
+
+
+    Returns:
+        item_coverage: value representing the percentage of user-item pairs that were able to be predicted
+
+    """
+
+    prediction_count = y_predicted.count()
+    #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
+    num_users = y_training_data.map(lambda row: row[0]).distinct().count()
+    num_items = y_training_data.map(lambda row: row[1]).distinct().count()
+    potential_predict = num_users*num_items
+    item_coverage = prediction_count/float(potential_predict)*100
+
+    return item_coverage
