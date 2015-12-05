@@ -1,23 +1,36 @@
 #!/usr/bin/env python
 
-"""Translate the Jester dataset to JSON.
+"""Translate the Book-Crossing dataset to JSON.
 
-This script takes various files from Jester (Dataset 1, Dataset 2, and Dataset
-2+) and writes each user's rating as a single JSON object. Each joke is also
-saved as a JSON object.
+This script takes the various Book-Crossing data files and write them out as
+JSON. It removes users that have no ratings as well as books that are unrated
+(or are not listed in the main book file).
 
 Attributes:
     RATINGS (dict): A dictionary that stores information from all of
         the rating actions taken by the users in the dataset. The
         variables are as follows:
             - user_id (int): A unique identifier for each user.
-            - joke_id (int): A unique identifier for each joke.
-            - rating (float): The user's rating for a joke,
-                from -10 to 10.
-     JOKES (dict): A dictionary that stores information about all the jokes in
+            - book_id (int): A unique identifier for each book.
+            - rating (int): The user's rating for a book,
+                from 1 to 10. None if an implicit rating.
+            - implicit (bool): True if the rating is "implicit", that is, just
+                an interaction with the book instead of a numeric rating.
+
+     BOOKS (dict): A dictionary that stores information about all the books in
         the dataset. The variables are as follows:
-            - joke_id (int): A unique identifier for each joke.
-            - joke_text (str): The text of the joke.
+            - book_id (str): A unique identifier for each book.
+            - title (str): The title of the book.
+            - author (str): The author of the book.
+            - year (int): The year the book was published.
+            - publisher (str): The publisher of the book.
+
+    USERS (dict): A dictionary that stores information about the users. The
+        variables are as follows:
+            - user_id (int): A unique identifier for each user.
+            - location (str): A location, often of the form "city, state,
+                country".
+            - age (int): The age of the user in years; can be None.
 
 """
 
@@ -52,10 +65,21 @@ USERS = {
 
 
 def convert_str(string):
+    """Convert a string from 'iso-8859-1' to 'utf8'."""
     return string.decode('iso-8859-1').encode('utf8')
 
 
 def iter_lines(open_file):
+    """Open the Book-Crossing CSVs and return an iterator over the lines.
+
+    Args:
+        open_file: A file handle object from open().
+
+    Retunrs:
+        iterator: An iterator over each line in the file. Each line is a list,
+            with string elements for each column value.
+
+    """
     reader = csv.reader(
         open_file,
         delimiter=';',
@@ -68,6 +92,24 @@ def iter_lines(open_file):
 
 
 def parse_user_line(line):
+    """Parse a line from the user CSV file.
+
+    A line is a list of strings as follows:
+
+        line = [
+            user_id,
+            location,
+            age,
+        ]
+
+    Args:
+        lines (list): A list of strings as described above.
+
+    Returns:
+        dict: A dictionary containing the keys "user_id", "location", and
+            "age".
+
+    """
     (user, location, age) = line
     current_user = deepcopy(USERS)
     current_user["user_id"] = int(user)
@@ -83,6 +125,24 @@ def parse_user_line(line):
 
 
 def parse_rating_line(line):
+    """Parse a line from the ratings CSV file.
+
+    A line is a list of strings as follows:
+
+        line = [
+            user_id,
+            book_id,
+            rating,
+        ]
+
+    Args:
+        lines (list): A list of strings as described above.
+
+    Returns:
+        dict: A dictionary containing the keys "user_id", "book_id", "rating",
+            and "implicit".
+
+    """
     (user, book, rating) = line
     current_rating = deepcopy(RATINGS)
     current_rating["user_id"] = int(user)
@@ -97,6 +157,29 @@ def parse_rating_line(line):
 
 
 def parse_book_line(line):
+    """Parse a line from the book CSV file.
+
+    A line is a list of strings as follows:
+
+        line = [
+            book,
+            title,
+            author,
+            year,
+            publisher,
+            small_cover_url,
+            medium_cover_url,
+            large_cover_url,
+        ]
+
+    Args:
+        lines (list): A list of strings as described above.
+
+    Returns:
+        dict: A dictionary containing the keys "book_id", "title", "author",
+            "year", and "publisher".
+
+    """
     # We throw out the three images from Amazon (hence the _,_,_)
     (book, title, author, year, publisher, _, _, _) = line
     current_book = deepcopy(BOOKS)
