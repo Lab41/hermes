@@ -226,6 +226,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # There are three cases of "bad" data that we want to remove:
+    #
+    # 1. Books that are never rated
+    # 2. Ratings that do not match to a user and/or book
+    # 3. Users who have never rate a valid book (with valid defined as not
+    #    failing 1. or 2. above)
+
+    # Find valid books
     valid_books = []
     book_data = []
     with open(args.books, 'rb') as csvfile:
@@ -234,6 +242,7 @@ if __name__ == "__main__":
             valid_books.append(ret["book_id"])
             book_data.append(ret)
 
+    # Find valid users
     valid_users = []
     users_data = []
     with open(args.users, 'rb') as csvfile:
@@ -242,23 +251,32 @@ if __name__ == "__main__":
             valid_users.append(ret["user_id"])
             users_data.append(ret)
 
+    # Save only ratings that have a valid book and a valid user. Additionally,
+    # save the users and books saved to filter the books and user files later.
     valid_books = set(valid_books)
     valid_users = set(valid_users)
     rated_books = []
     rated_users = []
-    with open(args.ratings, 'rb') as csvfile:
-        with open("implicit_ratings.json", 'w') as imp:
-            with open("explicit_ratings.json", 'w') as exp:
-                for line in iter_lines(csvfile):
-                    ret = parse_rating_line(line)
-                    if ret["book_id"] in valid_books and ret["user_id"] in valid_users:
-                        rated_books.append(ret["book_id"])
-                        rated_users.append(ret["user_id"])
-                        if ret["implicit"]:
-                            imp.write(json.dumps(ret) + '\n')
-                        else:
-                            exp.write(json.dumps(ret) + '\n')
 
+    with\
+        open(args.ratings, 'rb') as csvfile,\
+        open("implicit_ratings.json", 'w') as imp,\
+        open("explicit_ratings.json", 'w') as exp:
+
+        for line in iter_lines(csvfile):
+            ret = parse_rating_line(line)
+            if ret["book_id"] in valid_books and ret["user_id"] in valid_users:
+                rated_books.append(ret["book_id"])
+                rated_users.append(ret["user_id"])
+                # Separate the two types of ratings; they can both be
+                # read in on Spark if the user wants both.
+                if ret["implicit"]:
+                    imp.write(json.dumps(ret) + '\n')
+                else:
+                    exp.write(json.dumps(ret) + '\n')
+
+    # Only save books or users that have at least one rating saved to the
+    # ratings outputs.
     rated_and_valid_books = set(rated_books)
     rated_and_valid_users = set(rated_users)
 
