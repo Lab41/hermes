@@ -9,6 +9,7 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import confusion_matrix
+from pyspark.sql.types import *
 
 # Accuracy of ratings predictions (aka regression metrics) =====================
 
@@ -213,3 +214,108 @@ def calculate_prediction_coverage(y_actual, y_predicted):
     prediction_coverage = num_found_predictions/float(num_test_set)*100
 
     return prediction_coverage
+
+def calculate_serendipity(y_actual, y_predicted, item_ranking):
+    """
+    Calculates the serendipity of the recommendations.
+    This measure of serendipity in particular is how surprising relevant recommendations are to a user
+
+    serendipity = 1/N sum( max(Pr(s)- Pr(S), 0) * isrel(s)) over all items
+
+    The central portion of this equation is the difference of probability that an item is rated for a user
+    and the probability that item would be recommended for any user.
+    The first ranked item has a probability 1, and last ranked item is zero.  prob_by_rank(rank, n) caculates this
+    Relevance is defined by the items in the hold out set (y_actual).
+    If an item was rated it is relevant, which WILL miss relevant non-rated items.
+
+    Higher values are better
+
+    Method derived from the Coursera course: Recommender Systems taught by Prof Joseph Konstan (Universitu of Minesota)
+    and Prof Michael Ekstrand (Texas State University)
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ].
+            Only favorably rated items should be passed in (so pre-filtered)
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this is not the sorted and cut prediction RDD
+        item_ranking: an item ranking for all items in the corpus.  For MovieLens (table named ratings) this could be:
+            item_ranking = sqlCtx.sql("select movie_id, avg(rating) as avg_rate, row_number()
+                                        over(ORDER BY avg(rating) desc) as rank
+                                        from ratings group by movie_id order by avg_rate desc")
+
+    Returns:
+        average_overall_serendipity: the average amount of surprise over all users
+        average_serendipity: the average user's amount of surprise over their recommended items
+    """
+
+
+    #determine the probability for each item in the corpus
+    item_ranking_with_prob = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, avg_rate, rank, prob_by_rank(rank, n)))
+
+    #format the 'relevant' predictions as a queriable table
+    #these are those predictions for which we have ratings
+    predictionsAndRatings = y_predicted.map(lambda x: ((x[0], x[1]), x[2])) \
+      .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))
+    temp = predictionsAndRatings.map(lambda (a,b): (a[0], a[1], b[1], b[1]))
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+          StructField("prediction", FloatType(), True), StructField("actual", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_preds = sqlCtx.createDataFrame(temp, schema)
+    schema_preds.registerTempTable("preds")
+
+    #determine the ranking of predictions by each user
+    user_ranking = sqlCtx.sql("select user, item, prediction, row_number() \
+        over(Partition by user ORDER BY prediction desc) as rank \
+        from preds order by user, prediction desc")
+    user_ranking.registerTempTable("user_rankings")
+
+    #find the number of predicted items by user
+    user_counts = sqlCtx.sql("select user, count(item) as num_found from preds group by user")
+    user_counts.registerTempTable("user_counts")
+
+    #use the number of predicted items and item rank to determine the probability an item is predicted
+    user_info = sqlCtx.sql("select r.user, item, prediction, rank, num_found from user_rankings as r, user_counts as c\
+        where r.user=c.user")
+    user_ranking_with_prob = user_info.map(lambda (user, item, pred, rank, num): \
+                                     (user, item, rank, num, prob_by_rank(rank, num)))
+
+    #now combine the two to determine (user, item_prob_diff) by item
+    data = user_ranking_with_prob.keyBy(lambda p: p[1])\
+        .join(item_ranking_with_prob.keyBy(lambda p:p[0]))\
+        .map(lambda (item, (a,b)): (a[0], max(a[4]-b[3],0)))\
+
+    #combine the item_prob_diff by user and average to get the average serendiptiy by user
+    sumCount = data.combineByKey(lambda value: (value, 1),
+                             lambda x, value: (x[0] + value, x[1] + 1),
+                             lambda x, y: (x[0] + y[0], x[1] + y[1]))
+    serendipityByUser = sumCount.map(lambda (label, (value_sum, count)): (label, value_sum / count))
+
+    num = float(serendipityByUser.count())
+    average_serendipity = serendipityByUser.map(lambda (user, serendipity):serendipity).reduce(add)/num
+
+    #alternatively we could average not by user first, so heavier users will be more influential
+    #for now we shall return both
+    average_overall_serendipity = data.map (lambda (user, serendipity): serendipity).reduce(add)/float(data.count())
+
+    return (average_overall_serendipity, average_serendipity)
+
+def prob_by_rank(rank, n):
+    """
+    Transforms the rank of item into the probability that an item is recommended an observed by the user.
+    The first ranked item has a probability 1, and last ranked item is zero.
+    Simplified version of 1- (rank-1)/(n-1)
+
+    Args:
+        rank: rank of an item
+        n: number of items to be recommended
+
+    Returns:
+        prob: the probability an item will be recommended
+    """
+
+    #if there is only one item, probability should be one, but method below will not work...
+    if n == 1:
+        prob = 1.0
+    else:
+        prob = (n-rank)/float(n-1)
+    return prob
