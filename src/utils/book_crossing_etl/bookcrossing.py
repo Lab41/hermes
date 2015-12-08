@@ -3,8 +3,8 @@
 """Translate the Book-Crossing dataset to JSON.
 
 This script takes the various Book-Crossing data files and write them out as
-JSON. It removes users that have no ratings as well as books that are unrated
-(or are not listed in the main book file).
+JSON. It removes users that have no ratings as well as ratings of books that do
+not exist.
 
 Attributes:
     RATINGS (dict): A dictionary that stores information from all of
@@ -226,12 +226,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # There are three cases of "bad" data that we want to remove:
+    # There are two cases of "bad" data that we want to remove:
     #
-    # 1. Books that are never rated
-    # 2. Ratings that do not match to a user and/or book
-    # 3. Users who have never rate a valid book (with valid defined as not
-    #    failing 1. or 2. above)
+    # 1. Ratings that do not match to a valid user or book
+    # 2. Users who have no ratings after the above rule has been applied
 
     # Find valid books
     valid_books = []
@@ -255,7 +253,6 @@ if __name__ == "__main__":
     # save the users and books saved to filter the books and user files later.
     valid_books = set(valid_books)
     valid_users = set(valid_users)
-    rated_books = []
     rated_users = []
 
     with\
@@ -266,7 +263,6 @@ if __name__ == "__main__":
         for line in iter_lines(csvfile):
             ret = parse_rating_line(line)
             if ret["book_id"] in valid_books and ret["user_id"] in valid_users:
-                rated_books.append(ret["book_id"])
                 rated_users.append(ret["user_id"])
                 # Separate the two types of ratings; they can both be
                 # read in on Spark if the user wants both.
@@ -275,15 +271,13 @@ if __name__ == "__main__":
                 else:
                     exp.write(json.dumps(ret) + '\n')
 
-    # Only save books or users that have at least one rating saved to the
-    # ratings outputs.
-    rated_and_valid_books = set(rated_books)
+    # Only save users that have at least one rating saved to the ratings
+    # outputs.
     rated_and_valid_users = set(rated_users)
 
     with open("books.json", 'w') as f:
         for ret in book_data:
-            if ret["book_id"] in rated_and_valid_books:
-                f.write(json.dumps(ret) + '\n')
+            f.write(json.dumps(ret) + '\n')
 
     with open("users.json", 'w') as f:
         for ret in users_data:

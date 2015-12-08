@@ -33,13 +33,11 @@ manner:
 
 1. Any entry in the rating file that does not match to a book in the books
    file or a user in the user file is removed.
-2. Any book in the books file is removed if it does not match one of the
-   ratings saved from the ratings file.
-3. Any user in the users file is removed if they do not have at least one
+2. Any user in the users file is removed if they do not have at least one
    rating saved from the rating file.
 
-In this manner invalid reviews, invalid books, and invalid (and inactive)
-users are removed before the conversion to JSON.
+In this manner invalid reviews and invalid (and inactive) users are removed
+before the conversion to JSON.
 
 ## Dependencies
 
