@@ -30,7 +30,7 @@ parser.add_argument(
         )
 parser.add_argument(
         '-o',
-        '--output_directory',
+        '--output-directory',
         type=str,
         action="store",
         help="the directory to save the output JSON files, by default the current directory",
