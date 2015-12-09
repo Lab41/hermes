@@ -276,7 +276,7 @@ if __name__ == "__main__":
             )
     parser.add_argument(
             '-o',
-            '--output_directory',
+            '--output-directory',
             type=str,
             action="store",
             help="the directory to save the output JSON files, by default the current directory",
@@ -287,11 +287,11 @@ if __name__ == "__main__":
 
     # Parse the files
     processing_queue = (
-        (args.artists, args.output_directory + "/artists.json", parse_artist_line),
-        (args.tags, args.output_directory + "/tags.json", parse_tag_line),
-        (args.friends, args.output_directory + "/friends.json", parse_friends_line),
-        (args.applied_tags, args.output_directory + "/applied_tags.json", parse_applied_tag_line),
-        (args.plays, args.output_directory + "/plays.json", parse_plays_line),
+        (args.artists, args.output_directory + "/lastfm_artists.json", parse_artist_line),
+        (args.tags, args.output_directory + "/lastfm_tags.json", parse_tag_line),
+        (args.friends, args.output_directory + "/lastfm_friends.json", parse_friends_line),
+        (args.applied_tags, args.output_directory + "/lastfm_applied_tags.json", parse_applied_tag_line),
+        (args.plays, args.output_directory + "/lastfm_plays.json", parse_plays_line),
     )
     for input_file, output_file, function in processing_queue:
         with open(input_file, 'rb') as csv_file, open(output_file, 'w') as json_file:

@@ -217,7 +217,7 @@ if __name__ == "__main__":
             )
     parser.add_argument(
             '-o',
-            '--output_directory',
+            '--output-directory',
             type=str,
             action="store",
             help="the directory to save the output JSON files, by default the current directory",
@@ -257,8 +257,8 @@ if __name__ == "__main__":
 
     with\
         open(args.ratings, 'rb') as csvfile,\
-        open("implicit_ratings.json", 'w') as imp,\
-        open("explicit_ratings.json", 'w') as exp:
+        open("book-crossing_implicit_ratings.json", 'w') as imp,\
+        open("book-crossing_explicit_ratings.json", 'w') as exp:
 
         for line in iter_lines(csvfile):
             ret = parse_rating_line(line)
@@ -275,11 +275,11 @@ if __name__ == "__main__":
     # outputs.
     rated_and_valid_users = set(rated_users)
 
-    with open("books.json", 'w') as f:
+    with open("book-crossing_books.json", 'w') as f:
         for ret in book_data:
             f.write(json.dumps(ret) + '\n')
 
-    with open("users.json", 'w') as f:
+    with open("book-crossing_users.json", 'w') as f:
         for ret in users_data:
             if ret["user_id"] in rated_and_valid_users:
                 f.write(json.dumps(ret) + '\n')
