@@ -1,0 +1,139 @@
+from src.utils import article_to_category, glove, remove_templates, clean_categories, clean_links
+import string
+import numpy as np
+
+class wiki_vectorize():
+
+    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, support_files = None ):
+        """
+        Class initializer to loads the required files
+
+        Args:
+            user_interactions: The RDD of the user interactions. For Wikipedia, this it is the full edit history
+            content: The RDD containing the item content. For Wikipedia, this is the latest edit which contains full article content
+            user_vector_type: The type of user vector desired.  For Wikipedia you can choose between ['num_edits', 'any_interact', 'num_edits_ceil', 'none'].
+                num_edits_ceil will count the number of edits but set an upper limit of 5 edits
+                If 'none' is used then this means you will run your own custom mapping
+            content_vector_type: The type of content vector desired. For Wikipedia you can choose between ['glove', 'category_map', 'none'].
+                If none is chosen no content vector will be returned and None may be passed into the content argument.
+                This option is for pure CF only and some performance metrics will not be able to be ran
+            support_files: If they exist, the supporting files or dataFrames necessary to run the content vectors.
+                For example the category_map function at least needs the category_list from dbPedia
+
+        """
+        self.user_vector_type = user_vector_type
+        self.content_vector_type = content_vector_type
+
+        #Filter out uninteresting articles and users if they still exist in the dataset
+        user_interactions.registerTempTable("ratings")
+        content.registerTempTable("content")
+
+
+        filtered = sqlCtx.sql("select * from ratings where redirect_target is null and article_namespace=0 and user_id is not null")
+        filtered_content = sqlCtx.sql("select * from content where redirect_target is null and article_namespace=0 and full_text is not null")
+
+        self.filtered = filtered
+        self.filtered.registerTempTable("wiki_ratings")
+
+        self.filtered_content = filtered_content
+        self.filtered_content.registerTempTable("wiki_content")
+
+        if support_files:
+            self.support_files = support_files
+        else:
+            self.support_files = {}
+
+
+    def get_user_vector(self):
+
+        if self.user_vector_type=='num_edits':
+            user_info = sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki_ratings \
+                group by user_id, article_id")
+
+            return user_info
+
+        elif self.user_vector_type=='any_interact':
+            user_info = sqlCtx.sql("select user_id as user, article_id as item, 1 as rating from wiki_ratings \
+                group by user_id, article_id")
+
+            return user_info
+
+        elif self.user_vector_type=='num_edits_ceil':
+            user_info = sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki \
+                group by user_id, article_id")\
+                .map(lambda (user, article, rating): (user, article, max(rating, 5)))
+
+            return user_info
+
+        else:
+            return None
+
+
+    def get_content_vector(self):
+        if self.content_vector_type=='glove':
+
+            if self.support_files==1:
+                glove_model = self.support_files["glove_model"]
+
+                split = self.filtered_content\
+                        .map(lambda row: (row.article_id, remove_templates(row.full_text)))\
+                        .map(lambda tup: (tup[0],clean_categories(tup[1])))\
+                        .map(lambda tup: (tup[0],clean_links(tup[1])))\
+                        .map(
+                            lambda tup:
+                            (tup[0], tup[1]\
+                            .replace('\n', ' ')\
+                            .replace("<ref>", '')\
+                            .replace("</ref>", '')\
+                            )
+                        )\
+                        .map(lambda tup: (tup[0], remove_punctuation(tup[1])))\
+                        .map(lambda tup: (tup[0], remove_urls(tup[1])))\
+                        .map(lambda tup: (tup[0], article_to_glove(tup[1], glove_model)))
+
+        elif self.content_vector_type=='category_map':
+
+            if len(self.support_files)==3:
+                    #The category map supporting dataFrames and objects are as followed:
+                    #high_level_idx: An array of the high level categories to map to e.g. ['Concepts', 'Life', 'Physical_universe', 'Society']
+                    #category_index_graph_link: Path to the csv of the category links as created from wiki_categories.create_linked_list()
+                    #category_idx: Dictionary of the categories to an index as created from wiki_categories.create_category_idx_dicts()
+
+                high_level_categories = self.support_files['high_level_categories']
+                category_index_graph_link = self.support_files['category_index_graph_link']
+                category_idx = self.support_file['category_idx']
+
+                ac = article_to_category(high_level_categories, category_index_graph_link, category_idx)
+                article_mapping = ac.run_mapping(self.filtered_content)
+
+                return article_mapping
+
+            else:
+                #print "To run category map you must at least have the category_list from dbPedia"
+                ##TODO work on the
+                print "Please pass in the "
+                return None
+
+
+def remove_punctuation(text):
+    for char in string.punctuation:
+        text = text.replace(char, '')
+    return text
+
+def article_to_glove(text, model):
+    vec = np.zeros(model.vector_size)
+    for word in text.split():
+        vec += model[word.lower()]
+
+    return vec
+
+def remove_urls(text):
+    stext = text.split()
+    next_text = []
+    for word in stext:
+        if word.startswith('http'):
+            continue
+        else:
+            next_text.append(word)
+
+    return ' '.join(next_text)
