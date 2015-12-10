@@ -22,7 +22,9 @@ class movieLens_vectorize():
         self.content_vector_type = content_vector_type
 
         #Filter out uninteresting articles and users if they still exist in the dataset
+        self.user_interactions =user_interactions
         self.user_interactions.registerTempTable("ratings")
+        self.content = content
         self.content.registerTempTable("content")
 
         #if no support files were passed in, initialize an empty support file

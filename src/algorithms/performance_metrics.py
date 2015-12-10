@@ -34,7 +34,7 @@ def calculate_rmse_using_rdd(y_actual, y_predicted):
     sum_ratings_diff_sq = ratings_diff_sq.reduce(add)
     num = ratings_diff_sq.count()
 
-    return sqrt(sum_ratings_diff_sq) / float(num) 
+    return sqrt(sum_ratings_diff_sq / float(num) )
         
 def calculate_rmse_using_array(y_actual, y_predicted):
     """
@@ -72,7 +72,7 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
     sum_ratings_diff = ratings_diff.reduce(add)
     num = ratings_diff.count()
 
-    return sqrt(sum_ratings_diff) / float(num) 
+    return sqrt(sum_ratings_diff / float(num) )
 
 # Accuracy of usage predictions (aka classification metrics) ===================
 
