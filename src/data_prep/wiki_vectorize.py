@@ -17,7 +17,7 @@ class wiki_vectorize():
                 If 'none' is used then this means you will run your own custom mapping
             content_vector_type: The type of content vector desired. For Wikipedia you can choose between ['glove', 'category_map', 'none'].
                 If none is chosen no content vector will be returned and None may be passed into the content argument.
-                This option is for pure CF only and some performance metrics will not be able to be ran
+                You do not need a content vector to run pure CF only but some performance metrics will not be able to be ran
             support_files: If they exist, the supporting files, dataFrames, and/or file links necessary to run the content vectors.
                 For example the category_map function at least needs the category_list from dbPedia
 
@@ -66,7 +66,11 @@ class wiki_vectorize():
 
             return user_info
 
+        elif self.user_vector_type=='none':
+            return None
+
         else:
+            print "Please choose a user_vector_type between num_edits, any_interact, num_edits_ceil or none"
             return None
 
 
@@ -76,7 +80,7 @@ class wiki_vectorize():
             if self.support_files==1:
                 glove_model = self.support_files["glove_model"]
 
-                split = self.filtered_content\
+                article_mapping = self.filtered_content\
                         .map(lambda row: (row.article_id, remove_templates(row.full_text)))\
                         .map(lambda tup: (tup[0],clean_categories(tup[1])))\
                         .map(lambda tup: (tup[0],clean_links(tup[1])))\
@@ -91,6 +95,9 @@ class wiki_vectorize():
                         .map(lambda tup: (tup[0], remove_punctuation(tup[1])))\
                         .map(lambda tup: (tup[0], remove_urls(tup[1])))\
                         .map(lambda tup: (tup[0], article_to_glove(tup[1], glove_model)))
+
+                return article_mapping
+
             else:
                 print "Please pass in a glove_model. Like: support_files['glove_model']=Glove('glove.6B.50d.txt')"
         elif self.content_vector_type=='category_map':
@@ -122,6 +129,12 @@ class wiki_vectorize():
                  "category_idx" : category_idx}'
                 return None
 
+        elif self.content_vector_type=='none':
+            return None
+
+        else:
+            print "Please choose between glove, category_map or none"
+            return None
 
 def remove_punctuation(text):
     for char in string.punctuation:
