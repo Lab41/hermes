@@ -2,7 +2,7 @@ import numpy as np
 
 class movieLens_vectorize():
 
-    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, support_files = None ):
+    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, **support_files ):
         """
         Class initializer to load the required files
 
@@ -65,7 +65,7 @@ class movieLens_vectorize():
             return None
 
         else:
-            print "Please choose a content_vector_type between genre or none"
+            print "Please choose a content_vector_type between 'genre' or 'none'"
             return None
 
 

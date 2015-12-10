@@ -4,7 +4,7 @@ import numpy as np
 
 class wiki_vectorize():
 
-    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, support_files = None ):
+    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, **support_files):
         """
         Class initializer to load the required files
 
