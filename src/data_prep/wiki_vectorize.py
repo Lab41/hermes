@@ -6,18 +6,19 @@ class wiki_vectorize():
 
     def __init__(self, user_interactions, content, user_vector_type, content_vector_type, support_files = None ):
         """
-        Class initializer to loads the required files
+        Class initializer to load the required files
 
         Args:
-            user_interactions: The RDD of the user interactions. For Wikipedia, this it is the full edit history
-            content: The RDD containing the item content. For Wikipedia, this is the latest edit which contains full article content
+            user_interactions: The raw RDD of the user interactions. For Wikipedia, this it is the full edit history.
+                We have been reading it in as wiki_edits = sqlCtx.read.json(wiki_edit_json_data_path, schema=schema)
+            content: The raw RDD containing the item content. For Wikipedia, this is the latest edit which contains full article content
             user_vector_type: The type of user vector desired.  For Wikipedia you can choose between ['num_edits', 'any_interact', 'num_edits_ceil', 'none'].
                 num_edits_ceil will count the number of edits but set an upper limit of 5 edits
                 If 'none' is used then this means you will run your own custom mapping
             content_vector_type: The type of content vector desired. For Wikipedia you can choose between ['glove', 'category_map', 'none'].
                 If none is chosen no content vector will be returned and None may be passed into the content argument.
                 This option is for pure CF only and some performance metrics will not be able to be ran
-            support_files: If they exist, the supporting files or dataFrames necessary to run the content vectors.
+            support_files: If they exist, the supporting files, dataFrames, and/or file links necessary to run the content vectors.
                 For example the category_map function at least needs the category_list from dbPedia
 
         """
@@ -28,7 +29,6 @@ class wiki_vectorize():
         user_interactions.registerTempTable("ratings")
         content.registerTempTable("content")
 
-
         filtered = sqlCtx.sql("select * from ratings where redirect_target is null and article_namespace=0 and user_id is not null")
         filtered_content = sqlCtx.sql("select * from content where redirect_target is null and article_namespace=0 and full_text is not null")
 
@@ -38,6 +38,7 @@ class wiki_vectorize():
         self.filtered_content = filtered_content
         self.filtered_content.registerTempTable("wiki_content")
 
+        #if no support files were passed in, initialize an empty support file
         if support_files:
             self.support_files = support_files
         else:
@@ -90,7 +91,8 @@ class wiki_vectorize():
                         .map(lambda tup: (tup[0], remove_punctuation(tup[1])))\
                         .map(lambda tup: (tup[0], remove_urls(tup[1])))\
                         .map(lambda tup: (tup[0], article_to_glove(tup[1], glove_model)))
-
+            else:
+                print "Please pass in a glove_model. Like: support_files['glove_model']=Glove('glove.6B.50d.txt')"
         elif self.content_vector_type=='category_map':
 
             if len(self.support_files)==3:
@@ -110,8 +112,14 @@ class wiki_vectorize():
 
             else:
                 #print "To run category map you must at least have the category_list from dbPedia"
-                ##TODO work on the
-                print "Please pass in the "
+                ##TODO work on the article_to_category function so that it can just pull in the category list from dpPedia
+                print "Please pass in the following files:"
+                print "high_level_idx: An array of the high level categories to map to e.g. ['Concepts', 'Life', 'Physical_universe', 'Society']"
+                print 'category_index_graph_link: Path to the csv of the category links as created from wiki_categories.create_linked_list()'
+                print 'category_idx: Dictionary of the categories to an index as created from wiki_categories.create_category_idx_dicts()'
+                print 'support_files = {"high_level_categories" : high_level_categories, \
+                 "category_index_graph_link" : category_index_graph_link, \
+                 "category_idx" : category_idx}'
                 return None
 
 
