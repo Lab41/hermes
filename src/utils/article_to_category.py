@@ -76,7 +76,7 @@ class article_to_category():
         )
 
         #run the category mapping filtering out any articles where the mapping was not found
-        article_map = filtered_rdd.map(lambda row: (row.article_title, row.article_id, self.extract_categories(row.full_text))) \
+        article_map = filtered_rdd.map(lambda row: (row.article_title, row.article_id, extract_categories(row.full_text))) \
             .map(lambda (article_title, article_id, cats): self.category_mapping(article_title, article_id, cats)) \
             .filter(lambda row: row != None)
         return article_map
@@ -88,7 +88,7 @@ class article_to_category():
         #there are only a few articles without any categories
         if len(cats)>0:
             for c in cats:
-                c = self.cleanName(c)
+                c = clean_name(c)
                 cat_idx = self.category_idx[c]
                 #If the category cannot be determined from the category index
                 parent_lengths = np.ones(len(self.high_level_idx))*1000000000
@@ -116,21 +116,6 @@ class article_to_category():
                 return [article_id, content_vector]
 
 
-    def cleanName(catName):
-        """
-        Cleans the category name so that it matches the same format as the category list
-        #TODO expand this list of cleans or determine encoding difference
-
-        Args:
-            catName: original category name as given in the wikipedia dump
-
-        Returns:
-            cleanName: the cleaned category name which matches the dbPedia dump
-        """
-        cleanName = catName.replace(' ', '_')
-        cleanName = cleanName.replace('\u2013', '-')
-        return cleanName
-
     def getParentArray(self, catID):
         """
         From a given category ID, the function will then find the shortest path to the high level index list
@@ -153,54 +138,69 @@ class article_to_category():
             parent_lengths.append(dist)
         return parent_lengths
 
-    def extract_categories(text):
-        """Extract the Wikipedia categories from the full text of an article.
+def clean_name(catName):
+    """
+    Cleans the category name so that it matches the same format as the category list
+    #TODO expand this list of cleans or determine encoding difference
 
-        Returns a list of strings enumerating the categories for a Wikipedia
-        article by parsing the full text of the article. The strings are of the
-        form "Category:Foo" and do not contain the opening or closing square
-        brackets. If the article contains a sorting hint in the category (for
-        example, "[[Category:Foo|Sorting Hint]]") those are removed before
-        returning the category.
+    Args:
+        catName: original category name as given in the wikipedia dump
 
-        This function uses a regular expression: \[\[(Category:[^\[\]|]*)
+    Returns:
+        cleanName: the cleaned category name which matches the dbPedia dump
+    """
+    cleanName = catName.replace(' ', '_')
+    cleanName = cleanName.replace('\u2013', '-')
+    return cleanName
 
-        This expression requires that the matched text starts with "[[" but does
-        not look for a closing "]]" as these can be arbitrarily far away if a
-        sorting hint is included.
+def extract_categories(text):
+    """Extract the Wikipedia categories from the full text of an article.
 
-        Args:
-            text (str): The full text of a Wikipedia article in one string.
+    Returns a list of strings enumerating the categories for a Wikipedia
+    article by parsing the full text of the article. The strings are of the
+    form "Category:Foo" and do not contain the opening or closing square
+    brackets. If the article contains a sorting hint in the category (for
+    example, "[[Category:Foo|Sorting Hint]]") those are removed before
+    returning the category.
 
-        Returns:
-            list: A list containing strings of the categories a page belongs to.
+    This function uses a regular expression: \[\[(Category:[^\[\]|]*)
 
-            The list is empty if the page belongs to no categories.
+    This expression requires that the matched text starts with "[[" but does
+    not look for a closing "]]" as these can be arbitrarily far away if a
+    sorting hint is included.
 
-        """
-        # Since Regexes are unreadable, let me explain:
-        #
-        # "\[\[Category:[^\[\]]*)" consists of several parts:
-        #
-        #    \[\[ matches "[["
-        #
-        #    (...) is a capture group meaning roughly "the expression inside this
-        #    group is a block that I want to extract"
-        #
-        #    Category: matches the text "Category:"
-        #
-        #    [^...] is a negated set which means "do not match any characters in
-        #    this set".
-        #
-        #    \[, \], and | match "[", "]", and "|" in the text respectively
-        #
-        #    * means "match zero or more of the preceding regex defined items"
-        #
-        #  So putting it all together, the regex does this:
-        #
-        #    Finds "[[" followed by "Category:" and then matches any number
-        #    (including zero) characters after that that are not the excluded
-        #    characters "[", "]", or "|". When it hits an excluded character it
-        #    stops and the text matched by the regex inside the (...) part is
-        #    returned.
-        return re.findall(r'\[\[(Category:[^\[\]|]*)', text)
+    Args:
+        text (str): The full text of a Wikipedia article in one string.
+
+    Returns:
+        list: A list containing strings of the categories a page belongs to.
+
+        The list is empty if the page belongs to no categories.
+
+    """
+    # Since Regexes are unreadable, let me explain:
+    #
+    # "\[\[Category:[^\[\]]*)" consists of several parts:
+    #
+    #    \[\[ matches "[["
+    #
+    #    (...) is a capture group meaning roughly "the expression inside this
+    #    group is a block that I want to extract"
+    #
+    #    Category: matches the text "Category:"
+    #
+    #    [^...] is a negated set which means "do not match any characters in
+    #    this set".
+    #
+    #    \[, \], and | match "[", "]", and "|" in the text respectively
+    #
+    #    * means "match zero or more of the preceding regex defined items"
+    #
+    #  So putting it all together, the regex does this:
+    #
+    #    Finds "[[" followed by "Category:" and then matches any number
+    #    (including zero) characters after that that are not the excluded
+    #    characters "[", "]", or "|". When it hits an excluded character it
+    #    stops and the text matched by the regex inside the (...) part is
+    #    returned.
+    return re.findall(r'\[\[(Category:[^\[\]|]*)', text)
