@@ -73,7 +73,7 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
     sum_ratings_diff = ratings_diff.reduce(add)
     num = ratings_diff.count()
 
-    return sqrt(sum_ratings_diff / float(num) )
+    return sum_ratings_diff / float(num)
 
 # Accuracy of usage predictions (aka classification metrics) ===================
 
