@@ -10,6 +10,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import confusion_matrix
 from pyspark.sql.types import *
+from sklearn.metrics import jaccard_similarity_score
 
 # Accuracy of ratings predictions (aka regression metrics) =====================
 
@@ -34,7 +35,7 @@ def calculate_rmse_using_rdd(y_actual, y_predicted):
     sum_ratings_diff_sq = ratings_diff_sq.reduce(add)
     num = ratings_diff_sq.count()
 
-    return sqrt(sum_ratings_diff_sq) / float(num) 
+    return sqrt(sum_ratings_diff_sq / float(num) )
         
 def calculate_rmse_using_array(y_actual, y_predicted):
     """
@@ -72,7 +73,7 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
     sum_ratings_diff = ratings_diff.reduce(add)
     num = ratings_diff.count()
 
-    return sqrt(sum_ratings_diff) / float(num) 
+    return sum_ratings_diff / float(num)
 
 # Accuracy of usage predictions (aka classification metrics) ===================
 
@@ -319,3 +320,89 @@ def prob_by_rank(rank, n):
     else:
         prob = (n-rank)/float(n-1)
     return prob
+
+def calc_content_serendipity(y_actual, y_predicted, content_array):
+    """
+    Calculates the serendipity of the recommendations based on their content.
+    This measure of serendipity in particular is how surprising relevant recommendations are to a user
+
+    This method measures the minimum content distance between recommended items and those in the user's profile.
+    Serendipity(i) = min dist(i,j) where j is an item in the user's profile and i is the recommended item
+    Distance is the inverse of the Jaccard Similarity Score (1-Jaccard)
+    A user's overall surprise is the average of each item's surprise.
+    We could weight by p(recommend) as we did in calculate_serendipity().
+    For now the sorted and cut predictions should be passed in versus the full prediction list
+
+    This method is outlined in 'Measuring Surprise in Recommender Systems' by Marius Kaminskas and Derek Bridge
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ].
+            Only favorably rated items should be passed in (so pre-filtered)
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this IS the sorted and cut prediction RDD
+        content_array: content feature array of the items which should be in the format of (item [content_feature vector])
+
+    Returns:
+        average_overall_content_serendipity: the average amount of surprise over all users based on content
+        avg_content_serendipity: the average user's amount of surprise over their recommended items based on content
+    """
+
+    #instead of calculating the distance between the user's items and predicted items we will do a lookup to a table with this information
+    #this minimizes the amount of repeated procedures
+    ##TODO only look at one half of the matrix as we don't need (a,b, dist) if we have (b,a, dist). Need to modify lower section of code to do this
+    content_array_matrix = content_array.cartesian(content_array).map(lambda (a, b): (a[0], b[0], calc_jaccard_diff(a[1], b[1])))
+
+
+    #create a matrix of all predictions for each item a user has rated
+    user_prod_matrix = y_actual.keyBy(lambda (u,i,r): u).join(y_predicted.keyBy(lambda (u,i,p):u))
+
+    #determine all distances for the predicted items for a user in the format of [user, rec_item, dist]
+    user_sim = user_prod_matrix.map(lambda (u, (t, p)): ((t[1],p[1]), u))\
+            .join(content_array_matrix.map(lambda (i1, i2, dist): ((i1,i2),dist)))\
+            .map(lambda (items, user_dist): (user_dist[0], items[1], user_dist[1]))
+
+    user_sim.cache()
+
+    #while we can certainly do the rest in RDD land, it will be easier if the table were queriable
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+              StructField("dist", FloatType(), True) ]
+    schema = StructType(fields)
+    user_sim_sql = sqlCtx.createDataFrame(user_sim, schema)
+    user_sim_sql.registerTempTable("user_sim")
+
+    #determine the minimum distance for each recommended item
+    user_item_serendip = sqlCtx.sql("select user, item, min(dist) as min_dist from user_sim group by user, item")
+    user_item_serendip.registerTempTable("user_item_sim")
+
+    #now determine the average minimum distance over all recommended items for a user
+    user_serendip = sqlCtx.sql("select user, avg(min_dist) from user_item_sim group by user")
+
+    num_users = sqlCtx.sql("select distinct(user) from user_item_sim").count()
+    avg_content_serendipity = user_serendip.map(lambda (user, sim): sim).reduce(add)/float(num_users)
+
+    #alternatively we could average not by user first, so heavier users will be more influential
+    #for now we shall return both
+    average_overall_content_serendipity = sqlCtx.sql("select avg(min_dist) from user_item_sim").collect()[0][0]
+
+    return (average_overall_content_serendipity, avg_content_serendipity)
+
+def calc_jaccard_diff(array_1, array_2):
+    """
+    Utilizes the Jaccard Similarity Score from scikitlearn to determine distance between two arrays
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.jaccard_similarity_score.html
+
+    These arrays for example could be two content vectors.
+    This function would then determine how dis-similar they are to each other
+
+    Args:
+        array_1: array number one.  For example: [0, 1, 1, 1]
+        array_2: array number two.  For example: [0, 1, 0, 1]
+
+    Returns:
+        dist: the inverse of the jaccard similarity.  For the above this equals 0.25
+    """
+    j=jaccard_similarity_score(array_1, array_2)
+    dist = 1-j
+    #it is very important that we return the distance as a python float
+    #otherwise a numpy float is returned which causes chaos and havoc to ensue
+    return float(dist)
