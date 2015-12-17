@@ -130,5 +130,8 @@ def get_item_prob(rows):
         nom += r[1]*r[2]
         denom += abs(r[2])
 
-    item_prob = nom/denom
-    return item_prob
+    if denom ==0:
+        return 0
+    else:
+        item_prob = nom/denom
+        return item_prob
