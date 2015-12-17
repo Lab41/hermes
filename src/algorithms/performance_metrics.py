@@ -80,8 +80,41 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
 # Performance, Recall, Fbeta Score, Support
 
 def calculate_prfs_using_rdd(y_actual, y_predicted):
-    # TODO: it is highly dependent on the labels 
+    # TODO: it is highly dependent on the labels
+    ## The actual and predicted interactions also need to be boolean of [interaction, no_interaction] for the sklearn precision_recall_fscore_support`
+    ## A better metric for recommender systems is precision at N
     return
+
+def calculate_precision_at_n(y_actual, y_predicted, number_recommended = 100):
+    """
+    Calculates the precision at N which is the number of 'relevant' items in the top-n items.
+    'Relevant' here refers to items which are included in the user's ratings
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this is not the sorted and cut prediction RDD
+        number_recommended: the number of recommended items to take into consideration
+
+    Returns:
+        item_coverage: value representing the percentage of user-item pairs that were able to be predicted
+
+    """
+    n_predictions = predictions_to_n(y_predicted, number_recommended)
+
+    prediction_rating_pairs = n_predictions.map(lambda x: ((x[0], x[1]), x[2]))\
+        .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))\
+        .map(lambda ((user, item), (prediction, rating)): (user, item, prediction, rating))
+
+    num_ratings = prediction_rating_pairs.groupBy(lambda (u,i,p,r): u).map(lambda (u,items): (u, len(items)))\
+    .map(lambda (u, num_ratings): num_ratings)
+    #the number of total users
+    n = y_actual.groupBy(lambda (u,i,r): u).count()
+    tot_num_ratings = num_ratings.reduce(add)
+
+    precision_at_n = tot_num_ratings/float(n*number_recommended)
+
+    return precision_at_n
 
 def calculate_prfs_using_array(y_actual, y_predicted):
     """
@@ -406,3 +439,48 @@ def calc_jaccard_diff(array_1, array_2):
     #it is very important that we return the distance as a python float
     #otherwise a numpy float is returned which causes chaos and havoc to ensue
     return float(dist)
+
+def calc_relevant_rank_stats(y_actual, y_predicted):
+    """
+    Determines the average minimum, average and maximum ranking of 'relevant' items
+    'Relevant' here means that the item was rated, i.e., it exists in the y_actual RDD
+
+    Args:
+        y_actual: actual ratings in the format of a RDD  of [ (userId, itemId, actualRating) ].
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this IS NOT the sorted and cut prediction RDD
+
+    Returns:
+        average_overall_content_serendipity:
+    """
+
+    predictions2 = y_predicted.map(lambda (u,i,p): (u,i,p))
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+      StructField("prediction", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_preds = sqlCtx.createDataFrame(predictions2, schema)
+    schema_preds.registerTempTable("predictions")
+
+    #determine each user's prediction ratings
+    prediction_ranking = sqlCtx.sql("select p.user, p.item, p.prediction, row_number() \
+    over(Partition by p.user ORDER BY p.prediction desc) as rank \
+    from predictions p order by p.user, p.prediction desc")
+    prediction_ranking.registerTempTable("prediction_rankings")
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+      StructField("rating", FloatType(), True) ]
+    rating_schema = StructType(fields)
+    rating_schema_preds = sqlCtx.createDataFrame(y_actual, schema)
+    rating_schema_preds.registerTempTable("ratings")
+
+    relevant_ranks = sqlCtx.sql("select p.user, r.item, p.rank from prediction_rankings p, ratings r \
+    where r.user=p.user and p.item=r.item")
+    relevant_ranks.registerTempTable("relevant_ranks")
+
+    max_ranks = sqlCtx.sql("select min(rank), avg(rank), max(rank) from relevant_ranks group by user")
+    max_ranks_local = max_ranks.collect()
+
+    rank_stats = np.mean(max_ranks_local, axis=0)
+
+    return rank_stats
