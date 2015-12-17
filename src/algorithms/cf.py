@@ -121,7 +121,7 @@ def similarity(item1_rows, item2_rows, index):
     else:
         sim = cosine_similarity(*zip(*rating_match))[0][0]
 
-    return sim
+    return float(sim)
 
 def get_item_prob(rows):
     nom = 0
@@ -134,4 +134,4 @@ def get_item_prob(rows):
         return 0
     else:
         item_prob = nom/denom
-        return item_prob
+        return float(item_prob)
