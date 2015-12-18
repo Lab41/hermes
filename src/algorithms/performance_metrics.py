@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from math import sqrt
+from math import sqrt, log
 from operator import add
 import numpy as np
 
@@ -282,7 +282,7 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
         average_serendipity: the average user's amount of surprise over their recommended items
     """
 
-
+    n = item_ranking.count()
     #determine the probability for each item in the corpus
     item_ranking_with_prob = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, avg_rate, rank, prob_by_rank(rank, n)))
 
@@ -332,6 +332,41 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
     average_overall_serendipity = data.map (lambda (user, serendipity): serendipity).reduce(add)/float(data.count())
 
     return (average_overall_serendipity, average_serendipity)
+
+def calculate_novelty(y_predicted, item_ranking):
+    """
+    Novelty measures how new or unknown recommendations are to a user
+    An individual item's novelty can be calculated as the log of the popularity of the item
+    A user's overal novelty is then the sum of the novelty of all items
+
+    Method derived from 'Auraslist: Introducing Serendipity into Music Recommendation' by Y Zhang, D Seaghdha, D Quercia, and T Jambor
+
+    Args:
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this IS the sorted and cut prediction RDD
+        item_ranking: an item ranking for all items in the corpus.  For MovieLens (table named ratings) this could be:
+            item_ranking = sqlCtx.sql("select movie_id, avg(rating) as avg_rate, row_number()
+                                        over(ORDER BY avg(rating) desc) as rank
+                                        from ratings group by movie_id order by avg_rate desc")
+
+    Returns:
+
+        avg_overall_novelty: the average amount of novelty over all users
+        avg_novelty: the average user's amount of novelty over their recommended items
+    """
+
+    n = item_ranking.count()
+    item_ranking_with_nov = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, (avg_rate, rank, log(max(prob_by_rank(rank, n), 1e-100), 2))))
+
+    user_novelty = y_predicted.keyBy(lambda (u, i, p): i).join(item_ranking_with_nov).map(lambda (i,((u_p),(pop))): (u_p[0], pop[2]))\
+        .groupBy(lambda (user, pop): user).map(lambda (user, user_item_probs):(np.mean(list(user_item_probs), axis=0)[1])).collect()
+
+    all_novelty = y_predicted.keyBy(lambda (u, i, p): i).join(item_ranking_with_nov).map(lambda (i,((u_p),(pop))): (pop[2])).collect()
+    avg_overall_novelty = float(np.mean(all_novelty))
+
+    avg_novelty = float(np.mean(user_novelty))
+
+    return (avg_overall_novelty, avg_novelty)
 
 def prob_by_rank(rank, n):
     """
