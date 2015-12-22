@@ -1,6 +1,7 @@
 from sklearn.metrics.pairwise import cosine_similarity
 from pyspark.sql.types import *
 from pyspark.mllib.recommendation import ALS
+import numpy as np
 
 def calc_cf_mllib(y_training_data, y_testing_data):
     """
@@ -29,7 +30,7 @@ def calc_cf_mllib(y_training_data, y_testing_data):
 
 def calc_user_user_cf(training_data):
     """
-    A very simple user-user CF algorithm in PySpark.
+    A very simple user-user CF algorithm in PySpark. Method is less stable than calc_user_user_cf2
 
     Method derived from the Coursera course: Recommender Systems taught by Prof Joseph Konstan (Universitu of Minesota)
     and Prof Michael Ekstrand (Texas State University)
@@ -77,6 +78,54 @@ def calc_user_user_cf(training_data):
 
     return predictions
 
+def calc_user_user_cf2(training_data):
+    """
+    A very simple user-user CF algorithm in PySpark. Method is more stable than calc_user_user_cf
+
+    Method derived from the Coursera course: Recommender Systems taught by Prof Joseph Konstan (Universitu of Minesota)
+    and Prof Michael Ekstrand (Texas State University)
+
+    Args:
+        y_training_data: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+
+    Returns:
+        predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+
+    """
+
+    user_groups = training_data.groupBy(lambda (user, item, rating): user)
+
+    user_groups_sim = user_groups.cartesian(user_groups).map(lambda ((user1_id, user1_rows), (user2_id, user2_rows)):\
+        (user1_id, user2_id, similarity(user1_rows, user2_rows, 1)))
+
+    user_averages = training_data.map(lambda (user, item, rating): (user, (rating))).groupByKey().\
+        map(lambda (user, ratings): (user, np.mean(list(ratings))))
+
+    user_resids = training_data.map(lambda (user, item, rating): (user, (item, rating))).join(user_averages)\
+        .map(lambda (user, ((item, rating), avg_rating)): (user, (item, rating-avg_rating)))
+
+    item_adjustments = user_resids.join(user_groups_sim.map(lambda (u1, u2, sim): (u1, (u2, sim))))\
+        .map(lambda (u1, ((item, resid), (u2, sim))): ((u2,item), (resid*sim, sim))).\
+        groupByKey().map(lambda ((user, item), sim_list): (user, item, calc_item_adjust(sim_list)))
+
+    predictions = item_adjustments.map(lambda (user, item, item_adj): (user, (item, item_adj))).join(user_averages)\
+        .map(lambda (user, ((item, item_adj), (avg_rate))): (user, item, avg_rate+item_adj))
+
+    return predictions
+
+def calc_item_adjust(sim_resids):
+    #data coming into this function is a list of [residual*similarity, similarity] for all user, item paris
+    #we want to output sum(residual*similarity)/sum(abs(similarity))
+    sum_r_w = 0
+    sum_sim = 0
+    for s in sim_resids:
+        sum_r_w += s[0]
+        sum_sim += abs(s[1])
+
+    if sum_sim ==0:
+        return 0
+    else:
+        return sum_r_w/sum_sim
 
 def calc_item_item_cf(training_data):
     """
