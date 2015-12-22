@@ -249,7 +249,7 @@ def calculate_prediction_coverage(y_actual, y_predicted):
 
     return prediction_coverage
 
-def calculate_serendipity(y_actual, y_predicted, item_ranking):
+def calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1):
     """
     Calculates the serendipity of the recommendations.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -258,8 +258,8 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
 
     The central portion of this equation is the difference of probability that an item is rated for a user
     and the probability that item would be recommended for any user.
-    The first ranked item has a probability 1, and last ranked item is zero.  prob_by_rank(rank, n) caculates this
-    Relevance is defined by the items in the hold out set (y_actual).
+    The first ranked item has a probability 1, and last ranked item is zero.  prob_by_rank(rank, n) calculates this
+    Relevance is defined by the items in the hold out set (y_test).
     If an item was rated it is relevant, which WILL miss relevant non-rated items.
 
     Higher values are better
@@ -268,28 +268,39 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
     and Prof Michael Ekstrand (Texas State University)
 
     Args:
-        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ].
-            Only favorably rated items should be passed in (so pre-filtered)
+        y_train: actual training ratings in the format of an array of [ (userId, itemId, actualRating) ].
+        y_test: actual testing ratings to test in the format of an array of [ (userId, itemId, actualRating) ].
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
             It is important that this is not the sorted and cut prediction RDD
-        item_ranking: an item ranking for all items in the corpus.  For MovieLens (table named ratings) this could be:
-            item_ranking = sqlCtx.sql("select movie_id, avg(rating) as avg_rate, row_number()
-                                        over(ORDER BY avg(rating) desc) as rank
-                                        from ratings group by movie_id order by avg_rate desc")
+        rel_filter: the threshold of item relevance. So for MovieLens this may be 3.5, LastFM 0.
+            Ratings/interactions have to be at or above this mark to be considered relevant
 
     Returns:
         average_overall_serendipity: the average amount of surprise over all users
         average_serendipity: the average user's amount of surprise over their recommended items
     """
 
+    full_corpus = y_train.union(y_test)
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+          StructField("rating", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_rate = sqlCtx.createDataFrame(full_corpus, schema)
+    schema_rate.registerTempTable("ratings")
+
+    item_ranking = sqlCtx.sql("select item, avg(rating) as avg_rate, row_number() over(ORDER BY avg(rating) desc) as rank \
+        from ratings group by item order by avg_rate desc")
+
     n = item_ranking.count()
     #determine the probability for each item in the corpus
     item_ranking_with_prob = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, avg_rate, rank, prob_by_rank(rank, n)))
 
     #format the 'relevant' predictions as a queriable table
-    #these are those predictions for which we have ratings
+    #these are those predictions for which we have ratings above the threshold
+    y_test = y_test.filter(lambda (u,i,r): r>=rel_filter)
+
     predictionsAndRatings = y_predicted.map(lambda x: ((x[0], x[1]), x[2])) \
-      .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))
+      .join(y_test.map(lambda x: ((x[0], x[1]), x[2])))
     temp = predictionsAndRatings.map(lambda (a,b): (a[0], a[1], b[1], b[1]))
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("prediction", FloatType(), True), StructField("actual", FloatType(), True) ]
@@ -333,7 +344,7 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
 
     return (average_overall_serendipity, average_serendipity)
 
-def calculate_novelty(y_predicted, item_ranking):
+def calculate_novelty(y_train, y_test, y_predicted):
     """
     Novelty measures how new or unknown recommendations are to a user
     An individual item's novelty can be calculated as the log of the popularity of the item
@@ -342,18 +353,28 @@ def calculate_novelty(y_predicted, item_ranking):
     Method derived from 'Auraslist: Introducing Serendipity into Music Recommendation' by Y Zhang, D Seaghdha, D Quercia, and T Jambor
 
     Args:
+        y_train: actual training ratings in the format of an array of [ (userId, itemId, actualRating) ].
+        y_test: actual testing ratings to test in the format of an array of [ (userId, itemId, actualRating) ].
+            y_train and y_test are necessary to determine the overall item ranking
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
             It is important that this IS the sorted and cut prediction RDD
-        item_ranking: an item ranking for all items in the corpus.  For MovieLens (table named ratings) this could be:
-            item_ranking = sqlCtx.sql("select movie_id, avg(rating) as avg_rate, row_number()
-                                        over(ORDER BY avg(rating) desc) as rank
-                                        from ratings group by movie_id order by avg_rate desc")
 
     Returns:
 
         avg_overall_novelty: the average amount of novelty over all users
         avg_novelty: the average user's amount of novelty over their recommended items
     """
+
+    full_corpus = y_train.union(y_test)
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+          StructField("rating", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_rate = sqlCtx.createDataFrame(full_corpus, schema)
+    schema_rate.registerTempTable("ratings")
+
+    item_ranking = sqlCtx.sql("select item, avg(rating) as avg_rate, row_number() over(ORDER BY avg(rating) desc) as rank \
+        from ratings group by item order by avg_rate desc")
 
     n = item_ranking.count()
     item_ranking_with_nov = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, (avg_rate, rank, log(max(prob_by_rank(rank, n), 1e-100), 2))))
