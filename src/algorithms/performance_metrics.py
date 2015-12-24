@@ -166,7 +166,6 @@ def predictions_to_n(y_predicted, number_recommended=10):
 
 def calculate_population_category_diversity(y_predicted, content_array):
     """
-    Sorts the predicted ratings for a user then cuts at the specified N.  Useful when calculating metrics @N
     The higher the category diversity the better.
 
     Function determines the total sum of the categories for all people (rating_array).
@@ -196,10 +195,10 @@ def calculate_population_category_diversity(y_predicted, content_array):
 
     return cat_diversity
 
-def calculate_item_coverage(y_training_data, y_predicted):
+def calculate_catalog_coverage(y_actual, y_predicted):
     """
     Calculates the percentage of user-item pairs that were predicted by the algorithm.
-    The training data is passed in to determine the total number of potential user-item pairs
+    The test data is passed in to determine the total number of potential user-item pairs
     Then the predicted data is passed in to determine how many user-item pairs were predicted.
     It is very important to NOT pass in the sorted and cut prediction RDD and that the algorithm trys to predict all pairs
     The use the function 'cartesian' as shown in line 25 of content_based.py is helpful in that regard
@@ -210,18 +209,68 @@ def calculate_item_coverage(y_training_data, y_predicted):
 
 
     Returns:
-        item_coverage: value representing the percentage of user-item pairs that were able to be predicted
+        catalog_coverage: value representing the percentage of user-item pairs that were able to be predicted
 
     """
 
     prediction_count = y_predicted.count()
     #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
-    num_users = y_training_data.map(lambda row: row[0]).distinct().count()
-    num_items = y_training_data.map(lambda row: row[1]).distinct().count()
+    num_users = y_actual.map(lambda row: row[0]).distinct().count()
+    num_items = y_actual.map(lambda row: row[1]).distinct().count()
     potential_predict = num_users*num_items
-    item_coverage = prediction_count/float(potential_predict)*100
+    catalog_coverage = prediction_count/float(potential_predict)*100
+
+    return catalog_coverage
+
+def calculate_item_coverage(y_actual, y_predicted):
+    """
+    Calculates the percentage of users pairs that were predicted by the algorithm.
+    The test data is passed in to determine the total number of potential items
+    Then the predicted data is passed in to determine how many users pairs were predicted.
+    It is very important to NOT pass in the sorted and cut prediction RDD
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
+
+
+    Returns:
+        user_coverage: value representing the percentage of user ratings that were able to be predicted
+
+    """
+
+    predicted_items = y_predicted.map(lambda row: row[1]).distinct().count()
+    #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
+    num_items = y_actual.map(lambda row: row[1]).distinct().count()
+
+    item_coverage = predicted_items/float(num_items)*100
 
     return item_coverage
+
+def calculate_user_coverage(y_actual, y_predicted):
+    """
+    Calculates the percentage of users that were predicted by the algorithm.
+    The test data is passed in to determine the total number of potential users
+    Then the predicted data is passed in to determine how many users pairs were predicted.
+    It is very important to NOT pass in the sorted and cut prediction RDD
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
+
+
+    Returns:
+        user_coverage: value representing the percentage of user ratings that were able to be predicted
+
+    """
+
+    predicted_users = y_predicted.map(lambda row: row[0]).distinct().count()
+    #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
+    num_users = y_actual.map(lambda row: row[0]).distinct().count()
+
+    user_coverage = predicted_users/float(num_users)*100
+
+    return user_coverage
 
 def calculate_prediction_coverage(y_actual, y_predicted):
     """
