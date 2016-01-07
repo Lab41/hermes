@@ -121,6 +121,7 @@ def process_local_repo(location, output_dir, repo_name):
 
     Returns:
         None
+
     """
     with cd(location):
         is_path_exist(output_dir)
@@ -129,7 +130,7 @@ def process_local_repo(location, output_dir, repo_name):
         output_file = output_dir + "/" + repo_name.replace('/', '_') + ".json"
         with open(output_file, 'w') as f:
             for file in get_filelist(location):
-                for line in btj.file_to_json(file, repo_name):
+                for line in btj.file_to_json(file, location, repo_name):
                     f.write(line + "\n")
 
         # Produce a map of files to the users who edited it
