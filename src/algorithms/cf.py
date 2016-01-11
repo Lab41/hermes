@@ -3,14 +3,12 @@ from pyspark.sql.types import *
 from pyspark.mllib.recommendation import ALS
 import numpy as np
 
-def calc_cf_mllib(y_training_data, y_testing_data):
+def calc_cf_mllib(y_training_data):
     """
     Utilizes the ALS collaborative filtering algorithm in MLLib to determine the predicted ratings
-    The testing data is passed in to find the user-item pairs to predict.  You could also simply use the training data
 
     Args:
         y_training_data: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
-        y_testing_data: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
 
     Returns:
         predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
@@ -19,8 +17,8 @@ def calc_cf_mllib(y_training_data, y_testing_data):
 
     model = ALS.train(y_training_data, rank = 10, iterations = 5)
     #predict all user, item pairs
-    item_ids = y_testing_data.map(lambda (u,i,r): i).distinct()
-    user_ids = y_testing_data.map(lambda (u,i,r): u).distinct()
+    item_ids = y_training_data.map(lambda (u,i,r): i).distinct()
+    user_ids = y_training_data.map(lambda (u,i,r): u).distinct()
     user_item_combo = user_ids.cartesian(item_ids)
 
     predicted = model.predictAll(user_item_combo.map(lambda x: (x[0], x[1])))
