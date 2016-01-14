@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from math import sqrt
+from math import sqrt, log
 from operator import add
 import numpy as np
 
@@ -80,8 +80,41 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
 # Performance, Recall, Fbeta Score, Support
 
 def calculate_prfs_using_rdd(y_actual, y_predicted):
-    # TODO: it is highly dependent on the labels 
+    # TODO: it is highly dependent on the labels
+    ## The actual and predicted interactions also need to be boolean of [interaction, no_interaction] for the sklearn precision_recall_fscore_support`
+    ## A better metric for recommender systems is precision at N
     return
+
+def calculate_precision_at_n(y_actual, y_predicted, number_recommended = 100):
+    """
+    Calculates the precision at N which is the number of 'relevant' items in the top-n items.
+    'Relevant' here refers to items which are included in the user's ratings
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this is not the sorted and cut prediction RDD
+        number_recommended: the number of recommended items to take into consideration
+
+    Returns:
+        item_coverage: value representing the percentage of user-item pairs that were able to be predicted
+
+    """
+    n_predictions = predictions_to_n(y_predicted, number_recommended)
+
+    prediction_rating_pairs = n_predictions.map(lambda x: ((x[0], x[1]), x[2]))\
+        .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))\
+        .map(lambda ((user, item), (prediction, rating)): (user, item, prediction, rating))
+
+    num_ratings = prediction_rating_pairs.groupBy(lambda (u,i,p,r): u).map(lambda (u,items): (u, len(items)))\
+    .map(lambda (u, num_ratings): num_ratings)
+    #the number of total users
+    n = y_actual.groupBy(lambda (u,i,r): u).count()
+    tot_num_ratings = num_ratings.reduce(add)
+
+    precision_at_n = tot_num_ratings/float(n*number_recommended)
+
+    return precision_at_n
 
 def calculate_prfs_using_array(y_actual, y_predicted):
     """
@@ -133,7 +166,6 @@ def predictions_to_n(y_predicted, number_recommended=10):
 
 def calculate_population_category_diversity(y_predicted, content_array):
     """
-    Sorts the predicted ratings for a user then cuts at the specified N.  Useful when calculating metrics @N
     The higher the category diversity the better.
 
     Function determines the total sum of the categories for all people (rating_array).
@@ -163,10 +195,10 @@ def calculate_population_category_diversity(y_predicted, content_array):
 
     return cat_diversity
 
-def calculate_item_coverage(y_training_data, y_predicted):
+def calculate_catalog_coverage(y_actual, y_predicted):
     """
     Calculates the percentage of user-item pairs that were predicted by the algorithm.
-    The training data is passed in to determine the total number of potential user-item pairs
+    The test data is passed in to determine the total number of potential user-item pairs
     Then the predicted data is passed in to determine how many user-item pairs were predicted.
     It is very important to NOT pass in the sorted and cut prediction RDD and that the algorithm trys to predict all pairs
     The use the function 'cartesian' as shown in line 25 of content_based.py is helpful in that regard
@@ -177,18 +209,68 @@ def calculate_item_coverage(y_training_data, y_predicted):
 
 
     Returns:
-        item_coverage: value representing the percentage of user-item pairs that were able to be predicted
+        catalog_coverage: value representing the percentage of user-item pairs that were able to be predicted
 
     """
 
     prediction_count = y_predicted.count()
     #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
-    num_users = y_training_data.map(lambda row: row[0]).distinct().count()
-    num_items = y_training_data.map(lambda row: row[1]).distinct().count()
+    num_users = y_actual.map(lambda row: row[0]).distinct().count()
+    num_items = y_actual.map(lambda row: row[1]).distinct().count()
     potential_predict = num_users*num_items
-    item_coverage = prediction_count/float(potential_predict)*100
+    catalog_coverage = prediction_count/float(potential_predict)*100
+
+    return catalog_coverage
+
+def calculate_item_coverage(y_actual, y_predicted):
+    """
+    Calculates the percentage of users pairs that were predicted by the algorithm.
+    The test data is passed in to determine the total number of potential items
+    Then the predicted data is passed in to determine how many users pairs were predicted.
+    It is very important to NOT pass in the sorted and cut prediction RDD
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
+
+
+    Returns:
+        user_coverage: value representing the percentage of user ratings that were able to be predicted
+
+    """
+
+    predicted_items = y_predicted.map(lambda row: row[1]).distinct().count()
+    #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
+    num_items = y_actual.map(lambda row: row[1]).distinct().count()
+
+    item_coverage = predicted_items/float(num_items)*100
 
     return item_coverage
+
+def calculate_user_coverage(y_actual, y_predicted):
+    """
+    Calculates the percentage of users that were predicted by the algorithm.
+    The test data is passed in to determine the total number of potential users
+    Then the predicted data is passed in to determine how many users pairs were predicted.
+    It is very important to NOT pass in the sorted and cut prediction RDD
+
+    Args:
+        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
+
+
+    Returns:
+        user_coverage: value representing the percentage of user ratings that were able to be predicted
+
+    """
+
+    predicted_users = y_predicted.map(lambda row: row[0]).distinct().count()
+    #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
+    num_users = y_actual.map(lambda row: row[0]).distinct().count()
+
+    user_coverage = predicted_users/float(num_users)*100
+
+    return user_coverage
 
 def calculate_prediction_coverage(y_actual, y_predicted):
     """
@@ -216,7 +298,7 @@ def calculate_prediction_coverage(y_actual, y_predicted):
 
     return prediction_coverage
 
-def calculate_serendipity(y_actual, y_predicted, item_ranking):
+def calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1):
     """
     Calculates the serendipity of the recommendations.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -225,8 +307,8 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
 
     The central portion of this equation is the difference of probability that an item is rated for a user
     and the probability that item would be recommended for any user.
-    The first ranked item has a probability 1, and last ranked item is zero.  prob_by_rank(rank, n) caculates this
-    Relevance is defined by the items in the hold out set (y_actual).
+    The first ranked item has a probability 1, and last ranked item is zero.  prob_by_rank(rank, n) calculates this
+    Relevance is defined by the items in the hold out set (y_test).
     If an item was rated it is relevant, which WILL miss relevant non-rated items.
 
     Higher values are better
@@ -235,28 +317,39 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
     and Prof Michael Ekstrand (Texas State University)
 
     Args:
-        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ].
-            Only favorably rated items should be passed in (so pre-filtered)
+        y_train: actual training ratings in the format of an array of [ (userId, itemId, actualRating) ].
+        y_test: actual testing ratings to test in the format of an array of [ (userId, itemId, actualRating) ].
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
             It is important that this is not the sorted and cut prediction RDD
-        item_ranking: an item ranking for all items in the corpus.  For MovieLens (table named ratings) this could be:
-            item_ranking = sqlCtx.sql("select movie_id, avg(rating) as avg_rate, row_number()
-                                        over(ORDER BY avg(rating) desc) as rank
-                                        from ratings group by movie_id order by avg_rate desc")
+        rel_filter: the threshold of item relevance. So for MovieLens this may be 3.5, LastFM 0.
+            Ratings/interactions have to be at or above this mark to be considered relevant
 
     Returns:
         average_overall_serendipity: the average amount of surprise over all users
         average_serendipity: the average user's amount of surprise over their recommended items
     """
 
+    full_corpus = y_train.union(y_test)
 
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+          StructField("rating", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_rate = sqlCtx.createDataFrame(full_corpus, schema)
+    schema_rate.registerTempTable("ratings")
+
+    item_ranking = sqlCtx.sql("select item, avg(rating) as avg_rate, row_number() over(ORDER BY avg(rating) desc) as rank \
+        from ratings group by item order by avg_rate desc")
+
+    n = item_ranking.count()
     #determine the probability for each item in the corpus
     item_ranking_with_prob = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, avg_rate, rank, prob_by_rank(rank, n)))
 
     #format the 'relevant' predictions as a queriable table
-    #these are those predictions for which we have ratings
+    #these are those predictions for which we have ratings above the threshold
+    y_test = y_test.filter(lambda (u,i,r): r>=rel_filter)
+
     predictionsAndRatings = y_predicted.map(lambda x: ((x[0], x[1]), x[2])) \
-      .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))
+      .join(y_test.map(lambda x: ((x[0], x[1]), x[2])))
     temp = predictionsAndRatings.map(lambda (a,b): (a[0], a[1], b[1], b[1]))
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("prediction", FloatType(), True), StructField("actual", FloatType(), True) ]
@@ -299,6 +392,51 @@ def calculate_serendipity(y_actual, y_predicted, item_ranking):
     average_overall_serendipity = data.map (lambda (user, serendipity): serendipity).reduce(add)/float(data.count())
 
     return (average_overall_serendipity, average_serendipity)
+
+def calculate_novelty(y_train, y_test, y_predicted):
+    """
+    Novelty measures how new or unknown recommendations are to a user
+    An individual item's novelty can be calculated as the log of the popularity of the item
+    A user's overal novelty is then the sum of the novelty of all items
+
+    Method derived from 'Auraslist: Introducing Serendipity into Music Recommendation' by Y Zhang, D Seaghdha, D Quercia, and T Jambor
+
+    Args:
+        y_train: actual training ratings in the format of an array of [ (userId, itemId, actualRating) ].
+        y_test: actual testing ratings to test in the format of an array of [ (userId, itemId, actualRating) ].
+            y_train and y_test are necessary to determine the overall item ranking
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this IS the sorted and cut prediction RDD
+
+    Returns:
+
+        avg_overall_novelty: the average amount of novelty over all users
+        avg_novelty: the average user's amount of novelty over their recommended items
+    """
+
+    full_corpus = y_train.union(y_test)
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+          StructField("rating", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_rate = sqlCtx.createDataFrame(full_corpus, schema)
+    schema_rate.registerTempTable("ratings")
+
+    item_ranking = sqlCtx.sql("select item, avg(rating) as avg_rate, row_number() over(ORDER BY avg(rating) desc) as rank \
+        from ratings group by item order by avg_rate desc")
+
+    n = item_ranking.count()
+    item_ranking_with_nov = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, (avg_rate, rank, log(max(prob_by_rank(rank, n), 1e-100), 2))))
+
+    user_novelty = y_predicted.keyBy(lambda (u, i, p): i).join(item_ranking_with_nov).map(lambda (i,((u_p),(pop))): (u_p[0], pop[2]))\
+        .groupBy(lambda (user, pop): user).map(lambda (user, user_item_probs):(np.mean(list(user_item_probs), axis=0)[1])).collect()
+
+    all_novelty = y_predicted.keyBy(lambda (u, i, p): i).join(item_ranking_with_nov).map(lambda (i,((u_p),(pop))): (pop[2])).collect()
+    avg_overall_novelty = float(np.mean(all_novelty))
+
+    avg_novelty = float(np.mean(user_novelty))
+
+    return (avg_overall_novelty, avg_novelty)
 
 def prob_by_rank(rank, n):
     """
@@ -406,3 +544,48 @@ def calc_jaccard_diff(array_1, array_2):
     #it is very important that we return the distance as a python float
     #otherwise a numpy float is returned which causes chaos and havoc to ensue
     return float(dist)
+
+def calc_relevant_rank_stats(y_actual, y_predicted):
+    """
+    Determines the average minimum, average and maximum ranking of 'relevant' items
+    'Relevant' here means that the item was rated, i.e., it exists in the y_actual RDD
+
+    Args:
+        y_actual: actual ratings in the format of a RDD  of [ (userId, itemId, actualRating) ].
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this IS NOT the sorted and cut prediction RDD
+
+    Returns:
+        average_overall_content_serendipity:
+    """
+
+    predictions2 = y_predicted.map(lambda (u,i,p): (u,i,p))
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+      StructField("prediction", FloatType(), True) ]
+    schema = StructType(fields)
+    schema_preds = sqlCtx.createDataFrame(predictions2, schema)
+    schema_preds.registerTempTable("predictions")
+
+    #determine each user's prediction ratings
+    prediction_ranking = sqlCtx.sql("select p.user, p.item, p.prediction, row_number() \
+    over(Partition by p.user ORDER BY p.prediction desc) as rank \
+    from predictions p order by p.user, p.prediction desc")
+    prediction_ranking.registerTempTable("prediction_rankings")
+
+    fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
+      StructField("rating", FloatType(), True) ]
+    rating_schema = StructType(fields)
+    rating_schema_preds = sqlCtx.createDataFrame(y_actual, schema)
+    rating_schema_preds.registerTempTable("ratings")
+
+    relevant_ranks = sqlCtx.sql("select p.user, r.item, p.rank from prediction_rankings p, ratings r \
+    where r.user=p.user and p.item=r.item")
+    relevant_ranks.registerTempTable("relevant_ranks")
+
+    max_ranks = sqlCtx.sql("select min(rank), avg(rank), max(rank) from relevant_ranks group by user")
+    max_ranks_local = max_ranks.collect()
+
+    rank_stats = np.mean(max_ranks_local, axis=0)
+
+    return rank_stats
