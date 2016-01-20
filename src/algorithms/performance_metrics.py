@@ -11,6 +11,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import confusion_matrix
 from pyspark.sql.types import *
 from sklearn.metrics import jaccard_similarity_score
+import itertools
 
 # Accuracy of ratings predictions (aka regression metrics) =====================
 
@@ -194,6 +195,50 @@ def calculate_population_category_diversity(y_predicted, content_array):
     cat_diversity = sum([r/float(len(rating_array_raw)) for r in rating_array])*ave_coverage/float(len(rating_array))
 
     return cat_diversity
+
+def calc_ils(y_predicted, content_array, y_train=None, y_test=None,  num_partitions=50):
+    """
+    Intra-List Similarity is a measure of diversity by determining how similar items are in a user's recommended items.
+    The similarity is based on these contect features
+    In the future it could also be is based on how simiarlary items were rated by other users
+
+    Method derived from 'Improving Recommendation Lists Through Topic Diversification'
+    by C Ziegler, S McNee, J Knstan and G Lausen
+
+    Args:
+
+        y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].
+            It is important that this IS the sorted and cut prediction RDD
+        content_array: content feature array of the items which should be in the format of (item [content_feature vector])
+        num_partitions: Optimizer for specifying the number of partitions for the RDD to use.
+
+    Returns:
+        avg_ils: the average user's Intra-List Similarity
+    """
+
+    temp = y_predicted.map(lambda (u,i,p): (i, (u,p))).join(content_array)
+
+    user_ils = temp.map(lambda (i,((u,p),c_a)): (u, (i, c_a))).groupByKey()\
+        .map(lambda (user, item_list):(calc_user_ILS(list(item_list)))).collect()
+
+    total_ils = sum(user_ils)
+    avg_ils = total_ils/float(len(user_ils))
+
+    return avg_ils
+
+def calc_user_ILS(item_list):
+
+    item_list = list(item_list)
+    total_ils = 0
+    total_count = 0
+    for (i1, i2) in itertools.combinations(item_list, 2):
+        # get similarity using the attached content (or rating) array
+        pair_similarity = calc_jaccard_diff(i1[1], i2[1])
+        total_ils += pair_similarity
+        total_count += 1
+    return float(total_ils)/total_count
+
+
 
 def calculate_catalog_coverage(y_actual, y_predicted):
     """
