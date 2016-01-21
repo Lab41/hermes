@@ -13,6 +13,19 @@ from pyspark.sql.types import *
 from sklearn.metrics import jaccard_similarity_score
 import itertools
 
+def get_perform_metrics(y_actual, y_predicted, n=100):
+    results = {}
+
+    results['rmse'] = calculate_rmse_using_rdd(y_actual, y_predicted)
+    results['mae'] = calculate_mae_using_rdd(y_actual,y_predicted)
+    results['pred_n'] = calculate_precision_at_n(y_actual, y_predicted, n=100)
+
+    results['user_coverage']=calculate_user_coverage(y_actual, y_predicted)
+
+    return results
+
+
+
 # Accuracy of ratings predictions (aka regression metrics) =====================
 
 # RMSE -----------------------------------------------------------------    
@@ -80,11 +93,32 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
 
 # Performance, Recall, Fbeta Score, Support
 
-def calculate_prfs_using_rdd(y_actual, y_predicted):
-    # TODO: it is highly dependent on the labels
-    ## The actual and predicted interactions also need to be boolean of [interaction, no_interaction] for the sklearn precision_recall_fscore_support`
-    ## A better metric for recommender systems is precision at N
-    return
+def calculate_prfs_using_rdd(y_actual, y_predicted, average='macro'):
+    """
+    Determines the precision, recall, fscore, and support of the predictions.
+    With average of macro, the algorithm Calculate metrics for each label, and find their unweighted mean.
+    See http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_fscore_support.html for details
+
+    A better metric for recommender systems is precision at N (also in this package)
+
+    Args:
+        y_actual: actual ratings in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of an RDD of [ (userId, itemId, predictedRating) ]
+
+    Returns:
+        precision, recall, fbeta_score, and support values
+
+    """
+
+    prediction_rating_pairs = y_predicted.map(lambda x: ((x[0], x[1]), x[2]))\
+        .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))\
+        .map(lambda ((user, item), (prediction, rating)): (user, item, prediction, rating))
+
+    true_vals = np.array(prediction_rating_pairs.map(lambda (user, item, prediction, rating): rating).collect())
+    pred_vals = np.array(prediction_rating_pairs.map(lambda (user, item, prediction, rating): prediction).collect())
+
+    return precision_recall_fscore_support(map(lambda x: int(np.round(x)), true_vals),\
+                                        map(lambda x: int(np.round(x)), pred_vals), average = average)
 
 def calculate_precision_at_n(y_actual, y_predicted, number_recommended = 100):
     """
