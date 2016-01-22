@@ -77,3 +77,22 @@ def load_content_vector(input_fname):
         content = [float(i) for i in str.split(content1, ' ')]
         content_vector.append((item, content))
     return content_vector
+
+def save_uv_to_hadoop(vector, output_name):
+    vector.map(lambda x: ','.join(map(str,x))).saveAsTextFile(output_name)
+
+def load_uv_from_hadoop(input_name, sc, num_partitions=20):
+    uv = sc.textFile(input_name).map(parseText)\
+        .repartition(num_partitions)
+    return uv
+
+def parseText(row):
+    row = row.split(',')
+    return (int(row[0]), int(row[1]), float(row[2]))
+
+def save_cv_to_hadoop(vector, output_name):
+    vector.saveAsPickleFile(output_name)
+
+def load_cv_from_hadoop(input_name,sc,  num_partitions=20):
+    cv = sc.pickleFile(input_name).repartition(num_partitions)
+    return cv
