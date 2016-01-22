@@ -4,7 +4,7 @@ import numpy as np
 
 class wiki_vectorize():
 
-    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, **support_files):
+    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, sqlCtx, **support_files):
         """
         Class initializer to load the required files
 
@@ -24,13 +24,14 @@ class wiki_vectorize():
         """
         self.user_vector_type = user_vector_type
         self.content_vector_type = content_vector_type
+        self.sqlCtx = sqlCtx
 
         #Filter out uninteresting articles and users if they still exist in the dataset
         user_interactions.registerTempTable("ratings")
         content.registerTempTable("content")
 
-        filtered = sqlCtx.sql("select * from ratings where redirect_target is null and article_namespace=0 and user_id is not null")
-        filtered_content = sqlCtx.sql("select * from content where redirect_target is null and article_namespace=0 and full_text is not null")
+        filtered =  self.sqlCtx.sql("select * from ratings where redirect_target is null and article_namespace=0 and user_id is not null")
+        filtered_content =  self.sqlCtx.sql("select * from content where redirect_target is null and article_namespace=0 and full_text is not null")
 
         self.filtered = filtered
         self.filtered.registerTempTable("wiki_ratings")
@@ -48,19 +49,19 @@ class wiki_vectorize():
     def get_user_vector(self):
 
         if self.user_vector_type=='num_edits':
-            user_info = sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki_ratings \
+            user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki_ratings \
                 group by user_id, article_id")
 
             return user_info
 
         elif self.user_vector_type=='any_interact':
-            user_info = sqlCtx.sql("select user_id as user, article_id as item, 1 as rating from wiki_ratings \
+            user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, 1 as rating from wiki_ratings \
                 group by user_id, article_id")
 
             return user_info
 
         elif self.user_vector_type=='num_edits_ceil':
-            user_info = sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki \
+            user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki \
                 group by user_id, article_id")\
                 .map(lambda (user, article, rating): (user, article, max(rating, 5)))
 

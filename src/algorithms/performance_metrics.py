@@ -13,14 +13,35 @@ from pyspark.sql.types import *
 from sklearn.metrics import jaccard_similarity_score
 import itertools
 
-def get_perform_metrics(y_actual, y_predicted, n=100):
+def get_perform_metrics(y_test, y_train, y_predicted, content_array, n=100, num_partitions=30):
     results = {}
 
-    results['rmse'] = calculate_rmse_using_rdd(y_actual, y_predicted)
-    results['mae'] = calculate_mae_using_rdd(y_actual,y_predicted)
-    results['pred_n'] = calculate_precision_at_n(y_actual, y_predicted, n=100)
+    results['rmse'] = calculate_rmse_using_rdd(y_test, y_predicted)
+    results['mae'] = calculate_mae_using_rdd(y_test,y_predicted)
+    results['pred_n'] = calculate_precision_at_n(y_test, y_predicted, n=n)
 
-    results['user_coverage']=calculate_user_coverage(y_actual, y_predicted)
+    #measures of diversity
+    results['cat_diversity'] = calculate_population_category_diversity(y_predicted, content_array)
+    results['ils'] = calc_ils(y_predicted, content_array, num_partitions=num_partitions)
+
+    #measures of coverage
+    results['cat_coverage'] = calculate_catalog_coverage(y_test, y_predicted)
+    results['item_coverage'] = calculate_item_coverage(y_test, y_predicted)
+    results['user_coverage'] = calculate_user_coverage(y_test, y_predicted)
+    results['pred_coverage'] = calculate_prediction_coverage(y_test, y_predicted)
+
+    #measures of serendipity
+    results['serendipity'] = calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1)
+    results['content_serendipity'] = calc_content_serendipity(y_test, y_predicted, content_array)
+
+    #measures of novelty
+    results['novelty'] = calculate_novelty(y_train, y_test, y_predicted)
+
+    #relevancy statistics
+    rel_stats = calc_relevant_rank_stats(y_test, y_predicted)
+    results['avg_highest_rank'] = rel_stats[0]
+    results['avg_mean_rank'] = rel_stats[1]
+    results['avg_lowest_rank'] = rel_stats[2]
 
     return results
 
