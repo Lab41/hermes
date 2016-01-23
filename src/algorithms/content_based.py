@@ -1,4 +1,5 @@
 import numpy as np
+import recommender_helpers as rechelp
 
 
 def predict(user_info, content_array, max_prediction=1):
@@ -20,10 +21,10 @@ def predict(user_info, content_array, max_prediction=1):
 
     user_keys = user_info.map(lambda (user, page, value): (page, (user, value)))
     user_prefs = content_array.join(user_keys).groupBy(lambda (page, ((array), (user, rating))): user)\
-        .map(lambda(user, array): (user,sum_components(array)))
+        .map(lambda(user, array): (user, rechelp.sum_components(array)))
 
     predictions = user_prefs.cartesian(content_array).map(lambda ((user_id, user_vect), (page_id, page_vect)):\
-                                    (user_id, page_id, vect_mult(user_vect, page_vect)))
+                                    (user_id, page_id, np.dot(user_vect, page_vect)))
 
     #renormalize the predictions
     #this assumes that the minimum is zero which is a fair assumption
@@ -35,37 +36,3 @@ def predict(user_info, content_array, max_prediction=1):
                 (user_id, page_id, pred_val):(user_id, page_id, (((pred_val-min_val)**0*(max_val-pred_val))/diff)*max_prediction))
 
     return predictions_norm
-
-
-
-def sum_components(array):
-    info = []
-    ratings = []
-    for a in array:
-        ratings.append(a[1][1][1])
-        info.append(a[1][0])
-
-    rated_info = []
-    info_arr = np.array(info)
-    r_arr = np.array(ratings)
-    for i in range(len(r_arr)):
-        r_i = info_arr[i]*r_arr[i]
-        rated_info.append(r_i)
-
-    array_out = map(sum,zip(*np.array(rated_info)))
-    #if necessary renormalize
-    min_val = min(array_out)
-    max_val = max(array_out)
-    diff = max_val-min_val
-    if diff==0: diff=1
-    array_out2 = []
-    for t in array_out:
-        new_val = ((t-min_val)**0*(max_val-t))/diff
-        array_out2.append(new_val)
-
-    return array_out2
-
-
-def vect_mult(user_vect, page_vect):
-    prod = np.multiply(page_vect, user_vect)
-    return sum(prod)
