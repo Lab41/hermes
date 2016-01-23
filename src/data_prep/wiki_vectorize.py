@@ -63,7 +63,7 @@ class wiki_vectorize():
         elif self.user_vector_type=='num_edits_ceil':
             user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki \
                 group by user_id, article_id")\
-                .map(lambda (user, article, rating): (user, article, max(rating, 5)))
+                .map(lambda (user, article, rating): (user, article, min(rating, 5)))
 
             return user_info
 
