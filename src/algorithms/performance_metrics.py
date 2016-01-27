@@ -13,6 +13,43 @@ from pyspark.sql.types import *
 from sklearn.metrics import jaccard_similarity_score
 import itertools
 
+def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num_predictions=100, num_partitions=30):
+    results = {}
+
+    #because some of the algorithms we will use will only return n predictions per user all results should be analyazed for n recommendations
+    n_predictions = predictions_to_n(y_predicted, number_recommended=num_predictions)
+
+    results['rmse'] = calculate_rmse_using_rdd(y_test, n_predictions)
+    results['mae'] = calculate_mae_using_rdd(y_test,n_predictions)
+    results['pred_n'] = calculate_precision_at_n(y_test, n_predictions, number_recommended=num_predictions)
+
+    #measures of diversity
+    results['cat_diversity'] = calculate_population_category_diversity(n_predictions, content_array)
+    results['ils'] = calc_ils(n_predictions, content_array, num_partitions=num_partitions)
+
+    #measures of coverage
+    results['cat_coverage'] = calculate_catalog_coverage(y_test, y_train, n_predictions)
+    results['item_coverage'] = calculate_item_coverage(y_test, y_train, n_predictions)
+    results['user_coverage'] = calculate_user_coverage(y_test, y_train, n_predictions)
+    results['pred_coverage'] = calculate_prediction_coverage(y_test, n_predictions)
+
+    #measures of serendipity
+    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)
+    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx)
+
+    #measures of novelty
+    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)
+
+    #relevancy statistics
+    rel_stats = calc_relevant_rank_stats(y_test, n_predictions, sqlCtx)
+    results['avg_highest_rank'] = rel_stats[0]
+    results['avg_mean_rank'] = rel_stats[1]
+    results['avg_lowest_rank'] = rel_stats[2]
+
+    return results
+
+
+
 # Accuracy of ratings predictions (aka regression metrics) =====================
 
 # RMSE -----------------------------------------------------------------    
@@ -80,11 +117,32 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
 
 # Performance, Recall, Fbeta Score, Support
 
-def calculate_prfs_using_rdd(y_actual, y_predicted):
-    # TODO: it is highly dependent on the labels
-    ## The actual and predicted interactions also need to be boolean of [interaction, no_interaction] for the sklearn precision_recall_fscore_support`
-    ## A better metric for recommender systems is precision at N
-    return
+def calculate_prfs_using_rdd(y_actual, y_predicted, average='macro'):
+    """
+    Determines the precision, recall, fscore, and support of the predictions.
+    With average of macro, the algorithm Calculate metrics for each label, and find their unweighted mean.
+    See http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_fscore_support.html for details
+
+    A better metric for recommender systems is precision at N (also in this package)
+
+    Args:
+        y_actual: actual ratings in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_predicted: predicted ratings in the format of an RDD of [ (userId, itemId, predictedRating) ]
+
+    Returns:
+        precision, recall, fbeta_score, and support values
+
+    """
+
+    prediction_rating_pairs = y_predicted.map(lambda x: ((x[0], x[1]), x[2]))\
+        .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))\
+        .map(lambda ((user, item), (prediction, rating)): (user, item, prediction, rating))
+
+    true_vals = np.array(prediction_rating_pairs.map(lambda (user, item, prediction, rating): rating).collect())
+    pred_vals = np.array(prediction_rating_pairs.map(lambda (user, item, prediction, rating): prediction).collect())
+
+    return precision_recall_fscore_support(map(lambda x: int(np.round(x)), true_vals),\
+                                        map(lambda x: int(np.round(x)), pred_vals), average = average)
 
 def calculate_precision_at_n(y_actual, y_predicted, number_recommended = 100):
     """
@@ -240,16 +298,17 @@ def calc_user_ILS(item_list):
 
 
 
-def calculate_catalog_coverage(y_actual, y_predicted):
+def calculate_catalog_coverage(y_test, y_train, y_predicted):
     """
     Calculates the percentage of user-item pairs that were predicted by the algorithm.
-    The test data is passed in to determine the total number of potential user-item pairs
+    The full data is passed in as y_test and y_train to determine the total number of potential user-item pairs
     Then the predicted data is passed in to determine how many user-item pairs were predicted.
     It is very important to NOT pass in the sorted and cut prediction RDD and that the algorithm trys to predict all pairs
     The use the function 'cartesian' as shown in line 25 of content_based.py is helpful in that regard
 
     Args:
-        y_training_data: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_test: the data used to test the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_train: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
 
 
@@ -258,49 +317,55 @@ def calculate_catalog_coverage(y_actual, y_predicted):
 
     """
 
+    y_full_data = y_test.union(y_train)
+
     prediction_count = y_predicted.count()
     #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
-    num_users = y_actual.map(lambda row: row[0]).distinct().count()
-    num_items = y_actual.map(lambda row: row[1]).distinct().count()
+    num_users = y_full_data.map(lambda row: row[0]).distinct().count()
+    num_items = y_full_data.map(lambda row: row[1]).distinct().count()
     potential_predict = num_users*num_items
     catalog_coverage = prediction_count/float(potential_predict)*100
 
     return catalog_coverage
 
-def calculate_item_coverage(y_actual, y_predicted):
+def calculate_item_coverage(y_test, y_train, y_predicted):
     """
     Calculates the percentage of users pairs that were predicted by the algorithm.
-    The test data is passed in to determine the total number of potential items
+    The full dataset is passed in as y_test and y_train to determine the total number of potential items
     Then the predicted data is passed in to determine how many users pairs were predicted.
     It is very important to NOT pass in the sorted and cut prediction RDD
 
     Args:
-        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_test: the data used to test the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_train: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
 
 
     Returns:
-        user_coverage: value representing the percentage of user ratings that were able to be predicted
+        item_coverage: value representing the percentage of user ratings that were able to be predicted
 
     """
 
+    y_full_data = y_test.union(y_train)
+
     predicted_items = y_predicted.map(lambda row: row[1]).distinct().count()
     #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
-    num_items = y_actual.map(lambda row: row[1]).distinct().count()
+    num_items = y_full_data.map(lambda row: row[1]).distinct().count()
 
     item_coverage = predicted_items/float(num_items)*100
 
     return item_coverage
 
-def calculate_user_coverage(y_actual, y_predicted):
+def calculate_user_coverage(y_test, y_train, y_predicted):
     """
     Calculates the percentage of users that were predicted by the algorithm.
-    The test data is passed in to determine the total number of potential users
+    The full dataset is passed in as y_test and y_train to determine the total number of potential users
     Then the predicted data is passed in to determine how many users pairs were predicted.
     It is very important to NOT pass in the sorted and cut prediction RDD
 
     Args:
-        y_actual: actual ratings in the format of an array of [ (userId, itemId, actualRating) ]
+        y_test: the data used to test the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+        y_train: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
 
 
@@ -308,10 +373,11 @@ def calculate_user_coverage(y_actual, y_predicted):
         user_coverage: value representing the percentage of user ratings that were able to be predicted
 
     """
+    y_full_data = y_test.union(y_train)
 
     predicted_users = y_predicted.map(lambda row: row[0]).distinct().count()
     #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
-    num_users = y_actual.map(lambda row: row[0]).distinct().count()
+    num_users = y_full_data.map(lambda row: row[0]).distinct().count()
 
     user_coverage = predicted_users/float(num_users)*100
 
@@ -343,7 +409,7 @@ def calculate_prediction_coverage(y_actual, y_predicted):
 
     return prediction_coverage
 
-def calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1):
+def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
     """
     Calculates the serendipity of the recommendations.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -438,7 +504,7 @@ def calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1):
 
     return (average_overall_serendipity, average_serendipity)
 
-def calculate_novelty(y_train, y_test, y_predicted):
+def calculate_novelty(y_train, y_test, y_predicted, sqlCtx):
     """
     Novelty measures how new or unknown recommendations are to a user
     An individual item's novelty can be calculated as the log of the popularity of the item
@@ -504,7 +570,7 @@ def prob_by_rank(rank, n):
         prob = (n-rank)/float(n-1)
     return prob
 
-def calc_content_serendipity(y_actual, y_predicted, content_array):
+def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx):
     """
     Calculates the serendipity of the recommendations based on their content.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -590,7 +656,7 @@ def calc_jaccard_diff(array_1, array_2):
     #otherwise a numpy float is returned which causes chaos and havoc to ensue
     return float(dist)
 
-def calc_relevant_rank_stats(y_actual, y_predicted):
+def calc_relevant_rank_stats(y_actual, y_predicted, sqlCtx):
     """
     Determines the average minimum, average and maximum ranking of 'relevant' items
     'Relevant' here means that the item was rated, i.e., it exists in the y_actual RDD
