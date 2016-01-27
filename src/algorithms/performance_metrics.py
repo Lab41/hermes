@@ -13,15 +13,15 @@ from pyspark.sql.types import *
 from sklearn.metrics import jaccard_similarity_score
 import itertools
 
-def get_perform_metrics(y_test, y_train, y_predicted, content_array, n=100, num_partitions=30):
+def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num_predictions=100, num_partitions=30):
     results = {}
 
     #because some of the algorithms we will use will only return n predictions per user all results should be analyazed for n recommendations
-    n_predictions = predictions_to_n(y_predicted, n=n)
+    n_predictions = predictions_to_n(y_predicted, number_recommended=num_predictions)
 
     results['rmse'] = calculate_rmse_using_rdd(y_test, n_predictions)
     results['mae'] = calculate_mae_using_rdd(y_test,n_predictions)
-    results['pred_n'] = calculate_precision_at_n(y_test, n_predictions, n=n)
+    results['pred_n'] = calculate_precision_at_n(y_test, n_predictions, number_recommended=num_predictions)
 
     #measures of diversity
     results['cat_diversity'] = calculate_population_category_diversity(n_predictions, content_array)
@@ -34,14 +34,14 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, n=100, num_
     results['pred_coverage'] = calculate_prediction_coverage(y_test, n_predictions)
 
     #measures of serendipity
-    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, rel_filter=1)
-    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array)
+    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)
+    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx)
 
     #measures of novelty
-    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions)
+    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)
 
     #relevancy statistics
-    rel_stats = calc_relevant_rank_stats(y_test, n_predictions)
+    rel_stats = calc_relevant_rank_stats(y_test, n_predictions, sqlCtx)
     results['avg_highest_rank'] = rel_stats[0]
     results['avg_mean_rank'] = rel_stats[1]
     results['avg_lowest_rank'] = rel_stats[2]
@@ -409,7 +409,7 @@ def calculate_prediction_coverage(y_actual, y_predicted):
 
     return prediction_coverage
 
-def calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1):
+def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
     """
     Calculates the serendipity of the recommendations.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -504,7 +504,7 @@ def calculate_serendipity(y_train, y_test, y_predicted, rel_filter=1):
 
     return (average_overall_serendipity, average_serendipity)
 
-def calculate_novelty(y_train, y_test, y_predicted):
+def calculate_novelty(y_train, y_test, y_predicted, sqlCtx):
     """
     Novelty measures how new or unknown recommendations are to a user
     An individual item's novelty can be calculated as the log of the popularity of the item
@@ -570,7 +570,7 @@ def prob_by_rank(rank, n):
         prob = (n-rank)/float(n-1)
     return prob
 
-def calc_content_serendipity(y_actual, y_predicted, content_array):
+def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx):
     """
     Calculates the serendipity of the recommendations based on their content.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -656,7 +656,7 @@ def calc_jaccard_diff(array_1, array_2):
     #otherwise a numpy float is returned which causes chaos and havoc to ensue
     return float(dist)
 
-def calc_relevant_rank_stats(y_actual, y_predicted):
+def calc_relevant_rank_stats(y_actual, y_predicted, sqlCtx):
     """
     Determines the average minimum, average and maximum ranking of 'relevant' items
     'Relevant' here means that the item was rated, i.e., it exists in the y_actual RDD
