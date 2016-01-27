@@ -21,9 +21,12 @@ class osm_vectorize():
         self.content_vector_type = content_vector_type
         self.sqlCtx = sqlCtx
 
-        #Filter out uninteresting articles and users if they still exist in the dataset
+        #Filter out uninteresting items and users if they still exist in the dataset
         self.user_interactions =user_interactions
         self.user_interactions.registerTempTable("osm_data")
+
+        filtered =  self.sqlCtx.sql("select * from osm_data where id is not Null and uid is not Null")
+        filtered.registerTempTable("filtered_osm")
 
         #if no support files were passed in, initialize an empty support file
         if support_files:
@@ -35,16 +38,18 @@ class osm_vectorize():
     def get_user_vector(self):
 
         if self.user_vector_type=='ratings':
-            user_info = self.sqlCtx.sql("select user, id, count(1) as rating from filtered_users group by user, id")
+            user_info = self.sqlCtx.sql("select uid, id, count(1) as rating from filtered_osm group by uid, id")\
+                .map(lambda (user, item, interact):(int(user), int(item), interact))
             return user_info
 
         elif self.user_vector_type=='any_interact':
-            user_info = self.user_interactions.map(lambda row: (row.user_id, row.movie_id, row.rating) ).filter(lambda (u,m,r): r>3)
+            user_info = self.sqlCtx.sql("select uid, id, 1 as rating from filtered_osm group by uid, id")\
+                .map(lambda (user, item, interact):(int(user), int(item), interact))
             return user_info
 
         elif self.user_vector_type=='num_edits_ceil':
-            user_info = self.sqlCtx.sql("select user, id, count(1) as rating from osm_data group by user, id") \
-                                   .map(lambda (user, id_, rating) : (user, id_, min(rating, 5)))
+            user_info = self.sqlCtx.sql("select uid, id, count(1) as rating from filtered_osm group by uid, id") \
+                                   .map(lambda (user, item, interact) : (user, int(item), min(interact, 5)))
             return user_info
 
         elif self.user_vector_type=='none':
@@ -57,7 +62,8 @@ class osm_vectorize():
     def get_content_vector(self):
 
         if self.content_vector_type=='tags_only':
-            content_array = self.content.map(lambda row: (row.movie_id, osm_vectorize(row)))
+            content_array = self.content.map(lambda row: (row.id, osm_vectorize(row)))\
+                .groupByKey().map(lambda (id, vectors): (id, np.array(list(vectors)).max(axis=0)))
             return content_array
 
         elif self.content_vector_type=='none':
