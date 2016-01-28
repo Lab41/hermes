@@ -114,14 +114,17 @@ def block_to_JSON(block, filename, repo_name=None):
     # Function to convert timezone to hour office integer
     def tz_int(tz): return int(tz, 10)
 
+    # Function to clean out non-ascii characters
+    def clean_text(text): return ''.join([i if ord(i) < 128 else '' for i in text])
+
     # Translation from the porcelain key to the key in our JSON object, as well
     # as an option transformation to apply first
     porcelain_to_json = {
-        "author": ("author", None),
+        "author": ("author", clean_text),
         "author-mail": ("author_mail", clean_email),
         "author-time": ("author_time", int),
         "author-tz": ("author_timezone", tz_int),
-        "committer": ("committer", None),
+        "committer": ("committer", clean_text),
         "committer-mail": ("committer_mail", clean_email),
         "committer-time": ("committer_time", int),
         "committer-tz": ("committer_timezone", tz_int),
