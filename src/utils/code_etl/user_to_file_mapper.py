@@ -142,6 +142,19 @@ def parse_block(block, file_map):
                 file_map[file] = [(name, email)]
 
 
+def clean_text(text):
+    """ Remove non-ascii characters from a string.
+
+    Args:
+        text (str): A string.
+
+    Returns:
+        str: A string with all characters with ord() >= 128 removed.
+
+    """
+    return ''.join([i if ord(i) < 128 else '' for i in text])
+
+
 def file_map_to_json(file_map, repo_name):
     """Returns a list of JSON objects as strings containing the `git log`
     information.
@@ -160,8 +173,8 @@ def file_map_to_json(file_map, repo_name):
         for key, count in counter.iteritems():
             current_json = deepcopy(JSON_LINE)
             current_json["repo_name"] = repo_name
-            current_json["author"] = key[0]
-            current_json["author_mail"] = key[1]
+            current_json["author"] = clean_text(key[0])
+            current_json["author_mail"] = clean_text(key[1])
             current_json["filename"] = file
             current_json["edit_count"] = count
             jsons.append(json.dumps(current_json))
