@@ -1,4 +1,5 @@
 import numpy as np
+import shapefile
 
 class osm_vectorize():
 
@@ -8,9 +9,9 @@ class osm_vectorize():
 
         Args:
             user_interactions: The raw RDD of the user interactions. For OSM, these are the object edits as well as the object data
-            user_vector_type: The type of user vector desired.  For MovieLens you can choose between ['ratings', 'pos_ratings', 'ratings_to_interact', 'none'].
+            user_vector_type: The type of user vector desired.  For MovieLens you can choose between ['num_edits', 'pos_ratings', 'ratings_to_interact', 'none'].
                 If 'none' is used then this means you will run your own custom mapping
-            content_vector_type: The type of content vector desired. For MovieLens you can choose between ['tags_only', 'none'].
+            content_vector_type: The type of content vector desired. For MovieLens you can choose between ['tags_only', tags_w_geo, 'none'].
                 If none is chosen no content vector will be returned and None may be passed into the content argument.
                 You do not need a content vector to run pure CF only but some performance metrics will not be able to be ran
             support_files: If they exist, the supporting files, dataFrames, and/or file links necessary to run the content vectors.
@@ -25,6 +26,13 @@ class osm_vectorize():
         self.user_interactions =user_interactions
         self.user_interactions.registerTempTable("osm_data")
 
+        #For the content only use the elements that are most recent, in this case have the highest timestamp
+        self.osm_recent_data = sqlCtx.sql("select o.* from osm_data o, \
+            (select id, max(timestamp) as max_time from osm_data group by id) time\
+            where time.id = o.id and o.timestamp=time.max_time")
+
+
+
         filtered =  self.sqlCtx.sql("select * from osm_data where id is not Null and uid is not Null")
         filtered.registerTempTable("filtered_osm")
 
@@ -37,7 +45,7 @@ class osm_vectorize():
 
     def get_user_vector(self):
 
-        if self.user_vector_type=='ratings':
+        if self.user_vector_type=='num_edits':
             user_info = self.sqlCtx.sql("select uid, id, count(1) as rating from filtered_osm group by uid, id")\
                 .map(lambda (user, item, interact):(int(user), int(item), interact))
             return user_info
@@ -56,27 +64,32 @@ class osm_vectorize():
             return None
 
         else:
-            print "Please choose a user_vector_type between 'ratings', 'any_interact', 'num_edits_ceil', and 'none'"
+            print "Please choose a user_vector_type between 'num_edits', 'any_interact', 'num_edits_ceil', and 'none'"
             return None
 
     def get_content_vector(self):
 
         if self.content_vector_type=='tags_only':
-            content_array = self.content.map(lambda row: (row.id, osm_vectorize(row)))\
-                .groupByKey().map(lambda (id, vectors): (id, np.array(list(vectors)).max(axis=0)))
+            content_array = self.osm_recent_data.map(lambda row: (int(row.id), osm_vectorize_row(row, None)))
+            return content_array
+
+        elif self.content_vector_type=='tags_w_geo':
+            shp_path = self.support_files["shape_file"]
+            sf = shapefile.Reader(shp_path)
+            content_array = self.osm_recent_data.map(lambda row: (int(row.id), osm_vectorize_row(row, sf)))
             return content_array
 
         elif self.content_vector_type=='none':
             return None
 
         else:
-            print "Please choose a content_vector_type between 'tags_only' or 'none'"
+            print "Please choose a content_vector_type between 'tags_only', tags_w_geo or 'none'"
             return None
 
 
 
 
-def osm_vectorize(row):
+def osm_vectorize_row(row, sf):
     vect = []
     if row.source is not None:
         vect.append(1)
@@ -210,4 +223,66 @@ def osm_vectorize(row):
         vect.append(1)
     else:
         vect.append(0)
+
+    if sf:
+        if row.lon:
+            lon = float(row.lon)
+        else:
+            lon = None
+        if row.lat:
+            lat = float(row.lat)
+        else:
+            lat = None
+        vect.extend(fill_geo_content(sf, lon, lat))
+
     return vect
+
+
+def fill_geo_content(shpPoly, x, y):
+    poly_array = np.zeros(len(shpPoly.shapeRecords()), dtype=np.int)
+    if x is not None and y is not None:
+        div_idx = getDivsionName(shpPoly, x, y)
+        if div_idx == -1:
+            return poly_array
+        else:
+            poly_array[div_idx] = 1
+            return poly_array
+    else:
+        return poly_array
+
+def getDivsionName(shpPoly, x, y):
+    idx = 0
+    for poly in shpPoly.shapeRecords():
+        if point_in_poly(x,y, poly.shape.points):
+            #print poly.record[4] #the [4] item is the name in this shapefile
+            return idx
+        else:
+            pass
+    idx += 1
+    return -1
+
+def point_in_poly(x,y,poly):
+    """" Ray Casting Method:
+    Drawing a line from the point in question and stop drawing it when the line
+    leaves the polygon bounding box. Along the way you count the number of times
+    you crossed the polygon's boundary.  If the count is an odd number the point
+    must be inside.  If it's an even number the point is outside the polygon.
+    So in summary, odd=in, even=out
+    """
+
+    n = len(poly)
+    inside = False
+
+    p1x,p1y = poly[0]
+    for i in range(n+1):
+        p2x,p2y = poly[i % n]
+        if y > min(p1y,p2y):
+            if y <= max(p1y,p2y):
+                if x <= max(p1x,p2x):
+                    if p1y != p2y:
+                        xints = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
+                    if p1x == p2x or x <= xints:
+                        inside = not inside
+        p1x,p1y = p2x,p2y
+
+    return inside
