@@ -35,7 +35,7 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
 
     #measures of serendipity
     results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)
-    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx)
+    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx, num_partitions)
 
     #measures of novelty
     results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)
@@ -570,7 +570,7 @@ def prob_by_rank(rank, n):
         prob = (n-rank)/float(n-1)
     return prob
 
-def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx):
+def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx, num_partitions=20):
     """
     Calculates the serendipity of the recommendations based on their content.
     This measure of serendipity in particular is how surprising relevant recommendations are to a user
@@ -599,7 +599,7 @@ def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx):
     #instead of calculating the distance between the user's items and predicted items we will do a lookup to a table with this information
     #this minimizes the amount of repeated procedures
     ##TODO only look at one half of the matrix as we don't need (a,b, dist) if we have (b,a, dist). Need to modify lower section of code to do this
-    content_array_matrix = content_array.cartesian(content_array).map(lambda (a, b): (a[0], b[0], calc_jaccard_diff(a[1], b[1])))
+    content_array_matrix = content_array.cartesian(content_array).map(lambda (a, b): (a[0], b[0], calc_jaccard_diff(a[1], b[1]))).coalesce(num_partitions)
 
 
     #create a matrix of all predictions for each item a user has rated

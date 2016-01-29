@@ -3,7 +3,7 @@ from pyspark.mllib.clustering import KMeans
 import recommender_helpers as rechelp
 
 
-def predict(user_info, content_array, num_predictions, k=10):
+def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
     """Predict ratings for items using a k-means clustering content based
     algorithm designed to increase the diversity of recommended items.
 
@@ -47,7 +47,7 @@ def predict(user_info, content_array, num_predictions, k=10):
     # Make predictions
     max_rating = user_info.map(lambda (user, item, rating): rating).max()
     min_rating = user_info.map(lambda (user, item, rating): rating).min()
-    content_and_profiles = clustered_content.cartesian(user_prefs)
+    content_and_profiles = clustered_content.cartesian(user_prefs).coalesce(num_partitions)
     predictions_with_clusters = content_and_profiles\
         .map(
             lambda (

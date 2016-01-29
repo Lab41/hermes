@@ -3,7 +3,7 @@ from pyspark.sql.types import *
 from pyspark.mllib.recommendation import ALS
 import numpy as np
 
-def calc_cf_mllib(y_training_data):
+def calc_cf_mllib(y_training_data, num_partitions = 20):
     """
     Utilizes the ALS collaborative filtering algorithm in MLLib to determine the predicted ratings
 
@@ -19,14 +19,14 @@ def calc_cf_mllib(y_training_data):
     #predict all user, item pairs
     item_ids = y_training_data.map(lambda (u,i,r): i).distinct()
     user_ids = y_training_data.map(lambda (u,i,r): u).distinct()
-    user_item_combo = user_ids.cartesian(item_ids)
+    user_item_combo = user_ids.cartesian(item_ids).coalesce(num_partitions)
 
     predicted = model.predictAll(user_item_combo.map(lambda x: (x[0], x[1])))
 
     return predicted
 
 
-def calc_user_user_cf(training_data):
+def calc_user_user_cf(training_data, num_partitions=20):
     """
     A very simple user-user CF algorithm in PySpark. Method is less stable than calc_user_user_cf2
 
@@ -44,7 +44,7 @@ def calc_user_user_cf(training_data):
     user_groups = training_data.groupBy(lambda (user, item, rating): user)
 
     user_groups_sim = user_groups.cartesian(user_groups).map(lambda ((user1_id, user1_rows), (user2_id, user2_rows)):\
-        (user1_id, user2_id, similarity(user1_rows, user2_rows, 1)))
+        (user1_id, user2_id, similarity(user1_rows, user2_rows, 1))).coalesce(num_partitions)
     fields = [StructField("user1", LongType(),True),StructField("user2", LongType(), True),\
               StructField("similarity", FloatType(), True) ]
     schema_sim = StructType(fields)
@@ -76,7 +76,7 @@ def calc_user_user_cf(training_data):
 
     return predictions
 
-def calc_user_user_cf2(training_data):
+def calc_user_user_cf2(training_data, num_partitions=20):
     """
     A very simple user-user CF algorithm in PySpark. Method is more stable than calc_user_user_cf
 
@@ -94,7 +94,7 @@ def calc_user_user_cf2(training_data):
     user_groups = training_data.groupBy(lambda (user, item, rating): user)
 
     user_groups_sim = user_groups.cartesian(user_groups).map(lambda ((user1_id, user1_rows), (user2_id, user2_rows)):\
-        (user1_id, user2_id, similarity(user1_rows, user2_rows, 1)))
+        (user1_id, user2_id, similarity(user1_rows, user2_rows, 1))).coalesce(num_partitions)
 
     user_averages = training_data.map(lambda (user, item, rating): (user, (rating))).groupByKey().\
         map(lambda (user, ratings): (user, np.mean(list(ratings))))
@@ -125,7 +125,7 @@ def calc_item_adjust(sim_resids):
     else:
         return sum_r_w/sum_sim
 
-def calc_item_item_cf(training_data):
+def calc_item_item_cf(training_data, num_partitions):
     """
     A very simple item-item CF algorithm in PySpark.
 
@@ -142,7 +142,7 @@ def calc_item_item_cf(training_data):
 
     item_groups = training_data.groupBy(lambda (user, item, rating): item)
     item_similarity = item_groups.cartesian(item_groups).map(lambda ((item1_id, item1_rows), (item2_id, item2_rows)):\
-                       (item1_id, item2_id, similarity(item1_rows, item2_rows, 0)))
+                       (item1_id, item2_id, similarity(item1_rows, item2_rows, 0))).coalesce(num_partitions)
 
     user_item_sim = training_data.keyBy(lambda (user, item, rating): item)\
         .join(item_similarity.keyBy(lambda (item1, item2, sim): item1))\
