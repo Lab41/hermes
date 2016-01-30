@@ -78,13 +78,13 @@ class wiki_vectorize():
     def get_content_vector(self):
         if self.content_vector_type=='glove':
 
-            if self.support_files==1:
+            if len(self.support_files)==1:
                 glove_model = self.support_files["glove_model"]
 
                 article_mapping = self.filtered_content\
-                        .map(lambda row: (row.article_id, remove_templates(row.full_text)))\
-                        .map(lambda tup: (tup[0],clean_categories(tup[1])))\
-                        .map(lambda tup: (tup[0],clean_links(tup[1])))\
+                        .map(lambda row: (row.article_id, remove_templates.remove_templates(row.full_text)))\
+                        .map(lambda tup: (tup[0],clean_categories.clean_categories(tup[1])))\
+                        .map(lambda tup: (tup[0],clean_links.clean_links(tup[1])))\
                         .map(
                             lambda tup:
                             (tup[0], tup[1]\
