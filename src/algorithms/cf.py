@@ -26,7 +26,7 @@ def calc_cf_mllib(y_training_data, num_partitions = 20):
     return predicted
 
 
-def calc_user_user_cf(training_data, num_partitions=20):
+def calc_user_user_cf(training_data, sqlCtx, num_partitions=20):
     """
     A very simple user-user CF algorithm in PySpark. Method is less stable than calc_user_user_cf2
 

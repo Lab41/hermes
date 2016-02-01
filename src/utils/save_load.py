@@ -90,9 +90,9 @@ def parseText(row):
     row = row.split(',')
     return (int(row[0]), int(row[1]), float(row[2]))
 
-def save_cv_to_hadoop(vector, output_name):
+def save_to_hadoop(vector, output_name):
     vector.saveAsPickleFile(output_name)
 
-def load_cv_from_hadoop(input_name,sc,  num_partitions=20):
+def load_from_hadoop(input_name,sc,  num_partitions=20):
     cv = sc.pickleFile(input_name).repartition(num_partitions)
     return cv

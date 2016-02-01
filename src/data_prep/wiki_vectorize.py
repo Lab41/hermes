@@ -6,7 +6,9 @@ class wiki_vectorize():
 
     def __init__(self, user_interactions, content, user_vector_type, content_vector_type, sqlCtx, **support_files):
         """
-        Class initializer to load the required files
+        Class initializer to load the required files.
+        The wikipedia data will be filtered to only the 2015 edits and content, as well as remove any articles without text,
+        edits without a user id (IP addresses) and article namespaces that are not 0 (articles).
 
         Args:
             user_interactions: The raw RDD of the user interactions. For Wikipedia, this it is the full edit history.
@@ -30,8 +32,8 @@ class wiki_vectorize():
         user_interactions.registerTempTable("ratings")
         content.registerTempTable("content")
 
-        filtered =  self.sqlCtx.sql("select * from ratings where redirect_target is null and article_namespace=0 and user_id is not null")
-        filtered_content =  self.sqlCtx.sql("select * from content where redirect_target is null and article_namespace=0 and full_text is not null")
+        filtered =  self.sqlCtx.sql("select * from ratings where redirect_target is null and article_namespace=0 and user_id is not null and timestamp like '2015%'")
+        filtered_content =  self.sqlCtx.sql("select * from content where redirect_target is null and article_namespace=0 and full_text is not null and timestamp like '2015%'")
 
         self.filtered = filtered
         self.filtered.registerTempTable("wiki_ratings")
