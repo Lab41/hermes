@@ -1,8 +1,9 @@
 import numpy as np
 import recommender_helpers as rechelp
+from numpy.linalg import norm
 
 
-def predict(user_info, content_array, max_prediction=1, num_partitions=30):
+def predict(user_info, content_array, num_partitions=30):
     """
     Creates a user preference profile by determining the rating of a particular vector item
     For example if we are looking at movies and a user highly rates sci-fi movies over drama, then the sci-fi row will be a higher number than the drama row
@@ -23,16 +24,20 @@ def predict(user_info, content_array, max_prediction=1, num_partitions=30):
     user_prefs = content_array.join(user_keys).groupBy(lambda (page, ((array), (user, rating))): user)\
         .map(lambda(user, array): (user, rechelp.sum_components(array)))
 
-    predictions = user_prefs.cartesian(content_array).map(lambda ((user_id, user_vect), (page_id, page_vect)):\
-                                    (user_id, page_id, np.dot(user_vect, page_vect))).coalesce(num_partitions)
+    max_rating = user_info.map(lambda (user, item, rating): rating).max()
+    min_rating = user_info.map(lambda (user, item, rating): rating).min()
 
-    #renormalize the predictions
-    #this assumes that the minimum is zero which is a fair assumption
-    max_val = predictions.map(lambda (user_id, page_id, pred_val): pred_val).max()
-    min_val = 0
-    diff = max_val-min_val
+    diff_ratings = max_rating - min_rating
 
-    predictions_norm = predictions.map(lambda \
-                (user_id, page_id, pred_val):(user_id, page_id, (((pred_val-min_val)**0*(max_val-pred_val))/diff)*max_prediction))
+    predictions = user_prefs.cartesian(content_array).map(lambda ((user_id, user_vect), (page_id, item_vector)):\
+            (user_id, page_id, np.dot(user_vect, item_vector)/(norm(item_vector)*norm(user_vect)))).coalesce(num_partitions)
 
-    return predictions_norm
+    max_pred = predictions.map(lambda (user,item, pred):pred).max()
+    min_pred = predictions.map(lambda (user,item, pred):pred).min()
+
+    diff_pred = max_pred - min_pred
+
+    norm_predictions = predictions.map(lambda (user,item, pred):(user, item, \
+                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+
+    return norm_predictions

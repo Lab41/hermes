@@ -57,7 +57,7 @@ class osm_vectorize():
 
         elif self.user_vector_type=='num_edits_ceil':
             user_info = self.sqlCtx.sql("select uid, id, count(1) as rating from filtered_osm group by uid, id") \
-                                   .map(lambda (user, item, interact) : (user, int(item), min(interact, 5)))
+                                   .map(lambda (user, item, interact) : (int(user), int(item), min(interact, 5)))
             return user_info
 
         elif self.user_vector_type=='none':
