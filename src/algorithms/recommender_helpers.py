@@ -17,14 +17,14 @@ def sum_components(array):
         rated_info.append(r_i)
 
     array_out = map(sum, zip(*np.array(rated_info)))
-    #if necessary renormalize
+    #renormalize to be between 0 and 1
     min_val = min(array_out)
     max_val = max(array_out)
     diff = max_val-min_val
     if diff==0: diff=1
     array_out2 = []
     for t in array_out:
-        new_val = ((t-min_val)**0*(max_val-t))/diff
+        new_val = (t-min_val)*float(1/diff)
         array_out2.append(new_val)
 
     return array_out2

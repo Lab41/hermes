@@ -1,6 +1,7 @@
 import numpy as np
 from pyspark.mllib.clustering import KMeans
 import recommender_helpers as rechelp
+from numpy.linalg import norm
 
 
 def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
@@ -47,6 +48,7 @@ def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
     # Make predictions
     max_rating = user_info.map(lambda (user, item, rating): rating).max()
     min_rating = user_info.map(lambda (user, item, rating): rating).min()
+    diff_ratings = max_rating - min_rating
     content_and_profiles = clustered_content.cartesian(user_prefs).coalesce(num_partitions)
     predictions_with_clusters = content_and_profiles\
         .map(
@@ -57,7 +59,7 @@ def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
                 user,
                 cluster,
                 item,
-                round(rechelp.dot_product_predict_ratings(user_vector, item_vector, minimum=min_rating, maximum=max_rating), 3)
+                round(np.dot(user_vector, item_vector)/(norm(item_vector)*norm(user_vector)), 3)
             )
         )
 
@@ -66,4 +68,12 @@ def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
         .flatMap(lambda row: rechelp.sort_and_cut_by_cluster(row, num_predictions, fractions))\
         .map(lambda (user, rating, item): (user, item, rating))
 
-    return clustered_predictions
+    max_pred = clustered_predictions.map(lambda (user,item, pred):pred).max()
+    min_pred = clustered_predictions.map(lambda (user,item, pred):pred).min()
+
+    diff_pred = max_pred - min_pred
+
+    norm_predictions = clustered_predictions.map(lambda (user,item, pred):(user, item, \
+                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+
+    return norm_predictions
