@@ -123,7 +123,7 @@ def calc_item_adjust(sim_resids):
     if sum_sim ==0:
         return 0
     else:
-        return sum_r_w/sum_sim
+        return sum_r_w/float(sum_sim)
 
 def calc_item_item_cf(training_data, num_partitions):
     """
@@ -180,5 +180,5 @@ def get_item_prob(rows):
     if denom ==0:
         return 0
     else:
-        item_prob = nom/denom
+        item_prob = nom/float(denom)
         return float(item_prob)

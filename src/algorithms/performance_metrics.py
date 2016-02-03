@@ -493,7 +493,7 @@ def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
     sumCount = data.combineByKey(lambda value: (value, 1),
                              lambda x, value: (x[0] + value, x[1] + 1),
                              lambda x, y: (x[0] + y[0], x[1] + y[1]))
-    serendipityByUser = sumCount.map(lambda (label, (value_sum, count)): (label, value_sum / count))
+    serendipityByUser = sumCount.map(lambda (label, (value_sum, count)): (label, value_sum / float(count)))
 
     num = float(serendipityByUser.count())
     average_serendipity = serendipityByUser.map(lambda (user, serendipity):serendipity).reduce(add)/num
