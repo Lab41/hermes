@@ -27,7 +27,10 @@ def predict(user_info, content_array, num_partitions=30):
     max_rating = user_info.map(lambda (user, item, rating): rating).max()
     min_rating = user_info.map(lambda (user, item, rating): rating).min()
 
-    diff_ratings = max_rating - min_rating
+    if max_rating == min_rating:
+        min_rating=0
+
+    diff_ratings = float(max_rating - min_rating)
 
     predictions = user_prefs.cartesian(content_array).map(lambda ((user_id, user_vect), (page_id, item_vector)):\
             (user_id, page_id, np.dot(user_vect, item_vector)/(norm(item_vector)*norm(user_vect)))).coalesce(num_partitions)
@@ -35,7 +38,7 @@ def predict(user_info, content_array, num_partitions=30):
     max_pred = predictions.map(lambda (user,item, pred):pred).max()
     min_pred = predictions.map(lambda (user,item, pred):pred).min()
 
-    diff_pred = max_pred - min_pred
+    diff_pred = float(max_pred - min_pred)
 
     norm_predictions = predictions.map(lambda (user,item, pred):(user, item, \
                     (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))

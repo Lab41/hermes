@@ -20,7 +20,7 @@ def sum_components(array):
     #renormalize to be between 0 and 1
     min_val = min(array_out)
     max_val = max(array_out)
-    diff = max_val-min_val
+    diff = float(max_val-min_val)
     if diff==0: diff=1
     array_out2 = []
     for t in array_out:
