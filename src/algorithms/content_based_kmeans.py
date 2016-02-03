@@ -71,7 +71,7 @@ def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
     max_pred = clustered_predictions.map(lambda (user,item, pred):pred).max()
     min_pred = clustered_predictions.map(lambda (user,item, pred):pred).min()
 
-    diff_pred = max_pred - min_pred
+    diff_pred = float(max_pred - min_pred)
 
     norm_predictions = clustered_predictions.map(lambda (user,item, pred):(user, item, \
                     (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
