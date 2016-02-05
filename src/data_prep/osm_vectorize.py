@@ -3,12 +3,13 @@ import shapefile
 
 class osm_vectorize():
 
-    def __init__(self, user_interactions, user_vector_type, content_vector_type, sqlCtx, **support_files ):
+    def __init__(self, user_interactions, content_relations, user_vector_type, content_vector_type, sqlCtx, **support_files ):
         """
         Class initializer to load the required files
 
         Args:
             user_interactions: The raw RDD of the user interactions. For OSM, these are the object edits as well as the object data
+            object_relations: The RDD of the content relationships.  This is used so that ways and relations inherit properties of their components
             user_vector_type: The type of user vector desired.  For MovieLens you can choose between ['num_edits', 'pos_ratings', 'ratings_to_interact', 'none'].
                 If 'none' is used then this means you will run your own custom mapping
             content_vector_type: The type of content vector desired. For MovieLens you can choose between ['tags_only', tags_w_geo, 'none'].
@@ -22,19 +23,21 @@ class osm_vectorize():
         self.content_vector_type = content_vector_type
         self.sqlCtx = sqlCtx
 
-        #Filter out uninteresting items and users if they still exist in the dataset
         self.user_interactions =user_interactions
         self.user_interactions.registerTempTable("osm_data")
 
+        #filter out rows without an id or user id (IP address)
+        self.filtered =  self.sqlCtx.sql("select * from osm_data where id is not Null and uid is not Null")
+        self.filtered.registerTempTable("filtered_osm")
+
         #For the content only use the elements that are most recent, in this case have the highest timestamp
-        self.osm_recent_data = sqlCtx.sql("select o.* from osm_data o, \
-            (select id, max(timestamp) as max_time from osm_data group by id) time\
+        self.osm_recent_data = sqlCtx.sql("select o.* from filtered_osm o, \
+            (select id, max(timestamp) as max_time from filtered_osm group by id) time\
             where time.id = o.id and o.timestamp=time.max_time")
 
+        self.osm_recent_data.registerTempTable("osm_recent_data")
 
-
-        filtered =  self.sqlCtx.sql("select * from osm_data where id is not Null and uid is not Null")
-        filtered.registerTempTable("filtered_osm")
+        self.content_relations = content_relations
 
         #if no support files were passed in, initialize an empty support file
         if support_files:
@@ -71,13 +74,15 @@ class osm_vectorize():
 
         if self.content_vector_type=='tags_only':
             content_array = self.osm_recent_data.map(lambda row: (int(row.id), osm_vectorize_row(row, None)))
-            return content_array
+            fuller_content = self.inherit_properties(content_array)
+            return fuller_content
 
         elif self.content_vector_type=='tags_w_geo':
             shp_path = self.support_files["shape_file"]
             sf = shapefile.Reader(shp_path)
             content_array = self.osm_recent_data.map(lambda row: (int(row.id), osm_vectorize_row(row, sf)))
-            return content_array
+            fuller_content = self.inherit_properties(content_array)
+            return fuller_content
 
         elif self.content_vector_type=='none':
             return None
@@ -87,6 +92,63 @@ class osm_vectorize():
             return None
 
 
+    def inherit_properties(self, orig_content_array):
+
+        #have to have the ways inherrit their info first and then the relations
+        #this is because relations consist of both ways and nodes
+
+        content_with_types = self.osm_recent_data.map(lambda row: (int(row.id),str(row.osm_type))).join(orig_content_array)\
+            .map(lambda (n_id, (o_type, cv)): (n_id, (o_type, cv)))
+
+        #have to have the ways inherrit their info first and then the relations
+        #this is because relations consist of both ways and nodes
+
+        way_relations = self.content_relations.filter(lambda row: row[2]=='way')
+
+        inheret_info = way_relations.map(lambda (w,n,w_t,n_t): (n,w)).join(orig_content_array)\
+            .map(lambda (n,(w,c)):(w,[c])).combineByKey(lambda first:first, \
+                    lambda com_vals, new_val : com_vals + new_val,\
+                    lambda com_val1, com_val2 : com_val1+com_val2)\
+            .map(lambda (way_id, vals): (way_id, np.max(vals, axis=0)))
+
+        way_content = content_with_types.filter(lambda (n_id, (o_type, cv)): o_type=='Way')\
+                .map(lambda (n_id, (o_type, cv)): (n_id, cv))
+
+        full_way_info = inheret_info.rightOuterJoin(way_content).map(lambda (way_id,(w_in, w_orig)): \
+            (way_id, combine_cv(w_in, w_orig)))
+
+        #now get the relation information
+
+        relation_relations = self.content_relations.filter(lambda row: row[2]=='relation')
+
+        relation_info = relation_relations.map(lambda (w,n,w_t,n_t): (n,w)).join(orig_content_array)\
+            .map(lambda (n,(w,c)):(w,[c])).combineByKey(lambda first:first, \
+                    lambda com_vals, new_val : com_vals + new_val,\
+                    lambda com_val1, com_val2 : com_val1+com_val2)\
+            .map(lambda (way_id, vals): (way_id, np.max(vals, axis=0)))
+
+        relation_content = content_with_types.filter(lambda (n_id, (o_type, cv)): o_type=='Relation')\
+            .map(lambda (n_id, (o_type, cv)): (n_id, cv))
+
+        full_relation_info = relation_info.rightOuterJoin(relation_content).map(lambda (way_id,(w_in, w_orig)): \
+                (way_id, combine_cv(w_in, w_orig)))
+
+        #now that we have ways and relations we just add the node content info
+        nodes_vectors = content_with_types.filter(lambda (n_id, (o_type, cv)): o_type=='Node')\
+                .map(lambda (n_id, (o_type, cv)): (n_id, cv))
+
+        #and put all three of them together again
+        #is there a better way to do this - probably...does this work though - yes :)
+        full_info = nodes_vectors.union(full_way_info).union(full_relation_info)
+
+        return full_info
+
+def combine_cv(w_in, w_orig):
+    #This is used in a leftOuterJoin, so when the first
+    try:
+        return np.max((list(w_in),list(w_orig)), axis=0)
+    except:
+        return w_orig
 
 
 def osm_vectorize_row(row, sf):
