@@ -112,7 +112,7 @@ lib64
 __pycache__
 
 # The __init__.py's that scram puts everywhere
-__init__.py
+# __init__.py
 
 # Installer logs
 pip-log.txt
