@@ -20,6 +20,7 @@ class wiki_vectorize():
             content_vector_type: The type of content vector desired. For Wikipedia you can choose between ['glove', 'category_map', 'none'].
                 If none is chosen no content vector will be returned and None may be passed into the content argument.
                 You do not need a content vector to run pure CF only but some performance metrics will not be able to be ran
+            sqlCtx: The sequel content which is necessary for some of the queries
             support_files: If they exist, the supporting files, dataFrames, and/or file links necessary to run the content vectors.
                 For example the category_map function at least needs the category_list from dbPedia
 

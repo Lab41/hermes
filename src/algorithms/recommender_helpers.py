@@ -58,30 +58,6 @@ def sort_and_cut_by_cluster(row, N, fractions):
 
     return output
 
-
-def dot_product_predict_ratings(uv, iv, minimum=0., maximum=5.):
-    """Calculates a predicted rating for an item using the dot product.
-
-    The distance between two vectors is computed with the dot product. The
-    returned rating is scaled to fall within the same range as the ratings of
-    the dataset.
-
-    Args:
-        uv (numpy array): user profile vector
-        iv (numpy array): item content vector
-        minimum (float): the minimum value allowed for a rating
-        maximum (float): the maximum value allowed for a rating
-
-    Returns:
-        float: a predicted rating
-
-    """
-    angle = np.dot(uv, iv)/(norm(iv)*norm(uv))
-    shift = minimum + 1  # +1 is from - -1 is the minimum of our original distribution
-    scale = (maximum - minimum) / 2.  # 2. is 1 - -1, the range of our original distribution
-    return (angle + shift) * scale
-
-
 def compute_user_vector_with_threshold(array, threshold=3.5):
     """Compute a user profile by summing only vectors from items with a
     positive review.
