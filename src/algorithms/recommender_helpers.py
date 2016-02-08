@@ -87,3 +87,11 @@ def compute_user_vector_with_threshold(array, threshold=3.5):
         else:
             vec = sign * vector
     return vec
+
+def squish_preds(pred, min_val, max_val):
+    if pred<min_val:
+        return min_val
+    elif pred>max_val:
+        return max_val
+    else:
+        return pred
