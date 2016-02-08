@@ -81,7 +81,7 @@ class wiki_vectorize():
     def get_content_vector(self):
         if self.content_vector_type=='glove':
 
-            if "glove_model" in self.support_files:
+            if len(self.support_files)==1:
                 glove_model = self.support_files["glove_model"]
 
                 article_mapping = self.filtered_content\
@@ -106,7 +106,7 @@ class wiki_vectorize():
                 print "Please pass in a glove_model. Like: support_files['glove_model']=Glove('glove.6B.50d.txt')"
         elif self.content_vector_type=='category_map':
 
-            if all(support_file in support_files for support_file("high_level_categories", "category_index_graph_link", "category_idx"):
+            if len(self.support_files)==3:
                     #The category map supporting dataFrames and objects are as followed:
                     #high_level_idx: An array of the high level categories to map to e.g. ['Concepts', 'Life', 'Physical_universe', 'Society']
                     #category_index_graph_link: Path to the csv of the category links as created from wiki_categories.create_linked_list()
