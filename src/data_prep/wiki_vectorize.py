@@ -114,7 +114,7 @@ class wiki_vectorize():
 
                 high_level_categories = self.support_files['high_level_categories']
                 category_index_graph_link = self.support_files['category_index_graph_link']
-                category_idx = self.support_file['category_idx']
+                category_idx = self.support_files['category_idx']
 
                 ac = article_to_category(high_level_categories, category_index_graph_link, category_idx)
                 article_mapping = ac.run_mapping(self.filtered_content)
