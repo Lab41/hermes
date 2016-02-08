@@ -2,6 +2,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from pyspark.sql.types import *
 from pyspark.mllib.recommendation import ALS
 import numpy as np
+import recommender_helpers as rechelp
 
 def calc_cf_mllib(y_training_data, num_partitions = 20):
     """
@@ -15,14 +16,6 @@ def calc_cf_mllib(y_training_data, num_partitions = 20):
 
     """
 
-    model = ALS.train(y_training_data, rank = 10, iterations = 5)
-    #predict all user, item pairs
-    item_ids = y_training_data.map(lambda (u,i,r): i).distinct()
-    user_ids = y_training_data.map(lambda (u,i,r): u).distinct()
-    user_item_combo = user_ids.cartesian(item_ids).coalesce(num_partitions)
-
-    predicted = model.predictAll(user_item_combo.map(lambda x: (x[0], x[1])))
-
     #Predicted values can be anywhere - because we are normalizing the content based algorithms we should likely normalize here
     max_rating = y_training_data.map(lambda (user, item, rating): rating).max()
     min_rating = y_training_data.map(lambda (user, item, rating): rating).min()
@@ -30,15 +23,21 @@ def calc_cf_mllib(y_training_data, num_partitions = 20):
     if max_rating == min_rating:
         min_rating=0
 
-    diff_ratings = float(max_rating - min_rating)
+    #MLLIb has two methods, train and trainImplicit().  Implicit data will go between zero and 1
+    if min_rating==0 and max_rating==1:
+        model = ALS.trainImplicit(y_training_data, rank = 10, iterations = 5)
+    else:
+        model = ALS.train(y_training_data, rank = 10, iterations = 5)
 
-    max_pred = predicted.map(lambda (user,item, pred):pred).max()
-    min_pred = predicted.map(lambda (user,item, pred):pred).min()
+    #predict all user, item pairs
+    item_ids = y_training_data.map(lambda (u,i,r): i).distinct()
+    user_ids = y_training_data.map(lambda (u,i,r): u).distinct()
+    user_item_combo = user_ids.cartesian(item_ids).coalesce(num_partitions)
 
-    diff_pred = float(max_pred - min_pred)
+    predicted = model.predictAll(user_item_combo.map(lambda x: (x[0], x[1])))
 
-    norm_predictions = predicted.map(lambda (user,item, pred):(user, item, \
-                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+    norm_predictions = predicted.map(lambda (user,item,pred): (user,item, rechelp.squish_preds(pred,min_rating,max_rating)))
+
 
     return norm_predictions
 
@@ -133,15 +132,7 @@ def calc_user_user_cf2(training_data, num_partitions=20):
     if max_rating == min_rating:
         min_rating=0
 
-    diff_ratings = float(max_rating - min_rating)
-
-    max_pred = predictions.map(lambda (user,item, pred):pred).max()
-    min_pred = predictions.map(lambda (user,item, pred):pred).min()
-
-    diff_pred = float(max_pred - min_pred)
-
-    norm_predictions = predictions.map(lambda (user,item, pred):(user, item, \
-                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+    norm_predictions = predictions.map(lambda (user,item,pred): (user,item, rechelp.squish_preds(pred,min_rating,max_rating)))
 
     return norm_predictions
 
@@ -193,15 +184,7 @@ def calc_item_item_cf(training_data, num_partitions):
     if max_rating == min_rating:
         min_rating=0
 
-    diff_ratings = float(max_rating - min_rating)
-
-    max_pred = predictions.map(lambda (user,item, pred):pred).max()
-    min_pred = predictions.map(lambda (user,item, pred):pred).min()
-
-    diff_pred = float(max_pred - min_pred)
-
-    norm_predictions = predictions.map(lambda (user,item, pred):(user, item, \
-                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+    norm_predictions = predictions.map(lambda (user,item,pred): (user,item, rechelp.squish_preds(pred,min_rating,max_rating)))
 
     return norm_predictions
 
