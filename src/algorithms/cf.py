@@ -23,7 +23,24 @@ def calc_cf_mllib(y_training_data, num_partitions = 20):
 
     predicted = model.predictAll(user_item_combo.map(lambda x: (x[0], x[1])))
 
-    return predicted
+    #Predicted values can be anywhere - because we are normalizing the content based algorithms we should likely normalize here
+    max_rating = y_training_data.map(lambda (user, item, rating): rating).max()
+    min_rating = y_training_data.map(lambda (user, item, rating): rating).min()
+
+    if max_rating == min_rating:
+        min_rating=0
+
+    diff_ratings = float(max_rating - min_rating)
+
+    max_pred = predicted.map(lambda (user,item, pred):pred).max()
+    min_pred = predicted.map(lambda (user,item, pred):pred).min()
+
+    diff_pred = float(max_pred - min_pred)
+
+    norm_predictions = predicted.map(lambda (user,item, pred):(user, item, \
+                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+
+    return norm_predictions
 
 
 def calc_user_user_cf(training_data, sqlCtx, num_partitions=20):
@@ -109,7 +126,24 @@ def calc_user_user_cf2(training_data, num_partitions=20):
     predictions = item_adjustments.map(lambda (user, item, item_adj): (user, (item, item_adj))).join(user_averages)\
         .map(lambda (user, ((item, item_adj), (avg_rate))): (user, item, avg_rate+item_adj))
 
-    return predictions
+    #Predicted values can be anywhere - because we are normalizing the content based algorithms we should likely normalize here
+    max_rating = training_data.map(lambda (user, item, rating): rating).max()
+    min_rating = training_data.map(lambda (user, item, rating): rating).min()
+
+    if max_rating == min_rating:
+        min_rating=0
+
+    diff_ratings = float(max_rating - min_rating)
+
+    max_pred = predictions.map(lambda (user,item, pred):pred).max()
+    min_pred = predictions.map(lambda (user,item, pred):pred).min()
+
+    diff_pred = float(max_pred - min_pred)
+
+    norm_predictions = predictions.map(lambda (user,item, pred):(user, item, \
+                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+
+    return norm_predictions
 
 def calc_item_adjust(sim_resids):
     #data coming into this function is a list of [residual*similarity, similarity] for all user, item paris
@@ -152,7 +186,24 @@ def calc_item_item_cf(training_data, num_partitions):
     predictions = user_item_sim.groupByKey()\
         .map(lambda ((user, item), rows): (user, item, get_item_prob(rows)))
 
-    return predictions
+    #Predicted values can be anywhere - because we are normalizing the content based algorithms we should likely normalize here
+    max_rating = training_data.map(lambda (user, item, rating): rating).max()
+    min_rating = training_data.map(lambda (user, item, rating): rating).min()
+
+    if max_rating == min_rating:
+        min_rating=0
+
+    diff_ratings = float(max_rating - min_rating)
+
+    max_pred = predictions.map(lambda (user,item, pred):pred).max()
+    min_pred = predictions.map(lambda (user,item, pred):pred).min()
+
+    diff_pred = float(max_pred - min_pred)
+
+    norm_predictions = predictions.map(lambda (user,item, pred):(user, item, \
+                    (pred-min_pred)*float(diff_ratings/diff_pred)+min_rating))
+
+    return norm_predictions
 
 def similarity(item1_rows, item2_rows, index):
     #to determine user similarity index=0
