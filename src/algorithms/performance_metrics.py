@@ -33,12 +33,12 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
     results['user_coverage'] = calculate_user_coverage(y_test, y_train, n_predictions)
     results['pred_coverage'] = calculate_prediction_coverage(y_test, n_predictions)
 
-    #measures of serendipity
-    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)
-    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx, num_partitions)
+    #measures of serendipity returning the average user's amount of serendiptiy over the items as opposed to total average serendiptiy
+    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)[1]
+    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx, num_partitions)[1]
 
-    #measures of novelty
-    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)
+    #measures of novelty returning the average user's amount of novelty
+    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)[1]
 
     #relevancy statistics
     rel_stats = calc_relevant_rank_stats(y_test, n_predictions, sqlCtx)

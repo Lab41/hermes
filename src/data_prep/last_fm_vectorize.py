@@ -11,8 +11,8 @@ class last_fm_vectorize():
                 We have been reading it in as plays = sqlCtx.read.json(last_fm_play_data_path, schema=schema)
             content: The raw RDD containing the item content. For Last FM, these are the applied tags
                 The tag table can map to the tag applied, but we don't need this info
-            user_vector_type: The type of user vector desired.  For Last FM you can choose between ['num_plays', 'any_interact', 'num_plays_ceil', 'none'].
-                num_plays_ceil will count the number of edits but set an upper limit of 5 edits
+            user_vector_type: The type of user vector desired.  For Last FM you can choose between ['num_plays', 'any_interact', 'num_plays_log', 'none'].
+                num_plays_log uses log base 10
                 If 'none' is used then this means you will run your own custom mapping
             content_vector_type: The type of content vector desired. For Last FM you can choose between ['tags', 'none'].
                 If none is chosen no content vector will be returned and None may be passed into the content argument.
@@ -46,13 +46,13 @@ class last_fm_vectorize():
             return user_info
 
         elif self.user_vector_type=='any_interact':
-            user_info =  self.sqlCtx.sql("select user_id as user, artist_id as item, 1 as rating from artist_plays").rdd
+            user_info =  self.sqlCtx.sql("select user_id as user, artist_id as item, 1 as play from artist_plays").rdd
 
             return user_info
 
-        elif self.user_vector_type=='num_plays_ceil':
+        elif self.user_vector_type=='num_plays_log':
             user_info =  self.sqlCtx.sql("select user_id as user, artist_id as item, plays from artist_plays")\
-                .map(lambda (user, article, plays): (user, article, min(plays, 5)))
+                .map(lambda (user, article, plays): (user, article, np.log10(plays)))
 
             return user_info
 
@@ -60,7 +60,7 @@ class last_fm_vectorize():
             return None
 
         else:
-            print "Please choose a user_vector_type between num_plays, any_interact, num_plays_ceil or none"
+            print "Please choose a user_vector_type between num_plays, any_interact, num_plays_log or none"
             return None
 
 

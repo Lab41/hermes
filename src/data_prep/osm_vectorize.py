@@ -10,7 +10,7 @@ class osm_vectorize():
         Args:
             user_interactions: The raw RDD of the user interactions. For OSM, these are the object edits as well as the object data
             object_relations: The RDD of the content relationships.  This is used so that ways and relations inherit properties of their components
-            user_vector_type: The type of user vector desired.  For MovieLens you can choose between ['num_edits', 'pos_ratings', 'ratings_to_interact', 'none'].
+            user_vector_type: The type of user vector desired.  For OSM you can choose between ['num_edits', 'any_interact', 'num_edits_ceil', 'none'].
                 If 'none' is used then this means you will run your own custom mapping
             content_vector_type: The type of content vector desired. For MovieLens you can choose between ['tags_only', tags_w_geo, 'none'].
                 If none is chosen no content vector will be returned and None may be passed into the content argument.
