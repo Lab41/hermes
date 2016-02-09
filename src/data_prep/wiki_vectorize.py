@@ -55,13 +55,13 @@ class wiki_vectorize():
             user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki_ratings \
                 group by user_id, article_id")
 
-            return user_info
+            return user_info.rdd
 
         elif self.user_vector_type=='any_interact':
             user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, 1 as rating from wiki_ratings \
                 group by user_id, article_id")
 
-            return user_info
+            return user_info.rdd
 
         elif self.user_vector_type=='num_edits_ceil':
             user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki_ratings \
