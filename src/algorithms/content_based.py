@@ -24,6 +24,10 @@ def predict(user_info, content_array, num_partitions=30):
     user_prefs = content_array.join(user_keys).groupBy(lambda (page, ((array), (user, rating))): user)\
         .map(lambda(user, array): (user, rechelp.sum_components(array)))
 
+    #ensure that there are no user_preference vectors or content vectors with a zero array - this causes the predictions to be nan
+    user_prefs = user_prefs.filter(lambda (u_id,user_vect ): sum(list(user_vect))>0.0)
+    content_array = content_array.filter(lambda (c_id, cont_vect ): sum(list(cont_vect))>0.0)
+
     max_rating = user_info.map(lambda (user, item, rating): rating).max()
     min_rating = user_info.map(lambda (user, item, rating): rating).min()
 

@@ -45,6 +45,10 @@ def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
         groupBy(lambda (item, ((item_vector), (user, rating))): user)\
         .map(lambda(user, array): (user, rechelp.sum_components(array)))
 
+    #ensure that there are no user_preference vectors or content vectors with a zero array - this causes the predictions to be nan
+    user_prefs = user_prefs.filter(lambda (u_id,user_vect ): sum(list(user_vect))>0.0)
+    clustered_content = clustered_content.filter(lambda (cluster, (item, item_vector)): sum(list(item_vector))>0.0)
+
     # Make predictions
     max_rating = user_info.map(lambda (user, item, rating): rating).max()
     min_rating = user_info.map(lambda (user, item, rating): rating).min()

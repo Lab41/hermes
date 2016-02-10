@@ -33,12 +33,12 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
     results['user_coverage'] = calculate_user_coverage(y_test, y_train, n_predictions)
     results['pred_coverage'] = calculate_prediction_coverage(y_test, n_predictions)
 
-    #measures of serendipity
-    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)
-    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx, num_partitions)
+    #measures of serendipity returning the average user's amount of serendiptiy over the items as opposed to total average serendiptiy
+    results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)[1]
+    results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx, num_partitions)[1]
 
-    #measures of novelty
-    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)
+    #measures of novelty returning the average user's amount of novelty
+    results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)[1]
 
     #relevancy statistics
     rel_stats = calc_relevant_rank_stats(y_test, n_predictions, sqlCtx)
@@ -440,7 +440,7 @@ def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
         average_serendipity: the average user's amount of surprise over their recommended items
     """
 
-    full_corpus = y_train.union(y_test)
+    full_corpus = y_train.union(y_test).map(lambda (u,i,r): (u,i,float(r)))
 
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("rating", FloatType(), True) ]
@@ -457,7 +457,7 @@ def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
 
     #format the 'relevant' predictions as a queriable table
     #these are those predictions for which we have ratings above the threshold
-    y_test = y_test.filter(lambda (u,i,r): r>=rel_filter)
+    y_test = y_test.filter(lambda (u,i,r): r>=rel_filter).map(lambda (u,i,r): (u,i,float(r)))
 
     predictionsAndRatings = y_predicted.map(lambda x: ((x[0], x[1]), x[2])) \
       .join(y_test.map(lambda x: ((x[0], x[1]), x[2])))
@@ -525,7 +525,7 @@ def calculate_novelty(y_train, y_test, y_predicted, sqlCtx):
         avg_novelty: the average user's amount of novelty over their recommended items
     """
 
-    full_corpus = y_train.union(y_test)
+    full_corpus = y_train.union(y_test).map(lambda (u,i,r): (u,i,float(r)))
 
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("rating", FloatType(), True) ]
@@ -670,7 +670,7 @@ def calc_relevant_rank_stats(y_actual, y_predicted, sqlCtx):
         average_overall_content_serendipity:
     """
 
-    predictions2 = y_predicted.map(lambda (u,i,p): (u,i,p))
+    predictions2 = y_predicted.map(lambda (u,i,p): (u,i,float(p)))
 
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
       StructField("prediction", FloatType(), True) ]
@@ -687,7 +687,7 @@ def calc_relevant_rank_stats(y_actual, y_predicted, sqlCtx):
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
       StructField("rating", FloatType(), True) ]
     rating_schema = StructType(fields)
-    rating_schema_preds = sqlCtx.createDataFrame(y_actual, schema)
+    rating_schema_preds = sqlCtx.createDataFrame(y_actual.map(lambda (u,i,r): (u,i,float(r))), rating_schema)
     rating_schema_preds.registerTempTable("ratings")
 
     relevant_ranks = sqlCtx.sql("select p.user, r.item, p.rank from prediction_rankings p, ratings r \
