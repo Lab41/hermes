@@ -78,6 +78,9 @@ def row_to_jsons(row, user_id):
         # 99 is used as the NULL character
         if val == 99:
             continue
+        # Sometimes the value is empty
+        if not val:
+            continue
         # Otherwise element i corresponds to the rating for joke i
         current_rating = deepcopy(RATINGS)
         current_rating["user_id"] = user_id
