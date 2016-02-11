@@ -12,6 +12,10 @@ In total there are over 57,000+ tags which users attribute to objects.
 We are currently only concerned with some of these.
 At the moment, all information is stored in the dictionary as strings for simplicity of coding.
 
+At the Lab we obtained the edits by country from http://odbl.poole.ch/extracts/.
+These only go to 2012, but were a more manageable test set than the full edit history.
+Go to http://wiki.openstreetmap.org/wiki/Planet.osm for more info on other OSM datasets.
+
 Attributes:
     CHANGESET (dict): A dictionary of a user's interactions with the OSM database:
             - id: A unique identifier for each changeset.

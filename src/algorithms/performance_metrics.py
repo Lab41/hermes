@@ -328,7 +328,7 @@ def calculate_catalog_coverage(y_test, y_train, y_predicted):
 
     return catalog_coverage
 
-def calculate_item_coverage(y_test, y_train, y_predicted):
+def calculate_item_coverage(y_test, y_train, content_vector, y_predicted):
     """
     Calculates the percentage of users pairs that were predicted by the algorithm.
     The full dataset is passed in as y_test and y_train to determine the total number of potential items
@@ -338,6 +338,8 @@ def calculate_item_coverage(y_test, y_train, y_predicted):
     Args:
         y_test: the data used to test the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
         y_train: the data used to train the RecSys algorithm in the format of an RDD of [ (userId, itemId, actualRating) ]
+        content_vector: the content vector in the format of an RDD of [ (item_id, [item_content]) ].
+            It is passed in because some datasets have items without any ratings
         y_predicted: predicted ratings in the format of a RDD of [ (userId, itemId, predictedRating) ].  It is important that this is not the sorted and cut prediction RDD
 
 
@@ -346,11 +348,15 @@ def calculate_item_coverage(y_test, y_train, y_predicted):
 
     """
 
-    y_full_data = y_test.union(y_train)
-
     predicted_items = y_predicted.map(lambda row: row[1]).distinct().count()
     #obtain the number of potential users and items from the actual array as the algorithms cannot predict something that was not trained
-    num_items = y_full_data.map(lambda row: row[1]).distinct().count()
+    interact_items = y_test.union(y_train).map(lambda row: row[1]).distinct()
+
+    content_items = content_vector.map(lambda row: row[0]).distinct()
+
+    full_potential_items = interact_items.union(content_items)
+
+    num_items = full_potential_items.distinct().count()
 
     item_coverage = predicted_items/float(num_items)*100
 
