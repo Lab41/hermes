@@ -45,6 +45,7 @@ Attributes:
 import json
 from copy import deepcopy
 import xml.etree.cElementTree as ET
+import sys
 
 
 
@@ -137,9 +138,9 @@ if __name__ == "__main__":
             'waterway','power','wall','oneway','amenity','ref', 'building_levels', 'maxspeed','barrier','type','place',\
             'foot','bicycle','railway','leisure','bridge', 'parking','man_made','railway','aeroway', 'wikipedia']
 
-    changeset_json_file = open( args.output_directory +"/changeset_test.json", 'w')
-    node_json_file = open( args.output_directory +"/node_test.json", 'w')
-    relation_map = open( args.output_directory +"/relation_map.txt", 'w')
+    changeset_json_file = open( args.output_directory +"/changeset_info.json", 'w')
+    node_json_file = open( args.output_directory +"/node_ways_relations.json", 'w')
+    relation_map = open( args.output_directory +"/element_relation_map.txt", 'w')
 
     osm_tree = ET.iterparse(args.osm_history, events=("start", "end"))
 
@@ -230,7 +231,6 @@ if __name__ == "__main__":
             #print json.dumps(n)
             node_json_file.write(json.dumps(n) + "\n")
 
-
-        changeset_json_file.close()
-        node_json_file.close()
-        relation_map.close()
+    changeset_json_file.close()
+    node_json_file.close()
+    relation_map.close()
