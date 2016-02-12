@@ -29,7 +29,7 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
 
     #measures of coverage
     results['cat_coverage'] = calculate_catalog_coverage(y_test, y_train, n_predictions)
-    results['item_coverage'] = calculate_item_coverage(y_test, y_train, content_vector, n_predictions)
+    results['item_coverage'] = calculate_item_coverage(y_test, y_train, content_array, n_predictions)
     results['user_coverage'] = calculate_user_coverage(y_test, y_train, n_predictions)
     results['pred_coverage'] = calculate_prediction_coverage(y_test, n_predictions)
 
@@ -294,6 +294,9 @@ def calc_user_ILS(item_list):
         pair_similarity = calc_jaccard_diff(i1[1], i2[1])
         total_ils += pair_similarity
         total_count += 1
+    #this shouldn't happen but if it does then we want to return zero...
+    if total_count ==0:
+        return 0.0
     return float(total_ils)/total_count
 
 
