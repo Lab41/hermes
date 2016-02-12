@@ -91,6 +91,33 @@ def block_generator(filename):
             buffer = []
 
 
+def try_except_decode(line):
+    """Try to decode a line of Python.
+
+    We start with assuming it is utf-8, then latin-1, finally ascii. We encode
+    everything to utf-8 for sanity.
+
+    Args:
+        line (str): a line of Python.
+
+    Returns:
+        str: The input re-encoded as utf-8.
+
+    Raises:
+        UnicodeDecodeError: if all decoding attempts fail
+    """
+    encodings = ("utf-8", "latin-1", "ascii")
+    for encoding in encodings:
+        try:
+            decoded = line.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+        else:
+            return decoded.encode("utf-8")
+
+    raise UnicodeDecodeError("failed to decode line")
+
+
 def block_to_JSON(block, filename, repo_name=None):
     """Take a data block and generate a JSON objects containing the
     same information.
@@ -166,7 +193,7 @@ def block_to_JSON(block, filename, repo_name=None):
 
     # The final line is the raw text of line's content, with an extra '\\t'
     # prepended
-    current_json["line"] = block[-1][1:]  # Remove the leading tab
+    current_json["line"] = try_except_decode(block[-1][1:])  # Remove the leading tab
 
     return json.dumps(current_json)
 
