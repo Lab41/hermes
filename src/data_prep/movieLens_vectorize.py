@@ -78,7 +78,7 @@ class movieLens_vectorize():
 
                 #get the top tags based on frequency
                 tag_freq = self.sqlCtx.sql("select tag, count(*) as t_count from tags group by tag").collect()
-                top_tags = sorted(tag_freq, key=lambda x: x[1], reverse=True)[:500]
+                top_tags = sorted(tag_freq, key=lambda x: x[1], reverse=True)[:num_tags]
 
                 #get the top tags into a pretty list
                 tag_list = []
