@@ -45,7 +45,7 @@ Attributes:
 import json
 from copy import deepcopy
 import xml.etree.cElementTree as ET
-import sys
+from bz2 import BZ2File
 
 
 
@@ -142,7 +142,12 @@ if __name__ == "__main__":
     node_json_file = open( args.output_directory +"/node_ways_relations.json", 'w')
     relation_map = open( args.output_directory +"/element_relation_map.txt", 'w')
 
-    osm_tree = ET.iterparse(args.osm_history, events=("start", "end"))
+    if args.osm_history.endswith('.bz2'):
+        input_file = BZ2File(args.osm_history, 'r')
+    else:
+        input_file = args.osm_history
+
+    osm_tree = ET.iterparse(input_file, events=("start", "end"))
 
     for event, elem in osm_tree:
         if event == 'start' and elem.tag=='changeset':
