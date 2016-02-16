@@ -39,11 +39,12 @@ class hermes_run():
         self.content = content
 
         self.sqlCtx = sqlCtx
+        self.sc = sc
 
         self.data_name = data_name
 
-        self.directory = directory
-        self.results_directory = results_directory
+        self.directory = directory + '/' #ensure directory is given
+        self.results_directory = results_directory  + '/'  #ensure directory is given
 
         self.cf_predictions = cf_predictions
         self.cb_predictions = cb_predictions
@@ -139,7 +140,6 @@ class hermes_run():
         for cv in self.content_vector_types:
             content_path = self.directory + self.data_name +'_cv_' + cv + '.pkl'
             content_vect = sl.load_from_hadoop(content_path, self.sc)
-            print content_vect.count()
 
             for uv in self.user_vector_types:
                 train_ratings_loc = self.directory + self.data_name + '_uv_train_' + uv + '.pkl'
@@ -181,7 +181,7 @@ class hermes_run():
                 print 'Getting results for: ' + pred_save_loc
                 preds = sl.load_from_hadoop(pred_save_loc, self.sc)
 
-                for run in self.result_runs:
+                for run in self.results_runs:
                     results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
                                                     content_vect, self.sqlCtx, num_predictions = run)
                     #add some information to the results dictionary if it gets jumbled
@@ -196,7 +196,7 @@ class hermes_run():
 
                     #save off the results
                     results_path = self.results_directory + self.data_name + '_results_' + uv + '_' \
-                                + cf_pred  + str(run) + '.pkl'
+                                + cf_pred  + '_' + str(run) + '.pkl'
                     f = open(results_path, 'w')
                     f.write(str(results))
                     f.close()
@@ -207,14 +207,13 @@ class hermes_run():
         for cv in self.content_vector_types:
             content_path = self.directory + self.data_name +'_cv_' + cv + '.pkl'
             content_vect = sl.load_from_hadoop(content_path, self.sc)
+
             for uv in self.user_vector_types:
                 train_ratings_loc = self.directory + self.data_name + '_uv_train_' + uv + '.pkl'
                 train_ratings = sl.load_from_hadoop(train_ratings_loc, self.sc)
                 test_ratings_loc = self.directory + self.data_name + '_uv_test_' + uv + '.pkl'
                 test_ratings = sl.load_from_hadoop(test_ratings_loc, self.sc)
 
-                content_path = self.directory + self.data_name +'_cv_' + cv + '.pkl'
-                content_vect = sl.load_from_hadoop(content_path, self.sc)
 
                 for cb_pred in self.cb_predictions:
 
@@ -252,7 +251,7 @@ class hermes_run():
 
 
                     else:
-                        for run in self.result_runs:
+                        for run in self.results_runs:
                             results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
                                                             content_vect, self.sqlCtx, num_predictions = run)
                             #add some information to the results dictionary if it gets jumbled
@@ -285,12 +284,14 @@ class hermes_run():
         run_nums = [' ']
         run_nums.extend([str(r) for r in range(0,len(dicts))])
 
+        print 'Found ' + len(dicts) + ' result sets'
+
         full_results_loc = self.results_directory + self.data_name + '_full_results_transpose.csv'
 
         with open(full_results_loc, 'wb') as ofile:
             writer = csv.writer(ofile, delimiter=',')
             writer.writerow(run_nums)
-            for key in my_dict.iterkeys():
+            for key in dicts[0].iterkeys():
                 writer.writerow([key] + [d[key] for d in dicts])
 
         #this file has all the info - but to bring into pandas we want to transpose the data
@@ -298,6 +299,7 @@ class hermes_run():
         df2 = df.transpose()
         #save off the results file
         full_results_loc2 = self.results_directory + self.data_name + '_full_results.csv'
+        print 'Saving: ' + full_results_loc2
         df2.to_csv(full_results_loc2, delimiter=',')
 
         #this data can then be brought back in with: pd.read_csv(full_results_loc2, delimiter=',', index_col=0)
