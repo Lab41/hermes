@@ -1,6 +1,9 @@
 import os.path
 from src.utils import save_load as sl
 from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics
+from src.data_prep import book_vectorize, git_vectorize, jester_vectorize, last_fm_vectorize, movieLens_vectorize, osm_vectorize, wiki_vectorize
+import csv
+import pandas as pd
 
 class hermes_run():
 
@@ -33,9 +36,7 @@ class hermes_run():
 
         #Filter out uninteresting articles and users if they still exist in the dataset
         self.user_interactions =user_interactions
-        self.user_interactions.registerTempTable("ratings")
         self.content = content
-        self.content.registerTempTable("content")
 
         self.sqlCtx = sqlCtx
 
@@ -55,6 +56,59 @@ class hermes_run():
         else:
             self.support_files = {}
 
+
+    def run_vectorizer(self):
+        for uv in self.user_vector_types:
+            #set up the vectorizer.  The data going into each will be slightly different
+            #Some don't have sqlCtx and some need support vectors
+            vectorizor = self.get_vectorizer(uv, self.content_vector_types[0])
+
+            user_info = vectorizor.get_user_vector().repartition(20)
+            train_ratings, test_ratings = user_info.randomSplit([0.9,0.1], 41)
+
+            uv_train_path = self.directory + self.data_name + '_uv_train_' + uv + '.pkl'
+            uv_test_path = self.directory + self.data_name+ '_uv_test_' + uv + '.pkl'
+
+            #ensures we don't write over the original
+            if os.path.isdir(uv_train_path)==False:
+                print uv_train_path
+                sl.save_to_hadoop(train_ratings, uv_train_path)
+            if os.path.isdir(uv_test_path)==False:
+                print uv_test_path
+                sl.save_to_hadoop(test_ratings, uv_test_path)
+
+        for cv in self.content_vector_types:
+            vectorizor = self.get_vectorizer(uv, self.content_vector_types[0])
+            content_vector = vectorizor.get_content_vector()
+
+            content_path = self.directory + self.data_name +'_cv_' + cv + '.pkl'
+
+            if os.path.isdir(content_path)==False:
+                print content_path
+                sl.save_to_hadoop(content_vector, content_path)
+
+    def get_vectorizer(self, user_vector_type, content_vector_type, ):
+
+        #get the vectorizer based on the name of the data_name
+        #this does require the user to put in the name correctly, but it is the simplest to use
+
+        if self.data_name == 'book_crossing':
+            return book_vectorize.book_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+        elif self.data_name == 'git':
+            return git_vectorize.git_vectorize(self.user_interactions, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+        elif self.data_name == 'jester':
+            return jester_vectorize.jester_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, **self.support_files )
+        elif self.data_name == 'last_fm':
+            return last_fm_vectorize.last_fm_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+        elif self.data_name.startswith('movielens'):
+            return movieLens_vectorize.movieLens_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+        elif self.data_name.startswith('osm'):
+            return osm_vectorize.osm_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+        elif self.data_name.startswith('wiki'):
+            return wiki_vectorize.wiki_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+
+        else:
+            print 'Please pass in either, book_crossing, git, jester, last_fm, movielens_1m, movielens_10m, movielens_20m, osm, or wiki'
 
     def run_cf_predictions(self):
         for uv in self.user_vector_types:
@@ -218,3 +272,32 @@ class hermes_run():
                             f.write(str(results))
                             f.close()
         print 'All CB predictions results aquired'
+
+    def consolidate_results(self):
+
+        dicts = []
+        for file in os.listdir(self.results_directory):
+            if file.startswith(self.data_name + '_results_'):
+                f1 = open(self.results_directory+ file, 'r')
+                my_dict = eval(f1.read())
+                dicts.append(my_dict)
+
+        run_nums = [' ']
+        run_nums.extend([str(r) for r in range(0,len(dicts))])
+
+        full_results_loc = self.results_directory + self.data_name + '_full_results_transpose.csv'
+
+        with open(full_results_loc, 'wb') as ofile:
+            writer = csv.writer(ofile, delimiter=',')
+            writer.writerow(run_nums)
+            for key in my_dict.iterkeys():
+                writer.writerow([key] + [d[key] for d in dicts])
+
+        #this file has all the info - but to bring into pandas we want to transpose the data
+        df = pd.read_csv(full_results_loc, index_col=0)
+        df2 = df.transpose()
+        #save off the results file
+        full_results_loc2 = self.results_directory + self.data_name + '_full_results.csv'
+        df2.to_csv(full_results_loc2, delimiter=',')
+
+        #this data can then be brought back in with: pd.read_csv(full_results_loc2, delimiter=',', index_col=0)
