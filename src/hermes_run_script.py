@@ -1,6 +1,6 @@
 import os.path
 from src.utils import save_load as sl
-from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics
+from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics, dataset_stats
 from src.data_prep import book_vectorize, git_vectorize, jester_vectorize, last_fm_vectorize, movieLens_vectorize, osm_vectorize, wiki_vectorize
 import csv
 import pandas as pd
@@ -175,6 +175,9 @@ class hermes_run():
             content_path = self.directory + self.data_name +'_cv_' + self.content_vector_types[0] + '.pkl'
             content_vect = sl.load_from_hadoop(content_path, self.sc)
 
+            # Calculate statistics about the dataset
+            stats = dataset_stats.get_dataset_stats(self.sc, train_ratings, test_ratings)
+
             for cf_pred in self.cf_predictions:
 
                 pred_save_loc = self.directory + self.data_name + '_predictions_' + uv + '_' + cf_pred  + '.pkl'
@@ -184,6 +187,9 @@ class hermes_run():
                 for run in self.results_runs:
                     results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
                                                     content_vect, self.sqlCtx, num_predictions = run)
+                    # Merge the stats (which do not change run to run) with the results
+                    results.update(stats)
+
                     #add some information to the results dictionary if it gets jumbled
 
                     results['N'] = run
@@ -214,6 +220,8 @@ class hermes_run():
                 test_ratings_loc = self.directory + self.data_name + '_uv_test_' + uv + '.pkl'
                 test_ratings = sl.load_from_hadoop(test_ratings_loc, self.sc)
 
+                # Calculate statistics about the dataset
+                stats = dataset_stats.get_dataset_stats(self.sc, train_ratings, test_ratings)
 
                 for cb_pred in self.cb_predictions:
 
@@ -232,6 +240,8 @@ class hermes_run():
                             run = 100
                         results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
                                                             content_vect, self.sqlCtx, num_predictions = run)
+                        # Merge the stats (which do not change run to run) with the results
+                        results.update(stats)
                         #add some information to the results dictionary if it gets jumbled
                         results['N'] = run
                         results['dataset'] = self.data_name
@@ -254,6 +264,8 @@ class hermes_run():
                         for run in self.results_runs:
                             results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
                                                             content_vect, self.sqlCtx, num_predictions = run)
+                            # Merge the stats (which do not change run to run) with the results
+                            results.update(stats)
                             #add some information to the results dictionary if it gets jumbled
                             results['N'] = run
                             results['dataset'] = self.data_name
