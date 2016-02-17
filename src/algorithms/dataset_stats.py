@@ -1,8 +1,7 @@
-def get_dataset_stats(sc, *args):
+def get_dataset_stats(*args):
     """Calculate characteristic statistics about a dataset.
 
     Args:
-        sc: a spark context
         *args: RDDs that cover exactly 100% of the dataset without duplication
             when combined.
 
