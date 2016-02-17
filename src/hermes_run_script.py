@@ -264,6 +264,8 @@ class hermes_run():
                         for run in self.results_runs:
                             results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
                                                             content_vect, self.sqlCtx, num_predictions = run)
+                            # Merge the stats (which do not change run to run) with the results
+                            results.update(stats)
                             #add some information to the results dictionary if it gets jumbled
                             results['N'] = run
                             results['dataset'] = self.data_name
