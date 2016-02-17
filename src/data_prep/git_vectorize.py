@@ -48,7 +48,7 @@ class git_vectorize():
         self.__join_authors_to_functions()  # (author_id, function_id)
 
     def __set_lines_to_functions(self):
-        loaded_data = code_lines.map(
+        loaded_data = self.git_rdd.map(
             lambda (
                 author,
                 author_mail,
@@ -86,7 +86,7 @@ class git_vectorize():
         # ship it around our cluster. If we do not deepcopy, Spark tries to
         # pack up this whole class which fails because their are RDDs stored in
         # the class.
-        function_map = sc.broadcast(deepcopy(self.function_map))
+        function_map = self.sc.broadcast(deepcopy(self.function_map))
 
         self.authorid_functionid = joined_authors_and_functions\
             .map(
@@ -128,9 +128,9 @@ class git_vectorize():
         # ship it around our cluster. If we do not deepcopy, Spark tries to
         # pack up this whole class which fails because their are RDDs stored in
         # the class.
-        author_map = sc.broadcast(deepcopy(self.author_map))
+        author_map = self.sc.broadcast(deepcopy(self.author_map))
 
-        self.lines_to_authorid = code_lines.map(
+        self.lines_to_authorid = self.git_rdd.map(
             lambda (
                 author,
                 author_mail,
@@ -209,8 +209,8 @@ class git_vectorize():
             # and ship it around our cluster. If we do not deepcopy, Spark
             # tries to pack up this whole class which fails because their are
             # RDDs stored in the class.
-            model = sc.broadcast(deepcopy(word_model))
-            function_map = sc.broadcast(deepcopy(self.function_map))
+            model = self.sc.broadcast(deepcopy(word_model))
+            function_map = self.sc.broadcast(deepcopy(self.function_map))
 
             # Starts as ((repo, file, line_num), function)
             functions = self.sc.parallelize(self.function_map.keys())
