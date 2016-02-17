@@ -176,7 +176,7 @@ class hermes_run():
             content_vect = sl.load_from_hadoop(content_path, self.sc)
 
             # Calculate statistics about the dataset
-            stats = dataset_stats.get_dataset_stats(self.sc, train_ratings, test_ratings)
+            stats = dataset_stats.get_dataset_stats(train_ratings, test_ratings)
 
             for cf_pred in self.cf_predictions:
 
@@ -221,7 +221,7 @@ class hermes_run():
                 test_ratings = sl.load_from_hadoop(test_ratings_loc, self.sc)
 
                 # Calculate statistics about the dataset
-                stats = dataset_stats.get_dataset_stats(self.sc, train_ratings, test_ratings)
+                stats = dataset_stats.get_dataset_stats(train_ratings, test_ratings)
 
                 for cb_pred in self.cb_predictions:
 
