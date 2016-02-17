@@ -79,7 +79,7 @@ class hermes_run():
                 sl.save_to_hadoop(test_ratings, uv_test_path)
 
         for cv in self.content_vector_types:
-            vectorizor = self.get_vectorizer(uv, self.content_vector_types[0])
+            vectorizor = self.get_vectorizer(uv, cv)
             content_vector = vectorizor.get_content_vector()
 
             content_path = self.directory + self.data_name +'_cv_' + cv + '.pkl'
