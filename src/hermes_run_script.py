@@ -94,9 +94,9 @@ class hermes_run():
         #this does require the user to put in the name correctly, but it is the simplest to use
 
         if self.data_name == 'book_crossing':
-            return book_vectorize.book_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+            return book_vectorize.book_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, self.sc, **self.support_files )
         elif self.data_name == 'git':
-            return git_vectorize.git_vectorize(self.user_interactions, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+            return git_vectorize.git_vectorize(self.user_interactions, user_vector_type, content_vector_type, self.sc, **self.support_files )
         elif self.data_name == 'jester':
             return jester_vectorize.jester_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, **self.support_files )
         elif self.data_name == 'last_fm':

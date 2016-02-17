@@ -3,7 +3,7 @@ import numpy as np
 
 class book_vectorize():
 
-    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, sqlCtx, **support_files ):
+    def __init__(self, user_interactions, content, user_vector_type, content_vector_type, sqlCtx, sc, **support_files ):
         """
         Class initializer to load the required files.
 
@@ -20,10 +20,18 @@ class book_vectorize():
         """
         self.user_vector_type = user_vector_type
         self.sqlCtx = sqlCtx
+        self.sc = sc
+
+        self.content_vector_type = content_vector_type
+        self.content = content
+        self.content.registerTempTable('books')
 
         #Filter out uninteresting items and users if they still exist in the dataset
         self.user_interactions =user_interactions
         self.user_interactions.registerTempTable("book_ratings")
+
+        #need to change the book indexes from the ISBN to a unique value
+        self.book_IDX = self.content.rdd.zipWithUniqueId().map(lambda (row, idx): (row.book_id, idx)).collectAsMap()
 
         #if no support files were passed in, initialize an empty support file
         if support_files:
@@ -34,25 +42,24 @@ class book_vectorize():
 
     def get_user_vector(self):
 
+        book_idx_broad = self.sc.broadcast(self.book_IDX)
+
         if self.user_vector_type=='positive_interact':
             user_info = self.sqlCtx.sql("select user_id, book_id, 1 as interact from book_ratings \
                         where (implicit=True or (rating is not NULL and rating>5))")\
-                        .map(lambda (user, book, interact): (user, book_to_int(book), interact))\
-                        .filter(lambda (user, book, interact): book!=-1)
+                        .map(lambda (user, book, interact): (user, book_to_int(book, book_idx_broad), int(interact)))
             return user_info
 
         elif self.user_vector_type=='interacts':
             user_info = self.sqlCtx.sql("select user_id, book_id, 1 as interact from book_ratings \
                         where implicit=True")\
-                        .map(lambda (user, book, interact): (user, book_to_int(book), interact))\
-                        .filter(lambda (user, book, interact): book!=-1)
+                        .map(lambda (user, book, interact): (user, book_to_int(book, book_idx_broad), int(interact)))
             return user_info
 
         elif self.user_vector_type=='ratings':
             user_info = self.sqlCtx.sql("select user_id, book_id, rating from book_ratings \
                         where rating is not NULL")\
-                        .map(lambda (user, book, interact): (user, book_to_int(book), interact))\
-                        .filter(lambda (user, book, interact): book!=-1)
+                        .map(lambda (user, book, interact): (user, book_to_int(book, book_idx_broad), interact))
             return user_info
 
         elif self.user_vector_type=='none':
@@ -66,7 +73,7 @@ class book_vectorize():
 
         if self.content_vector_type=='content':
             #the the content features for each book
-            content_array = content_features(self.user_interactions)
+            content_array = self.content_features()
             return content_array
 
         elif self.content_vector_type=='none':
@@ -76,27 +83,28 @@ class book_vectorize():
             print "Please choose a content_vector_type between 'content' or 'none'"
             return None
 
-def content_features(sqlCtx, data_rdd):
-    #set up the data by first grabbing all the potential features
+    def content_features(self):
+        #set up the data by first grabbing all the potential features
+        book_idx_broad = self.sc.broadcast(self.book_IDX)
 
-    #get the list of authors with more than five reviews
-    authors = sqlCtx.sql("select author, count(1) as cnt from books group by author")\
-        .rdd.filter(lambda (author, cnt): cnt>5).map(lambda (author, c): author).distinct().collect()
+        #get the list of authors with more than five reviews
+        authors = self.sqlCtx.sql("select author, count(1) as cnt from books group by author")\
+            .rdd.filter(lambda (author, cnt): cnt>5).map(lambda (author, c): author).distinct().collect()
 
-    #get the list of publishers with more than five reviews
-    publishers = sqlCtx.sql("select publisher, count(1) as cnt from books group by publisher")\
-        .rdd.filter(lambda (publisher, cnt): cnt>5).map(lambda (publisher, c): publisher).distinct().collect()
+        #get the list of publishers with more than five reviews
+        publishers =  self.sqlCtx.sql("select publisher, count(1) as cnt from books group by publisher")\
+            .rdd.filter(lambda (publisher, cnt): cnt>5).map(lambda (publisher, c): publisher).distinct().collect()
 
-    #get the list of years with more than five reviews
-    years = sqlCtx.sql("select year, count(1) as cnt from books group by year")\
-        .rdd.filter(lambda (year, cnt): cnt>5).map(lambda (year, c): year).distinct().collect()
+        #get the list of years with more than five reviews
+        years =  self.sqlCtx.sql("select year, count(1) as cnt from books group by year")\
+            .rdd.filter(lambda (year, cnt): cnt>5).map(lambda (year, c): year).distinct().collect()
 
-    #features will go countries, page_field, pagename filled out by get_vect
-    #we are filtering out any content where the book cannot be made into an int, or the content vector is null (very rare)
-    content = data_rdd.map(lambda row: (book_to_int(row.book_id), get_vect(row, authors, publishers, years)))\
-        .filter(lambda (b_id, vect): book_to_int(b_id)!=-1 or sum(list(vect))>0)
+        #features will go countries, page_field, pagename filled out by get_vect
+        #we are filtering out any content where the book cannot be made into an int, or the content vector is null (very rare)
+        content = self.content.map(lambda row: (book_to_int(row.book_id, book_idx_broad), get_vect(row, authors, publishers, years)))\
+            .filter(lambda (b_id, vect): sum(list(vect))>0)
 
-    return content
+        return content
 
 def get_vect(row, authors, publishers, years):
 
@@ -124,16 +132,7 @@ def get_vect(row, authors, publishers, years):
     final_vect = np.concatenate((author_vect,pub_vect,year_vect), axis=0)
     return final_vect
 
-def book_to_int(b_id):
-    int_id = -1
-    try:
-        int_id = int(b_id)
-    except:
-        try:
-            #a lot of times there is just an X on the back so lets keep those
-            b_id = b_id[:-1]
-            int_id = int(b_id)
-        except:
-            pass
+def book_to_int(b_id, mapIdx):
+    int_id = mapIdx.value.get(b_id)
 
     return int_id
