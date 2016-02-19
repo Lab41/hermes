@@ -79,7 +79,7 @@ class hermes_run():
                 sl.save_to_hadoop(test_ratings, uv_test_path)
 
         for cv in self.content_vector_types:
-            vectorizor = self.get_vectorizer(uv, self.content_vector_types[0])
+            vectorizor = self.get_vectorizer(uv, cv)
             content_vector = vectorizor.get_content_vector()
 
             content_path = self.directory + self.data_name +'_cv_' + cv + '.pkl'
@@ -283,6 +283,45 @@ class hermes_run():
                             f.write(str(results))
                             f.close()
         print 'All CB predictions results aquired'
+
+    def run_single_result(self, user_vector, content_vector, algorithm, num_preds):
+
+        train_ratings_loc = self.directory + self.data_name + '_uv_train_' + user_vector + '.pkl'
+        train_ratings = sl.load_from_hadoop(train_ratings_loc, self.sc)
+        test_ratings_loc = self.directory + self.data_name + '_uv_test_' + user_vector + '.pkl'
+        test_ratings = sl.load_from_hadoop(test_ratings_loc, self.sc)
+
+        content_path = self.directory + self.data_name +'_cv_' + content_vector + '.pkl'
+        content_vect = sl.load_from_hadoop(content_path, self.sc)
+
+        stats = dataset_stats.get_dataset_stats(train_ratings, test_ratings)
+
+        pred_save_loc = self.directory + self.data_name + '_predictions_' + user_vector + '_' + content_vector + '_' \
+                                + algorithm + '.pkl'
+        print 'Getting results for: ' + pred_save_loc
+        preds = sl.load_from_hadoop(pred_save_loc, self.sc)
+
+        results = performance_metrics.get_perform_metrics(test_ratings, train_ratings, preds, \
+                                                            content_vect, self.sqlCtx, num_predictions = num_preds)
+        # Merge the stats (which do not change run to run) with the results
+        results.update(stats)
+        #add some information to the results dictionary if it gets jumbled
+        results['N'] = num_preds
+        results['dataset'] = self.data_name
+        results['CF_CB'] = 'CB'
+        results['alg_type'] = algorithm
+        results['user_vector'] = user_vector
+        results['content_vector'] = content_vector
+        print results
+
+        #save off the results
+        results_path = self.results_directory + self.data_name + '_results_' + user_vector + '_' + content_vector + '_' \
+                        + algorithm  + '_' + str(num_preds) + '.csv'
+        print results_path
+        f = open(results_path, 'w')
+        f.write(str(results))
+        f.close()
+
 
     def consolidate_results(self):
 

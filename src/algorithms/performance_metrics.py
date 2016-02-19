@@ -10,11 +10,14 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import confusion_matrix
 from pyspark.sql.types import *
-from sklearn.metrics import jaccard_similarity_score
+from scipy.spatial.distance import cosine
 import itertools
 
 def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num_predictions=100, num_partitions=30):
     results = {}
+
+    #most of the content arrays should already filter out zero vectors, but some of the metrics will crash if they are present
+    content_array = content_array.filter(lambda (i_id, vect): sum(vect)!=0)
 
     #because some of the algorithms we will use will only return n predictions per user all results should be analyazed for n recommendations
     n_predictions = predictions_to_n(y_predicted, number_recommended=num_predictions)
@@ -291,7 +294,7 @@ def calc_user_ILS(item_list):
     total_count = 0
     for (i1, i2) in itertools.combinations(item_list, 2):
         # get similarity using the attached content (or rating) array
-        pair_similarity = calc_jaccard_diff(i1[1], i2[1])
+        pair_similarity = calc_cosine_distance(i1[1], i2[1])
         total_ils += pair_similarity
         total_count += 1
     #this shouldn't happen but if it does then we want to return zero...
@@ -586,7 +589,7 @@ def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx, num_p
 
     This method measures the minimum content distance between recommended items and those in the user's profile.
     Serendipity(i) = min dist(i,j) where j is an item in the user's profile and i is the recommended item
-    Distance is the inverse of the Jaccard Similarity Score (1-Jaccard)
+    Distance is the cosine distance
     A user's overall surprise is the average of each item's surprise.
     We could weight by p(recommend) as we did in calculate_serendipity().
     For now the sorted and cut predictions should be passed in versus the full prediction list
@@ -608,7 +611,7 @@ def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx, num_p
     #instead of calculating the distance between the user's items and predicted items we will do a lookup to a table with this information
     #this minimizes the amount of repeated procedures
     ##TODO only look at one half of the matrix as we don't need (a,b, dist) if we have (b,a, dist). Need to modify lower section of code to do this
-    content_array_matrix = content_array.cartesian(content_array).map(lambda (a, b): (a[0], b[0], calc_jaccard_diff(a[1], b[1]))).coalesce(num_partitions)
+    content_array_matrix = content_array.cartesian(content_array).map(lambda (a, b): (a[0], b[0], calc_cosine_distance(a[1], b[1]))).coalesce(num_partitions)
 
 
     #create a matrix of all predictions for each item a user has rated
@@ -644,23 +647,21 @@ def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx, num_p
 
     return (average_overall_content_serendipity, avg_content_serendipity)
 
-def calc_jaccard_diff(array_1, array_2):
+def calc_cosine_distance(array_1, array_2):
     """
-    Utilizes the Jaccard Similarity Score from scikitlearn to determine distance between two arrays
-    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.jaccard_similarity_score.html
+    Utilizes the cosine distance function from SciPy to determine distance between two arrays
+    http://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.spatial.distance.cosine.html
 
     These arrays for example could be two content vectors.
-    This function would then determine how dis-similar they are to each other
 
     Args:
         array_1: array number one.  For example: [0, 1, 1, 1]
         array_2: array number two.  For example: [0, 1, 0, 1]
 
     Returns:
-        dist: the inverse of the jaccard similarity.  For the above this equals 0.25
+        dist: the Cosine Distance.  For the above this equals 0.1835
     """
-    j=jaccard_similarity_score(array_1, array_2)
-    dist = 1-j
+    dist=cosine(array_1, array_2)
     #it is very important that we return the distance as a python float
     #otherwise a numpy float is returned which causes chaos and havoc to ensue
     return float(dist)
