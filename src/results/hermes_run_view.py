@@ -32,7 +32,7 @@ hermes_data["color"] = hermes_data["alg_type"]
 hermes_data = hermes_data.replace({"color":data_set_colors})
 
 # Create Column Data Source that will be used by the plot
-source = ColumnDataSource(data=dict(x=[], y=[], color=[], user_vector=[], content_vector=[], alg_type=[], dataset=[]))
+source = ColumnDataSource(data=dict(x=[], y=[], color=[], user_vector=[], content_vector=[], alg_type=[], dataset=[], num_run = []))
 
 labels_ds = ColumnDataSource(data=dict(labels=[], active = []))
 
@@ -79,7 +79,7 @@ callback1 = CustomJS(args=dict(source=source), code="""
         s2.trigger('change');
     """)
 
-dataset_type = Select(title = "Dataset", value='movielens_1m', options = ['All', 'All MovieLens', 'movielens_1m', 'Last_FM'], callback=callback1)
+dataset_type = Select(title = "Dataset", value='movielens_1m', options = ['All', 'All MovieLens', 'movielens_1m', 'Last_FM', 'git'], callback=callback1)
 
 checkbox_button_group = Select(value="", title = "User Vector")
 
@@ -97,7 +97,8 @@ active_list = []
 hover = HoverTool(tooltips=[
     ("User Vector","@user_vector"),
     ("Content Vector", "@content_vector"),
-    ("Algorithm", "@alg_type")
+    ("Algorithm", "@alg_type"),
+    ("Num_preds", "@num_run")
 ])
 
 p = Figure(plot_height=600, plot_width=800, title="", toolbar_location=None, tools=[hover])
@@ -157,6 +158,7 @@ def update(attrname, old, new):
         content_vector=df["content_vector"],
         alg_type=df["alg_type"],
         dataset = df["dataset"],
+        num_run = df["N"],
         #alpha = df["alpha"],
     )
     # #update labels and
