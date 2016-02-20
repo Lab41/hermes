@@ -341,7 +341,7 @@ class hermes_run():
         run_nums = [' ']
         run_nums.extend([str(r) for r in range(0,len(dicts))])
 
-        print 'Found ' + len(dicts) + ' result sets'
+        print 'Found ' + str(len(dicts)) + ' result sets'
 
         full_results_loc = self.results_directory + self.data_name + '_full_results_transpose.csv'
 
