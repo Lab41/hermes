@@ -48,7 +48,7 @@ axis_map = {
     "Root Mean Square Error": "rmse",
     "Item Coverage": "item_coverage",
     "ILS (diversity)": "ils",
-    "Categroy Diversity": "cat_diversity",
+    "Category Diversity": "cat_diversity",
     "Serendipity": "serendipity",
     "Content Serendipity": "content_serendipity",
 }
@@ -95,6 +95,7 @@ active_list = []
 
 
 hover = HoverTool(tooltips=[
+    ("Dataset","@dataset"),
     ("User Vector","@user_vector"),
     ("Content Vector", "@content_vector"),
     ("Algorithm", "@alg_type"),
