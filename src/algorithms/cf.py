@@ -1,8 +1,10 @@
-from sklearn.metrics.pairwise import cosine_similarity
-from pyspark.sql.types import *
-from pyspark.mllib.recommendation import ALS
 import numpy as np
 import recommender_helpers as rechelp
+from pyspark.sql.types import *
+from pyspark.mllib.recommendation import ALS, LabeledPoint
+from pyspark.mllib.classification import NaiveBayes
+from operator import add
+from sklearn.metrics.pairwise import cosine_similarity
 
 def calc_cf_mllib(y_training_data, num_partitions = 20):
     """
@@ -216,3 +218,258 @@ def get_item_prob(rows):
     else:
         item_prob = nom/float(denom)
         return float(item_prob)
+
+
+def calc_naive_bayes_using_pyspark(training_data, num_partitions=20):
+    """
+    Determine the predicted rating of every user-item combination using MLlib's Naive Bayes algorithm.
+
+    Args:
+        training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+
+    Returns:
+        predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
+    """
+
+    # to use MLlib's Naive Bayes model, it requires the input to be in a format of a LabeledPoint
+    # therefore, convert dataset so that it will in the format [(rating, (user, item))]
+    r_ui_train = training_data.map(lambda (u,i,r): LabeledPoint(r, (u, i)))
+    # train Naive Bayes model
+    naiveBayesModel = NaiveBayes.train(r_ui_train, lambda=1.0)
+    # predict on all user-item pairs
+    user_ids = training_data.map(lambda (u,i,r): u).distinct()
+    item_ids = training_data.map(lambda (u,i,r): i).distinct()
+    ui_combo = user_ids.cartesian(item_ids).coalesce(num_partitions)
+    r_ui_combo = ui_combo.map(lambda (u,i,r): LabeledPoint(1, (u, i)))
+    # make prediction
+    predictions = r_ui_combo.map(lambda p: (p.features[0], p.features[1], naiveBayesModel.predict(p.features)))
+
+    return predictions
+
+def __calc_naive_bayes_components(training_data, sc):
+    """
+    Helper function that will compute the necessary components needed by:
+    calc_naive_bayes_map(), calc_naive_bayes_mse(), calc_naive_bayes_mae()
+
+    """
+
+    # create RDD for range of ratings, ie. [1, 2, 3, 4, 5] for ratings 1-5
+    min_rating = training_data.map(lambda (u,i,r): r).min()
+    max_rating = training_data.map(lambda (u,i,r): r).max()
+    range_of_ratings = sc.parallelize(list(range(int(min_rating), int(max_rating + 1))))
+
+    # since we have to determine the probability of rating r for each user and item, 
+    # we have to create a RDD with [(rating, (user, item))] for each rating
+    # ie. [(rating_1, (user, item)), (rating_2, (user, item)), (rating_3, (user, item)), ..., (rating_5, (user, item))]
+    ui = training_data.map(lambda (u,i,r): (u,i))
+    rCombo_ui = rangeOfRatings.cartesian(ui).map(lambda (r, (u,i)): (float(r), (u, i)))
+    uirCombo = rCombo_ui.map(lambda (r, (u,i)): (u,i,r))
+
+    """
+    Calculate P(r|u), probability of rating r for user u.
+    P(r|u) = (number of ratings r that user u gives) / (total number of ratings that user u gives)
+    
+    For example, if rating r == 1, then
+    P(r|u) = (number of ratings r == 1 that user u gives) / (total number of ratings that user u gives)
+    """
+
+    # For each user-rating pair, make sure that if the user never rates a certain rating r, 
+    # we will set the count number as 0; otherwise for each rating that the user gives, set the count number as 1.
+    # We will add the number of ratings for each rating r so that 
+    # we will know the number of ratings r that user u gives.
+    # [((user_id, rating), 1)]
+    ur_1 = training_data.map(lambda (u,i,r): ((u,i), 1))
+    # [(((user_id, rating_1), 0), ((user_id, rating_2), 0), ..., ((user_id, rating_5), 0))]
+    urCombo_0 = uirCombo.map(lambda (u,i,r): ((u,i), 0)).distinct()
+    ur_1Or0 = ur_1.union(urCombo_0)
+    # [(user_id, rating), (num_rating)]
+    ur_numRating = ur_1Or0.reduceByKey(add)
+    # [(user_id, (rating, num_rating))]
+    u_r_numRating = ur_numRating.map(lambda ((u,r), num_r): (u, (r, num_r)))
+    # [(user_id, total_rating)]
+    u_totalRating = sc.parallelize(training_data.map(lambda (u,i,r): (u,r)).countByKey().items())
+    # [(user_id, (total_rating, (rating, num_rating)))]
+    u_componentsOfProb = u_totalRating.join(u_r_numRating)
+    # [(user_id, rating, probRU)]
+    probRU = u_componentsOfProb.map(lambda (u, (total_r, (r, num_r))): (u, r, float(num_r)/float(total_r)))
+    
+    """
+    Calculate P(r|i), probability of rating r for item i.
+    P(r|i) = (number of ratings r that item i receives) / (total number of ratings that item i receives)
+
+    For example, if rating r == 1, then
+    P(r|i) = (number of ratings r == 1 that item i receives) / (total number of ratings that item i receives)
+    """
+
+    # For each item-rating pair, make sure that if the item never receives a certain rating r, 
+    # we will set the count number as 0; otherwise for each rating that the item receives, set the count number as 1.
+    # We will add the number of ratings for each rating r so that 
+    # we will know the number of ratings r that item i receives.
+    # [((item_id, rating), 1)]
+    ir_1 = training_data.map(lambda (u,i,r): ((i,r), 1))
+    # [(((item_id, rating_1), 0), ((item_id, rating_2), 0), ..., ((item_id, rating_5), 0))]
+    irCombo_0 = uirCombo.map(lambda (u,i,r): ((i,r), 0)).distinct()
+    ir_1Or0 = ir_1.union(irCombo_0)
+    # [(item_id, rating), (num_rating)]
+    ir_numRating = ir_1Or0.reduceByKey(add)
+    # [(item_id, (rating, num_rating))]
+    i_r_numRating = ir_numRating.map(lambda ((i,r), num_r): (i, (r, num_r)))
+    # [(item_id, total_rating)]
+    i_totalRating = sc.parallelize(training_data.map(lambda (u,i,r): (i,r)).countByKey().items())
+    # [(user_id, (total_rating, (rating, num_rating)))]
+    i_componentsOfProb = i_totalRating.join(i_r_numRating)
+    # [(item_id, rating, probRI)]
+    probRI = i_componentsOfProb.map(lambda (i,(total_r, (r, num_r))): (i, r, float(num_r)/float(total_r)))
+
+    """
+    Calculate P(r), probability of rating r
+    P(r) = (number of rating r) / (total number of ratings)
+
+    For example, if rating == 1, then
+    P(r) = (number of rating == 1) / (total number of ratings)
+    """
+
+    totalRatings = training_data.count()
+    # [(rating, 1)]
+    r_1 = training_data.map(lambda (u,i,r): (r, 1))
+    # [(rating, num_rating)]
+    r_numRating = r_1.reduceByKey(add)
+    # [(rating, probR)]
+    probR = r_numRating.mapValues(lambda num_rating: float(num_rating) / float(totalRatings))
+    
+    """
+    Calculate P(r|a,i), naive bayes probability.
+    P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)) = ( (P(r|u) * P(r|i)) / P(r) ) 
+    """
+
+    # add probR to [(user_id, item_id, rating)]
+    components = rCombo_ui.join(probR)
+
+    # add probRU to [(user_id, item_id, rating, probR)]
+    tmp_a = components.map(lambda (r, ((u,i), prob_r)): ((u, r), (i, prob_r)))
+    tmp_b = probRU.map(lambda (u, r, prob_ru): ((u, r), prob_ru))
+    components = tmp_a.join(tmp_b)
+
+    # add probRI to [(user_id, item_id, rating, probR, probRU)]
+    tmp_a = components.map(lambda ((u, r), ((i, prob_r), prob_ru)): (i, r), (u, prob_r, prob_ru))
+    tmp_b = probRI.map(lambda (i, r, prob_ri): ((i, r), prob_ri))
+    components = tmp_a.join(tmp_b)
+
+    # re-format
+    # [((user_id, movie_id, rating), naive_bayes_probability)]
+    componentsReformat = components.map(lambda ((i, r), ((u, prob_r, prob_ru), prob_ri)): ((u,i,r), (prob_r, prob_ru, prob_ri)))
+    bayesProb = componentsReformat.mapValues(lambda (prob_r, prob_ru, prob_ri): prob_ru * prob_ri / prob_r)
+
+    # [((user_id, item_id), [(rating_1, bayes_prob_1), (rating_2, bayes_prob_2), ..., (rating_5, bayes_prob_5)])]
+    # sort it by the lowest to the highest rating
+    ui_allBayesProb = bayesProb.mapValues(lambda value: [value]).reduceByKey(lambda a, b: a + b)\
+                               .mapValues(lambda value: sorted(value, key=lambda(rating, bayes_prob): rating))
+
+    return ui_allBayesProb
+
+def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
+    """
+    Determine the predicted rating of every user-item combination using Naive Bayes MAP.
+    Pai     : predicted rating for user a on item i
+    P(r|a,i): Naive Bayes that computes the probability of rating r for a given user a on item i
+    Pai = Argmax(r=1 to 5) P(r|a,i)
+
+    Assumption:
+    Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
+    we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+
+    Args:
+        training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+
+    Returns:
+        predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
+    """
+
+    def calculate_bayes_map(value):
+        # extract the bayes_prob 
+        bayesProbList = [x[1] for x in value]
+        
+        # define the argmax, return the index
+        argmax = bayesProbList.index(max(bayesProbList))
+        
+        return argmax
+
+    if computeFromScratch:
+        ui_allBayesProb = __calc_naive_bayes_components(training_data, sc)
+    else:
+        if ui_allBayesProb is None:
+            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
+
+    return ui_allBayesProb.mapValues(calculate_bayes_map)
+
+
+def calc_naive_bayes_mse(training_data, sc):
+    """
+    Determine the predicted rating of every user-item combination using Naive Bayes MSE.
+    Pai     : predicted rating for user a on item i
+    P(r|a,i): Naive Bayes that computes the probability of rating r for a given user a on item i
+    Pai = Sum of (r * P(r|a,i)) from r=1 to 5
+
+    Assumption:
+    Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
+    we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+
+    Args:
+        training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+
+    Returns:
+        predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
+    """
+
+    def calculate_bayes_mse(value):
+        predicted = 0.
+        for rating, bayes_prob in value:
+            predicted += rating * bayes_prob
+        return predicted
+
+    if computeFromScratch:
+        ui_allBayesProb = __calc_naive_bayes_components(training_data, sc)
+    else:
+        if ui_allBayesProb is None:
+            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
+
+    return ui_allBayesProb.mapValues(calculate_bayes_mse)
+
+
+def calc_naive_bayes_mae(training_data, sc):
+    """
+    Determine the predicted rating of every user-item combination using Naive Bayes MAE.
+    Pai     : predicted rating for user a on item i
+    P(r|a,i): Naive Bayes that computes the probability of rating r for a given user a on item i
+
+    Assumption:
+    Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
+    we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+
+    Args:
+        training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+
+    Returns:
+        predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
+    """
+
+    def calculate_bayes_mae(value):
+    sumOfProductList = []
+    for rating, bayes_prob in value:
+        sumOfProduct = 0.
+        for i in range(1, 6):
+            sumOfProduct += bayes_prob * abs(rating - i)
+        sumOfProductList.append(sumOfProduct)
+        
+    argmin = sumOfProductList.index(min(sumOfProductList))
+
+    return argmin
+
+    if computeFromScratch:
+        ui_allBayesProb = __calc_naive_bayes_components(training_data, sc)
+    else:
+        if ui_allBayesProb is None:
+            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
+
+    return ui_allBayesProb.mapValues(calculate_bayes_mae)
+
