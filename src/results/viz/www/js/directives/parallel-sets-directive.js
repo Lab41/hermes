@@ -25,21 +25,31 @@ angular.module("parallel-sets-directive", [])
                 // and replace quotes with nothing so our values can be consumed by d3
                 var colorRange = attrs.colorRange ? attrs.colorRange.substring(1, attrs.colorRange.length - 1).replace(/',(\s+)?'/g,"|").replace(/'/g, "").split("|") : undefined || ["black", "darkgrey", "grey", "white"];
 				
-				var radius = 8;
-				var diameter = radius * 2;
-				var padding = { bottom: 20, left: radius, right: 10, top: 5 };
+				var padding = { bottom: 20, left: 10, right: 10, top: 20 };
 				var activeWidth = width - (padding.left + padding.right);
 				var activeHeight = height - (padding.bottom + padding.top);
                                 
                 // create svg canvas
                 var canvas = d3.select(element[0])
-                    /*.attr({
+                    .append("svg")
+                    .attr({
                         viewBox: "0 0 " + width + " " + height
                     })
 					.append("g")
 					.attr({
 						transform: "translate(" + padding.left + "," + padding.top + ")"
-					});*/
+					});
+                
+                // scales
+				var xScale = d3.scale.ordinal()
+                    .rangePoints([0, activeWidth], 1);
+                
+                var y = {};
+                
+                var line = d3.svg.line(),
+    axis = d3.svg.axis().orient("left"),
+    background,
+    foreground;
 												
                 // check for new data
                 scope.$watch("vizData", function(newData, oldData) {
@@ -65,17 +75,71 @@ angular.module("parallel-sets-directive", [])
                         
                         function draw(data) {
                             
-                            var columns = Object.keys(data[0]);
+                            d3.csv("results.csv", function(error, cars) {console.log(cars);
 
-                            var chart = d3.parsets()
-      .dimensions(columns);
+  // Extract the list of dimensions and create a scale for each.
+  xScale.domain(dimensions = d3.keys(cars[0]).filter(function(d) {
+    return d != "name" && (y[d] = d3.scale.linear()
+        .domain(d3.extent(cars, function(p) { return +p[d]; }))
+        .range([height, 0]));
+  }));
 
-	var vis = canvas
-        .attr("width", chart.width())
-		.attr("height", chart.height());
+  // Add grey background lines for context.
+  background = canvas.append("g")
+      .attr("class", "background")
+    .selectAll("path")
+      .data(cars)
+    .enter().append("path")
+      .attr("d", path);
 
-	  vis.datum(data).call(chart);
+  // Add blue foreground lines for focus.
+  foreground = canvas.append("g")
+      .attr("class", "foreground")
+    .selectAll("path")
+      .data(cars)
+    .enter().append("path")
+      .attr("d", path);
 
+  // Add a group element for each dimension.
+  var g = canvas.selectAll(".dimension")
+      .data(dimensions)
+    .enter().append("g")
+      .attr("class", "dimension")
+      .attr("transform", function(d) { return "translate(" + x(d) + ")"; });
+
+  // Add an axis and title.
+  g.append("g")
+      .attr("class", "axis")
+      .each(function(d) { d3.select(this).call(axis.scale(y[d])); })
+    .append("text")
+      .style("text-anchor", "middle")
+      .attr("y", -9)
+      .text(function(d) { return d; });
+
+  // Add and store a brush for each axis.
+  g.append("g")
+      .attr("class", "brush")
+      .each(function(d) { d3.select(this).call(y[d].brush = d3.svg.brush().y(y[d]).on("brush", brush)); })
+    .selectAll("rect")
+      .attr("x", -8)
+      .attr("width", 16);
+});
+
+// Returns the path for a given data point.
+function path(d) {
+  return line(dimensions.map(function(p) { return [xScale(p), y[p](d[p])]; }));
+}
+
+// Handles a brush event, toggling the display of foreground lines.
+function brush() {
+  var actives = dimensions.filter(function(p) { return !y[p].brush.empty(); }),
+      extents = actives.map(function(p) { return y[p].brush.extent(); });
+  foreground.style("display", function(d) {
+    return actives.every(function(p, i) {
+      return extents[i][0] <= d[p] && d[p] <= extents[i][1];
+    }) ? null : "none";
+  });
+}
 
                         };
                         

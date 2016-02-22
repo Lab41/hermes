@@ -13,7 +13,7 @@ angular.module("scatter-plot-directive", [])
         controller: function($scope) {
             
             // initial values
-            $scope.options = { xSelect: 0, ySelect: 1, algos: [], algoSelect: null };
+            $scope.options = { xSelect: 0, ySelect: 1, algos: [], algoSelect: {} };
             
             // number available for axis
             $scope.axis = 13;
@@ -125,7 +125,16 @@ angular.module("scatter-plot-directive", [])
                                 .entries(data);
                             
                             scope.options.algos = nest;
-                            console.log(scope.options);
+                            
+                            // set up checkbox scopes for binding
+                            angular.forEach(nest, function(value, key) {
+                                
+                                // add to options scope
+                                // by default make all checked
+                                scope.options.algoSelect[value.key] = true; 
+                                
+                            });
+                            
                             // table headers
                             var tableHeader = {};
                             
@@ -210,42 +219,46 @@ angular.module("scatter-plot-directive", [])
                             
                             // selection events
                             circle
-                                .on("click", function(d) {
-                                
-                                    /*var tip = d3.select(element.find("div")[2]);
-                                
-                                    tip.transition()		
-                                        .duration(200)		
-                                        .style("opacity", .9);		
-                                    tip.html(d.content_vector)	
-                                        .style("left", (d3.event.pageX) + "px")		
-                                        .style("top", (d3.event.pageY - 28) + "px");*/
-                                
-                                    // clear all active styles
-                                    d3.selectAll(".dot")
-                                        .transition()
-                                        .duration(200)
-                                        .style({
-                                            opacity: 0.1
-                                        });
-                                
-                                    // add active style
-                                    d3.select(this)
-                                        .transition()
-                                        .delay(200)
-                                        .duration(200)
-                                        .style({
-                                            opacity: 1.0,
-                                            stroke: "white",
-                                            "stroke-width": 2
-                                        });
-                                
-                                    // assign sope so row highlights
-                                    scope.showRow = d.Column1;
-                                
-                                    // trigger $digest
-                                    scope.$apply();
-                                
+                                .on({
+                                    mouseover: function(d) {
+
+                                        var tip = d3.select(element.find("div")[2]);
+
+                                        tip.transition()		
+                                            .duration(200)		
+                                            .style("opacity", .9);		
+                                        tip.html(d.content_vector)	
+                                            .style("left", (d3.event.pageX) + "px")		
+                                            .style("top", (d3.event.pageY - 28) + "px");
+                                    },
+                                    click: function(d) {
+
+                                        // clear all active styles
+                                        d3.selectAll(".dot")
+                                            .transition()
+                                            .duration(200)
+                                            .style({
+                                                opacity: 0.1
+                                            });
+
+                                        // add active style
+                                        d3.select(this)
+                                            .transition()
+                                            .delay(200)
+                                            .duration(200)
+                                            .style({
+                                                opacity: 1.0,
+                                                stroke: "white",
+                                                "stroke-width": 2
+                                            });
+
+                                        // assign sope so row highlights
+                                        scope.showRow = d.Column1;
+
+                                        // trigger $digest
+                                        scope.$apply();
+
+                                    }
                                 });
                             
                             // exit selection

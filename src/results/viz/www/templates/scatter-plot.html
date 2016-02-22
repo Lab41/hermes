@@ -29,10 +29,13 @@
 
         <ul class="usa-unstyled-list">
             <li ng-repeat="option in options.algos">
-                <input type="checkbox"
+                <label>
+                    <input type="checkbox"
                        name="{{ option.key }}"
-                       ng-model="options.algoSelect">
-                <label for="{{ option.key }}">{{ option.key }}</label>
+                       ng-model="options.algoSelect[option.key]"/>
+                    
+                    {{ option.key }}
+                </label>
             </li>
         </ul>
         
@@ -72,3 +75,6 @@
     </table>
 
 </div>
+
+<!-- tool tip -->
+<div class="tooltip"></div>

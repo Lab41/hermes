@@ -9,6 +9,8 @@
 /* !GLOBALS
 /* !CUSTOM
 /* --- !scatter plot
+/* --- !radar chart
+/* --- !parallel coordinates
 
 /******************************* !IMPORTS *******************************/
 
@@ -21,7 +23,8 @@
 /**************************/
 
 /* chart title */
-scatter-plot h1 {
+scatter-plot h1,
+radar-chart h1 {
     
     font-size: 1.5em;
     margin-bottom: 0.5em;
@@ -206,6 +209,92 @@ scatter-plot form fieldset {
 scatter-plot form ul {
     
     display: flex;
-    font-size: 0.5em;
     
+}
+
+/* form legend */
+scatter-plot form legend {
+    
+    font-size: inherit;
+    font-weight: inherit;
+    
+}
+
+/* form buttons */
+scatter-plot .usa-unstyled-list label::before {
+    
+    background: white;
+    border-radius: 0.3rem;
+    box-shadow: 0 0 0 1px #757575;
+    content: '\a0';
+    display: inline-block;
+    height: 1.8rem;
+    line-height: 0.8;
+    margin-right: 0.6em;
+    text-indent: 0.15em;
+    vertical-align: 0.2em;
+    width: 1.8rem;
+    
+}
+
+/*************************/
+/***** !radar chart ******/
+/*************************/
+
+/* axis */
+radar-chart .r-axis line,
+radar-chart .a-axis line,
+radar-chart .r-axis circle {
+  
+    fill: none;
+    stroke: #777;
+    stroke-dasharray: 1,4;
+    
+}
+
+/* outermost axis ring */
+radar-chart .r-axis :last-of-type circle {
+    
+    stroke: #333;
+    stroke-dasharray: none;
+    
+}
+
+/* axis text */
+radar-chart .r-axis text {
+    
+    text-anchor: middle;
+    
+}
+
+/**********************************/
+/***** !parallel coordinates ******/
+/**********************************/
+
+parallel-sets .background path {
+  fill: none;
+  stroke: #ddd;
+  shape-rendering: crispEdges;
+}
+
+parallel-sets .foreground path {
+  fill: none;
+  stroke: steelblue;
+}
+
+parallel-sets .brush .extent {
+  fill-opacity: .3;
+  stroke: #fff;
+  shape-rendering: crispEdges;
+}
+
+parallel-sets .axis line,
+parallel-sets .axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
 }
