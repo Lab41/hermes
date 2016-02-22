@@ -2,7 +2,8 @@ var app = angular.module("app", [
     "ui.router",
     "hermes.controllers",
     "hermes.directives",
-    "hermes.services"
+    "hermes.services",
+    "hermes.filters"
 ]);
 
 /***********************/
@@ -10,8 +11,6 @@ var app = angular.module("app", [
 /***********************/
 
 app.run(function() {
-    
-    // run methods here
     
 });
 
@@ -38,10 +37,14 @@ app.config(function($stateProvider, $urlRouterProvider) {
     // explore vs explain
     .state("app.viz", {
         url: "{type}",
-        templateUrl: "templates/viz.html",
+        templateProvider: function($http, $stateParams) {
+            return $http.get("templates/" + $stateParams.type + ".html").then(function(template) {
+                return template.data;
+            });
+        },
         controller: "vizCtrl"
     })
 
-    $urlRouterProvider.otherwise("/explore");
+    $urlRouterProvider.otherwise("/scatter");
 
 });

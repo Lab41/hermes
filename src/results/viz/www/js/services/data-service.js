@@ -6,13 +6,13 @@ angular.module("data-service", [])
     var dataService = {};
 
 	// get data
-    dataService.getData = function(name) {
+    dataService.getStatic = function(name, ext) {
         
         // api call for a specific viz data set
         var apiUrl = urlBase + name;
             
         // call data
-        return $http.get(apiUrl).then(function(data) {
+        return $http.get(apiUrl + "?ext=" + ext).then(function(data) {
             
             // return data
             return data.data;

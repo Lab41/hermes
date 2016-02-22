@@ -1,0 +1,74 @@
+<!-- OPTIONS -->
+<form>
+    
+    <!-- X AXIS -->
+    <fieldset>
+        <label for="options">X Axis</label>
+
+        <select name="options" 
+                ng-model="options.xSelect">
+            <option ng-repeat="option in optionsData"
+                    value="{{$index}}">{{ option.label }}</option>
+        </select>
+    </fieldset>
+    
+    <!-- Y AXIS -->
+    <fieldset>
+        <label for="options">Y Axis</label>
+
+        <select name="options" 
+                ng-model="options.ySelect">
+            <option ng-repeat="option in optionsData"
+                    value="{{$index}}">{{ option.label }}</option>
+        </select> 
+    </fieldset>
+    
+    <!-- RECOMMENDER -->
+    <fieldset>
+        <legend>Recommender</label>
+
+        <ul class="usa-unstyled-list">
+            <li ng-repeat="option in options.algos">
+                <input type="checkbox"
+                       name="{{ option.key }}"
+                       ng-model="options.algoSelect">
+                <label for="{{ option.key }}">{{ option.key }}</label>
+            </li>
+        </ul>
+        
+    </fieldset>
+    
+</form>
+
+<!-- CHART -->
+<h1>{{ labelData[options.xSelect].label }}</h1>
+<h2>{{ labelData[options.ySelect].label }}</h2>
+<div class='legend'></div>
+<svg></svg>
+
+<!-- RAW DATA -->
+<div>
+    
+    <h1>{{ runCount + ' runs' }}</h1>
+    
+    <table>
+        
+        <thead>
+            <tr>
+                <th ng-repeat='(key, value) in filtered[0]' 
+                    ng-class='(key == labelData[options.xSelect].raw || key == labelData[options.ySelect].raw) ? "active" : ""'>{{ tableHeader[key] }}</th>
+            </tr>
+        </thead>
+        
+        <tbody>
+            <tr ng-repeat='row in filtered' 
+                ng-class='row.Column1 == showRow ? "active" : ""'>
+                
+                <td ng-repeat='(key, value) in row' 
+                    ng-class='(key == labelData[options.xSelect].raw || key == labelData[options.ySelect].raw) ? "active" : ""'>{{ value }}</td>
+            </tr>
+        </tbody>
+    
+    </table>
+
+</div>

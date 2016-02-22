@@ -1,0 +1,211 @@
+@charset "UTF-8";
+/* CSS Document */
+
+/*************************************** directives STYLE ***************************************/
+
+/* Highest directives specific styling. */
+
+/* !IMPORTS
+/* !GLOBALS
+/* !CUSTOM
+/* --- !scatter plot
+
+/******************************* !IMPORTS *******************************/
+
+/******************************* !GLOBALS *******************************/
+
+/******************************* !CUSTOM *******************************/
+
+/**************************/
+/***** !scatter plot ******/
+/**************************/
+
+/* chart title */
+scatter-plot h1 {
+    
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+    margin-top: 1em;
+    
+}
+
+/* chart unit of measure */
+scatter-plot h2 {
+    
+    font-size: 0.75em;
+    font-style: italic;
+    margin-bottom: 0;
+    margin-top: 0;
+    
+}
+
+/* legend */
+scatter-plot .legend {
+    
+    display: flex;
+    margin-bottom: 0.15em;
+    margin-top: 0.5em;
+    
+}
+
+/* legend text */
+scatter-plot .legend p {
+    
+    font-size: 1em;
+    line-height: 1;
+    margin-bottom: 0;
+    margin-right: 0.5em;
+    margin-top: 0;
+    
+}
+
+/* legend shape */
+scatter-plot .legend p span:first-child {
+    
+    font-size: 1.5em;
+    margin-right: 0.15em;
+    
+}
+
+/* chart text */
+scatter-plot text {
+	
+	font-size: 1em;
+	
+}
+
+/* axis label */
+scatter-plot .label {
+	
+	text-anchor: end;
+	
+}
+
+/* axis and tick lines */
+scatter-plot .domain,
+scatter-plot .tick line {
+	
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 0.2px;
+	
+}
+
+/* tick line */
+scatter-plot .tick line {
+	
+	stroke-dasharray: 2;
+	
+}
+
+/* hide y-axis solid line */
+scatter-plot .y-axis .domain {
+	
+	stroke: transparent;
+	
+}
+
+/* main x-axis line */
+scatter-plot .x-axis .domain {
+	
+	stroke-width: 2px;
+	
+}
+
+/* hide y-axis line that sits on top of x-axis */
+scatter-plot .y-axis g:first-child line {
+	
+	stroke: transparent;
+	
+}
+
+/* y-axis text */
+scatter-plot .y-axis .tick text {
+	
+	text-anchor: left !important;
+	
+} 
+
+/* hide x-axis first value */
+scatter-plot .x-axis g:first-child text {
+	
+	display: none;
+	
+}
+
+/* item */
+scatter-plot .dot {
+	
+    cursor: pointer;
+	opacity: 0.5;
+	
+}
+
+scatter-plot .dot:hover {
+    
+    opacity: 1.0;
+    
+}
+
+/* table wrap */
+scatter-plot > div:nth-of-type(2) {
+    
+    overflow-x: scroll;
+    
+}
+
+/* table */
+scatter-plot table {
+    
+    font-size: 0.65em;
+    
+}
+
+/* active columns */
+scatter-plot tr.active,
+scatter-plot th.active,
+scatter-plot td.active {
+    
+    background: white;
+    
+}
+
+/* table cell */
+scatter-plot table td {
+    
+    padding: 0.5em;
+    
+}
+
+/* tool tip */
+scatter-plot div.tooltip {	
+    
+    position: absolute;			
+    text-align: center;			
+    padding: 0.25em;					
+    background: white;	
+    pointer-events: none;
+    
+}
+
+/* form */
+scatter-plot form {
+    
+    display: flex;
+    
+}
+
+/* form fieldset */
+scatter-plot form fieldset {
+    
+    margin-right: 1em;
+    
+}
+
+/* checkbox */
+scatter-plot form ul {
+    
+    display: flex;
+    font-size: 0.5em;
+    
+}

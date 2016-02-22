@@ -6,8 +6,11 @@ angular.module("viz-controller", [])
     /********* !DATA **********/
     /**************************/
     
-    $scope.flareData;
-    $scope.nodeLinkData;
+    $scope.axis_mapData;
+    $scope.combined_resultsData;
+    
+    getStatic("combined_results", "csv"); // get chart data
+    getStatic("axis_map", "json"); // get labels
     
     /****************************/
     /********* !EVENTS **********/
@@ -17,13 +20,9 @@ angular.module("viz-controller", [])
     /********* !FUNCTIONS **********/
     /*******************************/
     
-    // get data to use in visualizations
-    getData("flare");
-    getData("nodeLink");
-    
     // viz data
-	function getData(name) {
-		dataService.getData(name).then(function(data) {
+	function getStatic(name, ext) {
+		dataService.getStatic(name, ext).then(function(data) {
                         
             // assign to scope
 			$scope[name + "Data"] = data;
