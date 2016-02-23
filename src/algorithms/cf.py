@@ -252,6 +252,13 @@ def calc_naive_bayes_components(training_data, sc):
     Helper function that will compute the necessary components needed by:
     calc_naive_bayes_map(), calc_naive_bayes_mse(), calc_naive_bayes_mae()
 
+    Args:
+        training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        sc: spark context
+
+    Returns:
+        ui_allBayesProb: computation of all bayes probability for each user-item pairs in the format [((userId, itemId), (rating, bayesProbability)]
+
     """
 
     # create RDD for range of ratings, ie. [1, 2, 3, 4, 5] for ratings 1-5
@@ -359,7 +366,8 @@ def calc_naive_bayes_components(training_data, sc):
     # re-format
     # [((user_id, movie_id, rating), naive_bayes_probability)]
     componentsReformat = components.map(lambda ((i, r), ((u, prob_r, prob_ru), prob_ri)): ((u,i,r), (prob_r, prob_ru, prob_ri)))
-    bayesProb = componentsReformat.mapValues(lambda (prob_r, prob_ru, prob_ri): prob_ru * prob_ri / prob_r)
+    bayesProb = componentsReformat.mapValues(lambda (prob_r, prob_ru, prob_ri): prob_ru * prob_ri / prob_r)\
+                                  .map(lambda ((u,i,r), bayes_prob): ((u,i), (r, bayes_prob)))
 
     # [((user_id, item_id), [(rating_1, bayes_prob_1), (rating_2, bayes_prob_2), ..., (rating_5, bayes_prob_5)])]
     # sort it by the lowest to the highest rating
@@ -384,6 +392,7 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        sc: spark context
         computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
         ui_allBayesProb: if computeFromScratch == False, this must be defined
 
@@ -424,6 +433,7 @@ def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayes
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        sc: spark context
         computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
         ui_allBayesProb: if computeFromScratch == False, this must be defined
 
@@ -460,6 +470,7 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        sc: spark context
         computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
         ui_allBayesProb: if computeFromScratch == False, this must be defined
 
