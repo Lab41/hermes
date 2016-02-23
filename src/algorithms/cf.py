@@ -378,6 +378,9 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
     Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
 
+    TODO: 
+        Implement this using PyMC?
+
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
         computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
@@ -400,9 +403,9 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
         ui_allBayesProb = calc_naive_bayes_components(training_data, sc)
     else:
         if ui_allBayesProb is None:
-            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
+            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb from scratch.")
 
-    return ui_allBayesProb.mapValues(calculate_bayes_map)
+    return ui_allBayesProb.mapValues(calculate_bayes_map).map(lambda ((u,i),r): (u,i,r))
 
 def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
     """
@@ -414,6 +417,9 @@ def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayes
     Assumption:
     Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+
+    TODO: 
+        Implement this using PyMC?
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
@@ -434,9 +440,9 @@ def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayes
         ui_allBayesProb = calc_naive_bayes_components(training_data, sc)
     else:
         if ui_allBayesProb is None:
-            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
+            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb from scratch.")
 
-    return ui_allBayesProb.mapValues(calculate_bayes_mse)
+    return ui_allBayesProb.mapValues(calculate_bayes_mse).map(lambda ((u,i),r): (u,i,r))
 
 def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
     """
@@ -448,6 +454,9 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
     Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
 
+    TODO: 
+        Implement this using PyMC?
+
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
         computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
@@ -458,22 +467,22 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
     """
 
     def calculate_bayes_mae(value):
-    sumOfProductList = []
-    for rating, bayes_prob in value:
-        sumOfProduct = 0.
-        for i in range(1, 6):
-            sumOfProduct += bayes_prob * abs(rating - i)
-        sumOfProductList.append(sumOfProduct)
-        
-    argmin = sumOfProductList.index(min(sumOfProductList))
+        sumOfProductList = []
+        for rating, bayes_prob in value:
+            sumOfProduct = 0.
+            for i in range(1, 6):
+                sumOfProduct += bayes_prob * abs(rating - i)
+            sumOfProductList.append(sumOfProduct)
+            
+        argmin = sumOfProductList.index(min(sumOfProductList))
 
-    return argmin
+        return argmin
 
     if computeFromScratch:
         ui_allBayesProb = calc_naive_bayes_components(training_data, sc)
     else:
         if ui_allBayesProb is None:
-            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
+            raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb from scratch.")
 
-    return ui_allBayesProb.mapValues(calculate_bayes_mae)
+    return ui_allBayesProb.mapValues(calculate_bayes_mae).map(lambda ((u,i),r): (u,i,r))
 
