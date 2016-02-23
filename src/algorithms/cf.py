@@ -247,7 +247,7 @@ def calc_naive_bayes_using_pyspark(training_data, num_partitions=20):
 
     return predictions
 
-def calc_naive_bayes_components(training_data, sc):
+def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     """
     Helper function that will compute the necessary components needed by:
     calc_naive_bayes_map(), calc_naive_bayes_mse(), calc_naive_bayes_mae()
@@ -380,7 +380,7 @@ def calc_naive_bayes_components(training_data, sc):
 
     return ui_allBayesProb
 
-def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
+def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayesProb=None, num_partitions=20):
     """
     Determine the predicted rating of every user-item combination using Naive Bayes MAP.
     Pai     : predicted rating for user a on item i
@@ -421,7 +421,7 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
 
     return ui_allBayesProb.mapValues(calculate_bayes_map).map(lambda ((u,i),r): (u,i,r))
 
-def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
+def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayesProb=None, num_partitions=20):
     """
     Determine the predicted rating of every user-item combination using Naive Bayes MSE.
     Pai     : predicted rating for user a on item i
@@ -459,7 +459,7 @@ def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayes
 
     return ui_allBayesProb.mapValues(calculate_bayes_mse).map(lambda ((u,i),r): (u,i,r))
 
-def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
+def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayesProb=None, num_partitions=20):
     """
     Determine the predicted rating of every user-item combination using Naive Bayes MAE.
     Pai     : predicted rating for user a on item i
