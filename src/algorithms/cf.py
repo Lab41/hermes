@@ -236,7 +236,7 @@ def calc_naive_bayes_using_pyspark(training_data, num_partitions=20):
     # therefore, convert dataset so that it will in the format [(rating, (user, item))]
     r_ui_train = training_data.map(lambda (u,i,r): LabeledPoint(r, (u, i)))
     # train Naive Bayes model
-    naiveBayesModel = NaiveBayes.train(r_ui_train, lambda=1.0)
+    naiveBayesModel = NaiveBayes.train(r_ui_train, lambda_=1.0)
     # predict on all user-item pairs
     user_ids = training_data.map(lambda (u,i,r): u).distinct()
     item_ids = training_data.map(lambda (u,i,r): i).distinct()
