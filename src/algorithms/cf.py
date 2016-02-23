@@ -246,7 +246,7 @@ def calc_naive_bayes_using_pyspark(training_data, num_partitions=20):
 
     return predictions
 
-def __calc_naive_bayes_components(training_data, sc):
+def calc_naive_bayes_components(training_data, sc):
     """
     Helper function that will compute the necessary components needed by:
     calc_naive_bayes_map(), calc_naive_bayes_mse(), calc_naive_bayes_mae()
@@ -262,7 +262,7 @@ def __calc_naive_bayes_components(training_data, sc):
     # we have to create a RDD with [(rating, (user, item))] for each rating
     # ie. [(rating_1, (user, item)), (rating_2, (user, item)), (rating_3, (user, item)), ..., (rating_5, (user, item))]
     ui = training_data.map(lambda (u,i,r): (u,i))
-    rCombo_ui = rangeOfRatings.cartesian(ui).map(lambda (r, (u,i)): (float(r), (u, i)))
+    rCombo_ui = range_of_ratings.cartesian(ui).map(lambda (r, (u,i)): (float(r), (u, i)))
     uirCombo = rCombo_ui.map(lambda (r, (u,i)): (u,i,r))
 
     """
@@ -351,7 +351,7 @@ def __calc_naive_bayes_components(training_data, sc):
     components = tmp_a.join(tmp_b)
 
     # add probRI to [(user_id, item_id, rating, probR, probRU)]
-    tmp_a = components.map(lambda ((u, r), ((i, prob_r), prob_ru)): (i, r), (u, prob_r, prob_ru))
+    tmp_a = components.map(lambda ((u, r), ((i, prob_r), prob_ru)): ((i, r), (u, prob_r, prob_ru)))
     tmp_b = probRI.map(lambda (i, r, prob_ri): ((i, r), prob_ri))
     components = tmp_a.join(tmp_b)
 
@@ -380,6 +380,8 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
+        ui_allBayesProb: if computeFromScratch == False, this must be defined
 
     Returns:
         predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
@@ -395,15 +397,14 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
         return argmax
 
     if computeFromScratch:
-        ui_allBayesProb = __calc_naive_bayes_components(training_data, sc)
+        ui_allBayesProb = calc_naive_bayes_components(training_data, sc)
     else:
         if ui_allBayesProb is None:
             raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
 
     return ui_allBayesProb.mapValues(calculate_bayes_map)
 
-
-def calc_naive_bayes_mse(training_data, sc):
+def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
     """
     Determine the predicted rating of every user-item combination using Naive Bayes MSE.
     Pai     : predicted rating for user a on item i
@@ -416,6 +417,8 @@ def calc_naive_bayes_mse(training_data, sc):
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
+        ui_allBayesProb: if computeFromScratch == False, this must be defined
 
     Returns:
         predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
@@ -428,15 +431,14 @@ def calc_naive_bayes_mse(training_data, sc):
         return predicted
 
     if computeFromScratch:
-        ui_allBayesProb = __calc_naive_bayes_components(training_data, sc)
+        ui_allBayesProb = calc_naive_bayes_components(training_data, sc)
     else:
         if ui_allBayesProb is None:
             raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
 
     return ui_allBayesProb.mapValues(calculate_bayes_mse)
 
-
-def calc_naive_bayes_mae(training_data, sc):
+def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayesProb=None):
     """
     Determine the predicted rating of every user-item combination using Naive Bayes MAE.
     Pai     : predicted rating for user a on item i
@@ -448,6 +450,8 @@ def calc_naive_bayes_mae(training_data, sc):
 
     Args:
         training_data: the data used to train the RecSys algorithm in the format of a RDD of [ (userId, itemId, actualRating) ]
+        computeFromScratch: option if user already called calc_naive_bayes_components() and did not want to call it again
+        ui_allBayesProb: if computeFromScratch == False, this must be defined
 
     Returns:
         predictions: predicted ratings of every user-item combination in the format of a RDD of [(userId, itemId, predictedRating)].
@@ -466,7 +470,7 @@ def calc_naive_bayes_mae(training_data, sc):
     return argmin
 
     if computeFromScratch:
-        ui_allBayesProb = __calc_naive_bayes_components(training_data, sc)
+        ui_allBayesProb = calc_naive_bayes_components(training_data, sc)
     else:
         if ui_allBayesProb is None:
             raise Exception("ERROR: ui_allBayesProb is not defined although user specified not to calculate ui_allBayesProb not from scratch.")
