@@ -1,7 +1,8 @@
 import numpy as np
 import recommender_helpers as rechelp
 from pyspark.sql.types import *
-from pyspark.mllib.recommendation import ALS, LabeledPoint
+from pyspark.mllib.recommendation import ALS
+from pyspark.mllib.regression import LabeledPoint
 from pyspark.mllib.classification import NaiveBayes
 from operator import add
 from sklearn.metrics.pairwise import cosine_similarity
