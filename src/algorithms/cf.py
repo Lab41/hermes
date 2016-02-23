@@ -266,11 +266,15 @@ def calc_naive_bayes_components(training_data, sc):
     max_rating = training_data.map(lambda (u,i,r): r).max()
     range_of_ratings = sc.parallelize(list(range(int(min_rating), int(max_rating + 1))))
 
+    #predict on all user-item pairs
+    user_ids = training_data.map(lambda (u,i,r): u).distinct()
+    item_ids = training_data.map(lambda (u,i,r): i).distinct()
+    ui_combo = user_ids.cartesian(item_ids).coalesce(num_partitions)
+
     # since we have to determine the probability of rating r for each user and item, 
     # we have to create a RDD with [(rating, (user, item))] for each rating
     # ie. [(rating_1, (user, item)), (rating_2, (user, item)), (rating_3, (user, item)), ..., (rating_5, (user, item))]
-    ui = training_data.map(lambda (u,i,r): (u,i))
-    rCombo_ui = range_of_ratings.cartesian(ui).map(lambda (r, (u,i)): (float(r), (u, i)))
+    rCombo_ui = range_of_ratings.cartesian(ui_combo).map(lambda (r, (u,i)): (float(r), (u, i)))
     uirCombo = rCombo_ui.map(lambda (r, (u,i)): (u,i,r))
 
     """
