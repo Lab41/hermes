@@ -113,7 +113,7 @@ class hermes_run():
         else:
             print 'Please pass in either, book_crossing, git, jester, last_fm, movielens_1m, movielens_10m, movielens_20m, osm, or wiki'
 
-    def run_single_prediction(self, user_vector, content_vector, alg_type, algorithm):
+    def run_single_prediction(self, user_vector, content_vector, alg_type):
         train_ratings_loc = self.directory + self.data_name + '_uv_train_' + user_vector + '.pkl'
         train_ratings = sl.load_from_hadoop(train_ratings_loc, self.sc).repartition(self.num_partitions)
 
