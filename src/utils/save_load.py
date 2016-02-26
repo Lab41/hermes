@@ -1,5 +1,6 @@
 import csv
 import gzip
+import subprocess
 
 def save_vector(vector, output_fname):
     """
