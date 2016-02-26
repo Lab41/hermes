@@ -274,8 +274,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # since we have to determine the probability of rating r for each user and item, 
     # we have to create a RDD with [(rating, (user, item))] for each rating
     # ie. [(rating_1, (user, item)), (rating_2, (user, item)), (rating_3, (user, item)), ..., (rating_5, (user, item))]
-    rCombo_ui = range_of_ratings.cartesian(ui_combo).map(lambda (r, (u,i)): (float(r), (u, i)))
-    uirCombo = rCombo_ui.map(lambda (r, (u,i)): (u,i,r))
+    uir_combo = range_of_ratings.cartesian(ui_combo).coalesce(num_partitions).map(lambda (r, (u,i)): (u, i, float(r)))
 
     """
     Calculate P(r|u), probability of rating r for user u.
@@ -292,7 +291,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # [((user_id, rating), 1)]
     ur_1 = training_data.map(lambda (u,i,r): ((u,i), 1))
     # [(((user_id, rating_1), 0), ((user_id, rating_2), 0), ..., ((user_id, rating_5), 0))]
-    urCombo_0 = uirCombo.map(lambda (u,i,r): ((u,i), 0)).distinct()
+    urCombo_0 = uir_combo.map(lambda (u,i,r): ((u,i), 0)).distinct()
     ur_1Or0 = ur_1.union(urCombo_0)
     # [(user_id, rating), (num_rating)]
     ur_numRating = ur_1Or0.reduceByKey(add)
@@ -320,7 +319,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # [((item_id, rating), 1)]
     ir_1 = training_data.map(lambda (u,i,r): ((i,r), 1))
     # [(((item_id, rating_1), 0), ((item_id, rating_2), 0), ..., ((item_id, rating_5), 0))]
-    irCombo_0 = uirCombo.map(lambda (u,i,r): ((i,r), 0)).distinct()
+    irCombo_0 = uir_combo.map(lambda (u,i,r): ((i,r), 0)).distinct()
     ir_1Or0 = ir_1.union(irCombo_0)
     # [(item_id, rating), (num_rating)]
     ir_numRating = ir_1Or0.reduceByKey(add)
