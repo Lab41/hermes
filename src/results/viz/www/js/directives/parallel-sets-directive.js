@@ -66,17 +66,39 @@ angular.module("parallel-sets-directive", [])
                             // update the viz
                             draw(newData);
 
-                        } else {
-
-                            // initial render
-                            draw(newData);
-                            
                         };
                         
                         function draw(data) {
                             
-                            d3.csv("results.csv", function(error, cars) {console.log(cars);
-
+                            var dataNew = [];
+                            
+                            // format TODO server-side
+                            angular.forEach(data, function(value, key) {
+                                
+                                var keys = Object.keys(value);
+                                var obj = {}
+                                
+                                // loop through keys
+                                for (var i=0; i < keys.length; i++) {
+                                    
+                                    var currentKey = keys[i];
+                                    var floatVal = parseFloat(value[currentKey]);
+                                    
+                                    // check if float
+                                    if (floatVal != 100 && !isNaN(floatVal) && currentKey != "Column1") {
+                                        
+                                        // add to new obj
+                                        obj[currentKey] = floatVal;
+                                        
+                                    };
+                                    
+                                    // add to arry
+                                    dataNew.push(obj);
+                                    
+                                };
+                                
+                            });
+var cars = dataNew;
   // Extract the list of dimensions and create a scale for each.
   xScale.domain(dimensions = d3.keys(cars[0]).filter(function(d) {
     return d != "name" && (y[d] = d3.scale.linear()
@@ -105,16 +127,16 @@ angular.module("parallel-sets-directive", [])
       .data(dimensions)
     .enter().append("g")
       .attr("class", "dimension")
-      .attr("transform", function(d) { return "translate(" + x(d) + ")"; });
+      .attr("transform", function(d) { return "translate(" + xScale(d) + ")"; });
 
   // Add an axis and title.
-  g.append("g")
+  /*g.append("g")
       .attr("class", "axis")
       .each(function(d) { d3.select(this).call(axis.scale(y[d])); })
     .append("text")
       .style("text-anchor", "middle")
       .attr("y", -9)
-      .text(function(d) { return d; });
+      .text(function(d) { return d; });*/
 
   // Add and store a brush for each axis.
   g.append("g")
@@ -123,7 +145,6 @@ angular.module("parallel-sets-directive", [])
     .selectAll("rect")
       .attr("x", -8)
       .attr("width", 16);
-});
 
 // Returns the path for a given data point.
 function path(d) {
