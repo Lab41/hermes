@@ -9,10 +9,11 @@ angular.module("viz-controller", [])
     $scope.axis_mapData;
     $scope.combined_resultsData;
     $scope.combined_resultsDataNest;
+    $scope.testDataNest;
     
     getStatic(null, "combined_results", "csv"); // get chart data
     getStatic(null, "axis_map", "json"); // get labels
-    getStatic("nest", "combined_results", "csv"); // gest nested data TODO make REST smarter
+    getStatic("nest", "test", "csv"); // gest nested data TODO make REST smarter
     
     /****************************/
     /********* !EVENTS **********/

@@ -267,6 +267,14 @@ radar-chart .r-axis text {
     
 }
 
+/* value line */
+radar-chart .line {
+    
+    fill: none;
+    stroke: currentColor;
+    
+}
+
 /**********************************/
 /***** !parallel coordinates ******/
 /**********************************/
@@ -279,7 +287,7 @@ parallel-sets .background path {
 
 parallel-sets .foreground path {
   fill: none;
-  stroke: steelblue;
+  stroke: currentColor;
 }
 
 parallel-sets .brush .extent {

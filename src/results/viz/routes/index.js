@@ -98,7 +98,15 @@ router.get(baseUrl + "/nest/:filename", function(req, res) {
                 if (algExists == -1) {
                     
                     // create obj for each line
-				    var algObj = { name: algName, values: ["test"] };
+				    var algObj = { name: algName, values: [] };
+                    
+                    // loop through columns
+                    for (var c=0; c < columns.length; c++) {
+
+                        // add data to obj
+                        algObj.values.push(lineValues[c]);
+
+                    };
                     
                     // add obj to json
                     json.push(algObj);
@@ -111,22 +119,15 @@ router.get(baseUrl + "/nest/:filename", function(req, res) {
                     // algorithm object exists
                     var algObj = json[algExists];
                     
-                    // add to values
-                    algObj.values.push("test");
+                    // loop through columns
+                    for (var c=0; c < columns.length; c++) {
+
+                        // add data to obj
+                        algObj.values.push(lineValues[c]);
+
+                    };
                     
-                }
-				
-				/*
-				
-				// loop through columns
-				for (var c=0; c < columns.length; c++) {
-					
-					var columnName = columns[c];
-					
-					// add data to obj
-					lineObj[columnName] = lineValues[c];
-						
-				};*/
+                };
 				
 			};
 			

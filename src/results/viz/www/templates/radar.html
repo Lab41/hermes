@@ -1,9 +1,16 @@
 <section style="display: flex; flex-wrap: wrap">
 
-    <div ng-repeat="nest in combined_resultsDataNest"
+    <!--<div ng-repeat="nest in combined_resultsDataNest"
          style="width: 25em; margin-right: 1em;">
 
         <radar-chart viz-data="nest"
+                 label-data="axis_mapData"></radar-chart>
+
+    </div>-->
+    
+    <div style="width: 25em; margin-right: 1em;">
+
+        <radar-chart viz-data="testDataNest[0]"
                  label-data="axis_mapData"></radar-chart>
 
     </div>
