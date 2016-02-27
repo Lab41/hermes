@@ -1,0 +1,29 @@
+raw,label,configurable
+mae,Mean Absolute Error,TRUE
+avg_mean_rank,Average Rank,TRUE
+user_coverage,User Coverage,TRUE
+pred_n,Precision @ N,TRUE
+cat_coverage,Catalog Coverage,TRUE
+pred_coverage,Prediction Coverage,TRUE
+novelty,Novelty,TRUE
+rmse,Root Mean Square Error,TRUE
+item_coverage,Item Coverage,TRUE
+ils,ILS (diversity),TRUE
+cat_diversity,Category Diversity,TRUE
+serendipity,Serendipity,TRUE
+content_serendipity,Content Serendipity,TRUE
+Column1,ID,FALSE
+dataset,Data,FALSE
+user_vector,User,FALSE
+content_vector,Content,FALSE
+CF_CB,Type,FALSE
+alg_type,Algorithm,FALSE
+N,Number,FALSE
+avg_lowest_rank,Average Lowest Rank,FALSE
+avg_highest_rank,Average Highest Rank,FALSE
+cf_mllib,Mllib,FALSE
+cf_user,User,FALSE
+cf_item,Item,FALSE
+cb_vect,Vector,FALSE
+cb_kmeans_100,Means,FALSE
+cb_kmeans_1000,Means2,FALSE

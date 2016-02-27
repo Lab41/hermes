@@ -6,23 +6,15 @@ angular.module("data-service", [])
     var dataService = {};
 
 	// get data
-    dataService.getStatic = function(format, name, ext) {
+    dataService.getStatic = function(format, name) {
         
-        var apiUrl = urlBase
-        
-        // check format
-        if (format != null) {
-        
-            apiUrl += "nest/" + name;
-            
-        } else {
-            
+        var apiUrl = urlBase + "static/"
+
             apiUrl += name;
-            
-        };
+
             
         // call data
-        return $http.get(apiUrl + "?ext=" + ext).then(function(data) {
+        return $http.get(apiUrl).then(function(data) {
             
             // return data
             return data.data;

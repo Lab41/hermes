@@ -1,14 +1,20 @@
 angular.module("module-title-directive", [])
 
-.directive("moduleTitle", ["dataService", function(dataService) {
+.directive("moduleTitle", ["dataService", "$stateParams", "$state", "$rootScope", function(dataService, $stateParams, $state, $rootScope) {
 	return {
 		restrict: "E",
 		scope: {
             meta: "=",
             allModules: "="
         },
-        templateUrl: "templates/module-title.html",
+        templateUrl: "templates/directives/module-title.html",
         controller: function($scope, $element, $attrs) {
+			
+			// parent scopes
+			var mainScope = $scope.$parent.$parent.$parent;
+            var vizScope = $scope.$parent.$parent;
+            
+            $scope.canBeReset = $stateParams.tool;
             
             // title
             $scope.isActive = false;
@@ -16,76 +22,177 @@ angular.module("module-title-directive", [])
             // select title dropdown
             $scope.activeButton = function(e) {
                 $scope.isActive = !$scope.isActive;
-            };
-            
-            // change the viz data
-            $scope.changeViz = function(idx, parentIdx) {
-                console.log("change the viz");
-                // selected module
-                var selectedModule = $scope.allModules[parentIdx].subItems[idx];
-                var selectedSubhead = $scope.allModules[parentIdx].title;
-                
-                // get module attributes to change to
-                var structure = "flare";
-                var className = "poll_data";
-                var id = selectedModule.requestID;
-                var tool = selectedModule.tool;
-                var title = selectedModule.title;
-                var start = null;
-                var end = null;
-                var heatStart = null;
-                var heatEnd = null;
-                
-                // modify selection title so it fits in the HTML structure
-                selectedModule["title"] = selectedSubhead + " " + title;
-                
-                // set meta info
-                $scope.$parent.$parent.dataDate = selectedModule;
-                
-                // get data from API based off configs
-                getData(structure, className, id, tool, null, null, tool, heatStart, heatEnd);
-                
-                // viz data
-                function getData(structure, className, id, tool, start, end, toolName, heatStart, heatEnd) {
-                    dataService.getData(structure, className, id, tool, start, end).then(function(data) {
-
-                        var scopeName = "data" + structure.toUpperCase().substring(0, 1) + structure.substring(1, structure.length);
-                        var scopeMain = $scope.$parent.$parent;
-
-                        // viz data in flare format
-                        scopeMain.dataFlare = data[structure];
-
-                        // check data format
-                        if (structure == "flare") {
-
-                            // set the id for use in the heatmap grid
-                            scopeMain.toolChildId = data[structure].name;
-
-                            // get time data here because we need the async result of the child name
-                            getData("time", "node_count", scopeMain.toolChildId, toolName, scopeMain.startDate, scopeMain.endDate);
-
-                        };
-
-                    });
-
-                };
-                console.log("change viz done"); 
+                e.stopPropagation();
             };
             
             // change the tool data
             $scope.changeTool = function(idx, parentIdx) {
                 
-                // selected module
-                var selectedModule = $scope.allModules[parentIdx];
-                
-                // set tool info
-                $scope.$parent.$parent.tool = selectedModule;
-                $scope.$parent.$parent.toolName = selectedModule.title;
+                // detect if choosing a commit or a tool
+                // change commit
+                if ($attrs.meta == "commit") {
+                    
+                    // set current index
+                    $scope.currentIndex = idx;
+                    $scope.currentParentIndex = parentIdx;
+                    
+                    // selected module
+                    var selectedModule = $scope.allModules[parentIdx].subItems[idx];
+					
+					// because commit is reset, get default items
+					dataService.getItems($state.params.tool, selectedModule.id, "flare").then(function(data) {
+
+						// item attributes for URL
+						var itemString = data.name;
+                        
+                        // set params for use
+                        mainScope.urlParams = {
+                            type: $state.params.type,
+                            sections: mainScope.urlParams.sections,
+                            tool: $state.params.tool,
+                            commit: selectedModule.id,
+                            items: itemString,
+							connection: "internal",
+                            status: "all",
+                            host: "all",
+                            services: "all"
+                        };
+                                               
+						// change url state
+						$state.go($state.$current.name, mainScope.urlParams, {
+                            notify: false,
+                            reload: false
+                        });
+                        
+                        // check state
+                        if ($state.$current.name == "app.dashboard.detail") {
+                            
+                            // set commit scope
+                            $scope.$parent.commit = selectedModule;
+                            
+                        } else {
+                        
+                            // set commit scope
+                            vizScope.commit = selectedModule;
+                            
+                        };
+
+					});
+                   
+                // change tool
+                } else {
+                    
+                    // selected module
+                    var selectedModule = $scope.allModules[idx];
+                    
+                    // get params for state change
+                    dataService.getAttrs("commits", selectedModule.name).then(function(data) {
+
+                        // current commit
+                        var commit = data[0];
+						
+						// because tool is reset, get default items
+						dataService.getItems(selectedModule.name, commit.id, "flare").then(function(data) {
+
+							// item attributes for URL
+							var itemString = data.name;
+							
+							// set params for use
+							mainScope.urlParams = {
+                                type: $state.params.type,
+                                sections: mainScope.urlParams.sections,
+								tool: selectedModule.name,
+								commit: commit.id,
+								items: itemString,
+								connection: "internal",
+                                status: "all",
+                                host: "all",
+                                services: "all"
+							};
+							
+							// change url state
+							$state.go($state.$current.name, mainScope.urlParams);
+                            
+                            // reset heatmap b/c it needs to be redrawn
+                            //vizScope.heatChartExists = false;
+							
+							// set tool info
+                        	mainScope.tool = selectedModule;
+                            
+                            // set current commit
+                            vizScope.commit = commit;
+							
+						});
+
+                    });
+                    
+                };
                  
+            };
+            
+            // reset tool
+            $scope.reset = function(tool) {
+                
+                console.log("need to reset " + tool);
+                
+            };
+            
+            // click away or esc to close drop down
+            $rootScope.$on("documentClicked", _close);
+            $rootScope.$on("escapedPressed", _close);
+
+            function _close() {
+                $scope.$apply(function() {
+                    $scope.isActive = false;
+                });
             };
         
         },
         link: function(scope, element, attrs) {
+            
+            scope.$watch("allModules", function(newData, oldData) {
+                
+                // parent scopes
+                var vizScope = scope.$parent.$parent;
+                
+                // async check
+                if (newData !== undefined) {
+                    //console.log("data is ready");
+
+                    // check new vs old
+                    var isMatching = angular.equals(newData, oldData);
+
+                    // if false
+                    if (!isMatching) {
+
+                        // set index to apply styling
+                        angular.forEach(newData, function(value, key) {
+
+                            // check for subitems
+                            var isNest = Object.keys(value).indexOf("subItems") == -1 ? false : true;
+
+                            if (isNest == true) {
+                                
+                                angular.forEach(value.subItems, function(value2, key2) {
+
+                                    if (value2.id == vizScope.commitId) {
+                                        
+                                        scope.currentIndex = key2;
+                                        scope.currentParentIndex = key;
+
+                                    };
+
+                                });
+                                
+                            };
+                            
+                        });
+
+                    };
+                    
+                };
+                        
+            });
 
 		}
 		

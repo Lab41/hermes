@@ -6,9 +6,10 @@
         <label for="options">X Axis</label>
 
         <select name="options" 
-                ng-model="options.xSelect">
-            <option ng-repeat="option in optionsData"
-                    value="{{$index}}">{{ option.label }}</option>
+                ng-model="options.xSelect"
+                ng-options="ao as ao.label for ao in axesOptions track by ao.id">
+            <!--<option ng-repeat="option in configurableAxes"
+                    value="{{$index}}">{{ option.label }}</option>-->
         </select>
     </fieldset>
     
@@ -17,10 +18,11 @@
         <label for="options">Y Axis</label>
 
         <select name="options" 
-                ng-model="options.ySelect">
-            <option ng-repeat="option in optionsData"
-                    value="{{$index}}">{{ option.label }}</option>
-        </select> 
+                ng-model="options.ySelect"
+                ng-options="ao as ao.label for ao in axesOptions track by ao.id">
+            <!--<option ng-repeat="option in configurableAxes"
+                    value="{{$index}}">{{ option.label }}</option>-->
+        </select>
     </fieldset>
     
     <!-- RECOMMENDER -->
@@ -43,15 +45,15 @@
     </fieldset>
     
 </form>
-<pre>{{ options.algoSelect | json }}</pre>
+<!--<pre>{{ options.algoSelect | json }}</pre>-->
 <!-- CHART -->
-<h1>{{ labelData[options.xSelect].label }}</h1>
-<h2>{{ labelData[options.ySelect].label }}</h2>
+<h1>{{ labels[options.xSelect].label }}</h1>
+<h2>{{ labels[options.ySelect].label }}</h2>
 <div class='legend'></div>
 <svg></svg>
 
 <!-- RAW DATA -->
-<div>
+<!--<div>
     
     <h1>{{ runCount + ' runs' }}</h1>
     
@@ -75,7 +77,7 @@
     
     </table>
 
-</div>
+</div>-->
 
 <!-- tool tip -->
 <div class="tooltip"></div>

@@ -237,6 +237,13 @@ scatter-plot .usa-unstyled-list label::before {
     
 }
 
+/* otherwise select box is 0 width */
+scatter-plot select {
+    
+    width: auto;
+    
+}
+
 /*************************/
 /***** !radar chart ******/
 /*************************/

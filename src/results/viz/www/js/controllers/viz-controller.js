@@ -6,14 +6,9 @@ angular.module("viz-controller", [])
     /********* !DATA **********/
     /**************************/
     
-    $scope.axis_mapData;
-    $scope.combined_resultsData;
-    $scope.combined_resultsDataNest;
-    $scope.testDataNest;
+    $scope.scatterData;
     
-    getStatic(null, "combined_results", "csv"); // get chart data
-    getStatic(null, "axis_map", "json"); // get labels
-    getStatic("nest", "test", "csv"); // gest nested data TODO make REST smarter
+    getStatic("scatter", "combined_results"); // get scatter data
     
     /****************************/
     /********* !EVENTS **********/
@@ -24,21 +19,11 @@ angular.module("viz-controller", [])
     /*******************************/
     
     // viz data
-	function getStatic(format, name, ext) {
-		dataService.getStatic(format, name, ext).then(function(data) {
-            
-            // check format
-            if (format == null) {
+	function getStatic(format, name) {
+		dataService.getStatic(format, name).then(function(data) {
                         
-                // assign to scope
-                $scope[name + "Data"] = data;
-                
-            } else {
-                
-                // assign to scope
-                $scope[name + "DataNest"] = data;
-                
-            };
+            // assign to scope
+            $scope[format + "Data"] = data;
             
 		});
 		
