@@ -36,13 +36,14 @@
                     
                     {{ option.key }}
                 </label>
+				
             </li>
         </ul>
         
     </fieldset>
     
 </form>
-
+<pre>{{ options.algoSelect | json }}</pre>
 <!-- CHART -->
 <h1>{{ labelData[options.xSelect].label }}</h1>
 <h2>{{ labelData[options.ySelect].label }}</h2>

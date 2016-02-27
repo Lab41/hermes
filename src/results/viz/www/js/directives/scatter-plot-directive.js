@@ -101,11 +101,11 @@ angular.module("scatter-plot-directive", [])
                             var options = data[2];
                             var data = data[0];
                             var optionsData = [];
-                            var filtered = data.filter(function(d, i) { /*return d.alg_type == "cf_mllib";*/return d; });
+							var tableHeader = {};
+							var algosSelected = {};
+							var selected = "";
                             
-                            scope.filtered = filtered;
-                            scope.runCount = filtered.length;
-                            
+							// algorithm options
                             angular.forEach(labels, function(value, key) {
                                 
                                 // check index
@@ -117,33 +117,53 @@ angular.module("scatter-plot-directive", [])
                                 
                             }, optionsData);
                             
-                            scope.optionsData = optionsData;
-                            
                             // nest by types
                             var nest = d3.nest()
                                 .key(function(d) { return d.alg_type; })
                                 .entries(data);
-                            
-                            scope.options.algos = nest;
                             
                             // set up checkbox scopes for binding
                             angular.forEach(nest, function(value, key) {
                                 
                                 // add to options scope
                                 // by default make all checked
-                                scope.options.algoSelect[value.key] = true; 
+								algosSelected[value.key] = true; 
                                 
                             });
                             
                             // table headers
-                            var tableHeader = {};
-                            
                             angular.forEach(labels, function(value, key) {
                                 
                                 tableHeader[value.raw] = value.label;
                                 
                             });
+							
+							// selected chart labels
+							angular.forEach(algosSelected, function(value, key) {
+								
+								// check for selection
+								if (value) {
+									
+									selected += key + "|";
+									
+								};
+								
+							});
+							
+							// filter data based on user selection
+							var filtered = data.filter(function(d, i) {
+								
+								// check for selected algorithms
+								return selected.match(d.alg_type);
+								
+							});
                             
+							// assign to scope
+							scope.options.algos = nest;
+							scope.options.algoSelect = algosSelected;
+							scope.optionsData = optionsData;
+							scope.filtered = filtered;
+                            scope.runCount = filtered.length;
                             scope.tableHeader = tableHeader;
 							
 							// set scale domains with *nice* round numbers
