@@ -289,9 +289,9 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # We will add the number of ratings for each rating r so that 
     # we will know the number of ratings r that user u gives.
     # [((user_id, rating), 1)]
-    ur_1 = training_data.map(lambda (u,i,r): ((u,i), 1))
+    ur_1 = training_data.map(lambda (u,i,r): ((u,r), 1))
     # [(((user_id, rating_1), 0), ((user_id, rating_2), 0), ..., ((user_id, rating_5), 0))]
-    urCombo_0 = uir_combo.map(lambda (u,i,r): ((u,i), 0)).distinct()
+    urCombo_0 = uir_combo.map(lambda (u,i,r): ((u,r), 0)).distinct()
     ur_1Or0 = ur_1.union(urCombo_0)
     # [(user_id, rating), (num_rating)]
     ur_numRating = ur_1Or0.reduceByKey(add)
@@ -362,9 +362,9 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     components = tmp_a.join(tmp_b)
 
     # add probRI to [(user_id, item_id, rating, probR, probRU)]
-    tmp_a = components.map(lambda ((u, r), ((i, prob_r), prob_ru)): ((i, r), (u, prob_r, prob_ru)))
-    tmp_b = probRI.map(lambda (i, r, prob_ri): ((i, r), prob_ri))
-    components = tmp_a.join(tmp_b)
+    tmp_c = components.map(lambda ((u, r), ((i, prob_r), prob_ru)): ((i, r), (u, prob_r, prob_ru)))
+    tmp_d = probRI.map(lambda (i, r, prob_ri): ((i, r), prob_ri))
+    components = tmp_c.join(tmp_d)
 
     # re-format
     # [((user_id, movie_id, rating), naive_bayes_probability)]
