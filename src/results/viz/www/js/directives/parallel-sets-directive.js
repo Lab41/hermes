@@ -54,10 +54,14 @@ angular.module("parallel-sets-directive", [])
                 
                 // scales
 				var xScale = d3.scale.ordinal()
-                    .rangePoints([0, activeWidth], 1);
+                    .rangePoints([padding.left, activeWidth]);
                 
-                var y = {};
+                var cScale = d3.scale.ordinal()
+                    .range(colorRange);
                 
+                var yScale = {};
+                
+                // misc
                 var line = d3.svg.line();
 				var axis = d3.svg.axis()
 					.orient("left");
@@ -87,99 +91,145 @@ angular.module("parallel-sets-directive", [])
                         
                         function draw(data) {
                             
-                            var dataNew = [];
+                            var nest = d3.nest()
+                                .key(function(d) { return d.alg_type; })
+                                .entries(data);
                             
-                            // format TODO server-side
-                            angular.forEach(data, function(value, key) {
+                            ////////////////////
+                            ////// scales //////
+                            ////////////////////
+                            
+                            // get dimensions excluding string-based columns
+                            var dimensions = d3.keys(data[0]).filter(function(d) { return d != "name"; });
+                            
+                            // x scale
+                            xScale.domain(dimensions);
+                            
+                            // y scale for each dimension
+                            dimensions.forEach(function(d) {
                                 
-                                var keys = Object.keys(value);
-                                var obj = {}
-                                
-                                // loop through keys
-                                for (var i=0; i < keys.length; i++) {
-                                    
-                                    var currentKey = keys[i];
-                                    var floatVal = parseFloat(value[currentKey]);
-                                    
-                                    // check if float
-                                    if (floatVal != 100 && !isNaN(floatVal) && currentKey != "Column1") {
-                                        
-                                        // add to new obj
-                                        obj[currentKey] = floatVal;
-                                        
-                                    };
-                                    
-                                    // add to arry
-                                    dataNew.push(obj);
-                                    
-                                };
+                                // add each scale to the y object
+                                yScale[d] = d3.scale.linear()
+                                    .domain(d3.extent(data, function(p) { return +p[d]; }))
+                                    .range([activeHeight, padding.top]);
                                 
                             });
-							
-							var data = dataNew;
-							
-							// Extract the list of dimensions and create a scale for each
-							xScale.domain(dimensions = d3.keys(data[0]).filter(function(d) {
-								return d != "name" && (y[d] = d3.scale.linear()
-													   .domain(d3.extent(data, function(p) { return +p[d]; }))
-													   .range([height, 0]));
-							}));
+                            
+                            // color scale
+                            cScale.domain(d3.map(nest, function(d) { return d.key; }));
 
-  // Add grey background lines for context.
-  /*background = canvas.append("g")
-      .attr("class", "background")
-    .selectAll("path")
-      .data(data)
-    .enter().append("path")
-      .attr("d", path);*/
+                            ///////////////////
+                            ////// lines //////
+                            ///////////////////
+                            
+                            // background
+                            background = canvas
+                                .append("g")
+                                .attr({
+                                    class: "background"
+                                })
+                                .selectAll("path")
+                                .data(data)
+                                .enter()
+                                .append("path")
+                                .attr({
+                                    d: path
+                                });
+                            
+                            // focus
+                            foreground = canvas
+                                .append("g")
+                                .attr({
+                                    class: "foreground"
+                                })
+                                .selectAll("path")
+                                .data(data)
+                                .enter()
+                                .append("path")
+                                .attr({
+                                    d: path
+                                })
+                                .style("stroke", function(d, i) { console.log(d); return cScale(d.alg_type); });
 
-  // Add blue foreground lines for focus.
-  foreground = canvas.append("g")
-      .attr("class", "foreground")
-    .selectAll("path")
-      .data(data)
-    .enter().append("path")
-      .attr("d", path);
+                            //////////////////
+                            ////// axes //////
+                            //////////////////
+                            
+                            // y axes group
+                            var g = canvas
+                                .selectAll(".dimension")
+                                .data(dimensions)
+                                .enter()
+                                .append("g")
+                                .attr({
+                                    class: "dimension",
+                                    transform: function(d) { return "translate(" + xScale(d) + ")"; }
+                                });
 
-  // Add a group element for each dimension.
-  /*var g = canvas.selectAll(".dimension")
-      .data(dimensions)
-    .enter().append("g")
-      .attr("class", "dimension")
-      .attr("transform", function(d) { return "translate(" + xScale(d) + ")"; });
+                            // line
+                            g.append("g")
+                                .attr({
+                                    class: "axis"
+                                })
+                                .each(function(d) {
+                                    
+                                    // update axis
+                                    d3.select(this)
+                                        .call(axis.scale(yScale[d]));
+                                
+                                })
+                                .append("text")
+                                .style("text-anchor", "end")
+                                .attr({
+                                    y: (padding.top / 2)
+                                })
+                                .text(function(d) { return d; });
 
-  // Add an axis and title.
-  /*g.append("g")
-      .attr("class", "axis")
-      .each(function(d) { d3.select(this).call(axis.scale(y[d])); })
-    .append("text")
-      .style("text-anchor", "middle")
-      .attr("y", -9)
-      .text(function(d) { return d; });*/
+                            // brush
+                            g.append("g")
+                                .attr({
+                                    class: "brush"
+                                })
+                                .each(function(d) {
+                                
+                                    // update axis
+                                    d3.select(this)
+                                        .call(yScale[d].brush = d3.svg.brush()
+                                              .y(yScale[d])
+                                              .on("brush", brush));
+                                
+                                })
+                                .selectAll("rect")
+                                .attr({
+                                    x: -8,
+                                    width: 16
+                                });
 
-  // Add and store a brush for each axis.
-  /*g.append("g")
-      .attr("class", "brush")
-      .each(function(d) { d3.select(this).call(y[d].brush = d3.svg.brush().y(y[d]).on("brush", brush)); })
-    .selectAll("rect")
-      .attr("x", -8)
-      .attr("width", 16);*/
+                            // return the path for a given data point
+                            function path(d) {
+                                return line(dimensions.map(function(p) {return [xScale(p), yScale[p](d[p])]; }));
+                            };
 
-// Returns the path for a given data point.
-function path(d) {
-  return line(dimensions.map(function(p) { return [xScale(p), y[p](d[p])]; }));
-}
-
-// Handles a brush event, toggling the display of foreground lines.
-/*function brush() {
-  var actives = dimensions.filter(function(p) { return !y[p].brush.empty(); }),
-      extents = actives.map(function(p) { return y[p].brush.extent(); });
-  foreground.style("display", function(d) {
-    return actives.every(function(p, i) {
-      return extents[i][0] <= d[p] && d[p] <= extents[i][1];
-    }) ? null : "none";
-  });
-}*/
+                            // toggle lines
+                            function brush() {
+                            
+                                var actives = dimensions.filter(function(p) { return !yScale[p].brush.empty(); });
+                                var extents = actives.map(function(p) { return yScale[p].brush.extent(); });
+                                
+                                // update forground lines
+                                foreground
+                                    .attr({
+                                        class: "active"
+                                    })
+                                    .style({
+                                        display: function(d) {
+                                            return actives.every(function(p, i) {
+                                                return extents[i][0] <= d[p] && d[p] <= extents[i][1];
+                                            }) ? null : "none";
+                                        }
+                                    });
+                                
+                            };
 
                         };
                         

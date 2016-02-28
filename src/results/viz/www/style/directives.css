@@ -287,29 +287,54 @@ radar-chart .line {
 /**********************************/
 
 parallel-sets .background path {
-  fill: none;
-  stroke: #ddd;
-  shape-rendering: crispEdges;
+  
+    fill: none;
+    opacity: 0.2;
+    shape-rendering: crispEdges;
+    stroke: #d9d9d9;
+    
 }
 
+/* focus paths */
 parallel-sets .foreground path {
-  fill: none;
-  stroke: currentColor;
+  
+    fill: none;
+    opacity: 0.1;
+    stroke: currentColor;
+
+}
+
+/* active path */
+parallel-sets .foreground path.active {
+    
+    opacity: 0.5;
+    
 }
 
 parallel-sets .brush .extent {
-  fill-opacity: .3;
-  stroke: #fff;
-  shape-rendering: crispEdges;
+  
+    fill: white;
+    fill-opacity: 0.3;
+    shape-rendering: crispEdges;
+    stroke: white;
+    stroke-width: 1.2;
+    
 }
 
+/* axis line */
 parallel-sets .axis line,
 parallel-sets .axis path {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
+  
+    fill: none;
+    stroke: currentColor;
+    shape-rendering: crispEdges;
+    
 }
 
+/* axis text */
 .axis text {
-  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+    
+    font-size: 0.25em;
+    pointer-events: none;
+    
 }
