@@ -5,22 +5,19 @@ angular.module("radar-chart-directive", [])
         restrict: "E",
         scope: {
             vizData: "=",
-            labelData: "=",
             canvasWidth: "=",
             canvasHeight: "=",
             colorRange: "="
         },
-        controller: function($scope) {
-            
-            // number available for axis
-            $scope.axis = 3;
-            
-        },
-        template: "<h1>{{ tableHeader[vizData.name] }}</h1>",
+        template: "<h1>{{ title }}</h1>",
         link: function(scope, element, attrs){
             
             //get d3 promise
             d3Service.d3().then(function(d3) {
+				
+				/////////////////////////////////////////
+                ////// values from html attributes //////
+                /////////////////////////////////////////
                 
                 // set sizes from attributes in html element
                 // if not attributes present - use default
@@ -32,11 +29,20 @@ angular.module("radar-chart-directive", [])
                 // and replace quotes with nothing so our values can be consumed by d3
                 var colorRange = attrs.colorRange ? attrs.colorRange.substring(1, attrs.colorRange.length - 1).replace(/',(\s+)?'/g,"|").replace(/'/g, "").split("|") : undefined || ["black", "darkgrey", "grey", "white"];
 				
+				///////////////////////////////////
+                ////// basic layout settings //////
+                ///////////////////////////////////
+				
 				var padding = { bottom: 20, left: 20, right: 20, top: 20 };
                 var diameter = width - padding.bottom - padding.left - padding.right - padding.top;
 				var radius = diameter / 2;
 				var activeWidth = width - (padding.left + padding.right);
 				var activeHeight = height - (padding.bottom + padding.top);
+				var rPadding = 6; // padding of text around outermost circle
+				
+				///////////////////////////////////////////////////////
+                ////// main svg constructs not dependent on data //////
+                ///////////////////////////////////////////////////////
                                 
                 // create svg canvas
                 var canvas = d3.select(element[0])
@@ -48,60 +54,54 @@ angular.module("radar-chart-directive", [])
 					.attr({
 						transform: "translate(" + (width / 2) + "," + (width / 2) + ")"
 					});
-                
-                // scales
-                
+                                
                 // radius scale (like the y scale)
 				var rScale = d3.scale.linear()
                     .domain([0, 0.5])
 					.range([0, radius]);
+				
+				///////////////////////////////////////////////
+                ////// dynamic d3 runs every data update //////
+                ///////////////////////////////////////////////
 												
                 // check for new data
-                scope.$watchGroup(["vizData", "labelData"], function(newData, oldData) {
+                scope.$watchGroup(["vizData"], function(newData, oldData) {
                     
                     // async check
-                    if (newData[0] !== undefined && newData[1] !== undefined) {
+                    if (newData[0] !== undefined) {
                     
                         // check new vs old
                         var isMatching = angular.equals(newData, oldData);
 
                         // if false
-                        if (!isMatching) {
+                        //if (!isMatching) {
 
                             // update the viz
                             draw(newData);
 
-                        } else {
-
-                            // initial render
-                            draw(newData);
-                            
-                        };
+                        //};
                         
                         function draw(data) {
-                            console.log(data[0]);
-                            var labels = data[1];
+							console.log(data);
+							///////////////////////////////////////////////////////////////////////
+                            ////// assign variables (cleaner to read vs straight from scope) //////
+                            ///////////////////////////////////////////////////////////////////////
+							
                             var data = data[0];
-                            // convert data to format we need
-                            // do server-side eventually
-
-                            // get number of radials
-                            var radialCount = scope.axis;
-                            
-                            // table headers
-                            var tableHeader = {};
-                            
-                            angular.forEach(labels, function(value, key) {
-                                
-                                tableHeader[value.raw] = value.label;
-                                
-                            });
-                            
-                            scope.tableHeader = tableHeader;
+							var aKeys = Object.keys(data.values[0]); // attributes
+							
+							///////////////////////////////////////
+                            ////// assign to variables scope //////
+                            ///////////////////////////////////////
+							scope.title = data.key;
                             
                             // set scale domains with *nice* round numbers
 							//rScale.domain(d3.extent(data, function(d) { console.log(d);return parseFloat(d[labels["avg_lowest_rank"]]); })).nice();
                             
+							///////////////////////////
+                            ////// scales & axis //////
+                            ///////////////////////////
+							
                             // radial axis
                             var rAxis = canvas
                                 .append("g")
@@ -121,21 +121,18 @@ angular.module("radar-chart-directive", [])
                                 });
                             
                             // ring label
-                            /*rAxis
+                            rAxis
                                 .append("text")
                                 .attr({
                                     y: function(d) { return -rScale(d); }
                                 })
-                                .text(function(d) { return d; });*/
+                                .text(function(d) { return d; })
+								.style({
+									"font-size": "0.7em",
+									fill: "red"
+								});
                             
-                            var categories = d3.range(0, 360, (360 / radialCount));
-                            
-                            // set up data object for line values
-                            var lineValues = { categories: categories, values: [] };
-                            
-                            angular.forEach(data.values, function(value, key) {
-                                console.log(value);
-                            })
+                            var categories = d3.range(0, 360, (360 / aKeys.length));
                             
                             // attribute axis
                             var aAxis = canvas
@@ -148,7 +145,7 @@ angular.module("radar-chart-directive", [])
                                 .enter()
                                 .append("g")
                                 .attr({
-                                    transform: function(d) { return "rotate(" + -d + ")"; }
+                                    transform: function(d) { return "rotate(" + d + ")"; }
                                 });
                             
                             // line
@@ -162,17 +159,26 @@ angular.module("radar-chart-directive", [])
                             aAxis
                                 .append("text")
                                 .attr({
-                                    x: 0,
-                                    y: radius
+                                    x: radius + rPadding,
+                                    dy: 0,
+									transform: function(d) { return d < 270 && d > 90 ? "rotate(180 " + (radius + rPadding) + ",0)" : null; }
                                 })
-                                .text(function(d, i) { return labels[i].label; });
-                            
+                                .text(function(d, i) { return aKeys[i]; })
+								.style({
+									"text-anchor": function(d) { return d < 270 && d > 90 ? "end" : null; },
+									"font-size": "0.5em"
+								});
+							                            
                             // add starting point to end of line to close the path
                             categories.push(categories[0]);
 
+							//////////////////////////
+                            ////// radial paths //////
+                            //////////////////////////
+							
                             // value line
-                            var line = d3.svg.line.radial()
-                                .radius(function(d) { return /*rScale(d[1]);*/rScale(0.2); }) // radial scale (y)
+                            /*var line = d3.svg.line.radial()
+                                .radius(function(d) { return /*rScale(d[1]);*//*rScale(0.2); }) // radial scale (y)
                                 .angle(function(d) { return -(d * (Math.PI / 180)) + Math.PI / 2; }); // attribute scale (x)
                             
                             canvas
@@ -181,7 +187,7 @@ angular.module("radar-chart-directive", [])
                                 .attr({
                                     class: "line",
                                     d: line
-                                });
+                                });*/
 
                         };
                         

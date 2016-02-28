@@ -6,11 +6,20 @@ angular.module("data-service", [])
     var dataService = {};
 
 	// get data
-    dataService.getStatic = function(format, name) {
+    dataService.getStatic = function(name, query) {
         
         var apiUrl = urlBase + "static/"
 
+		// check query
+		if (query != null) {
+			
+			apiUrl += name + "?" + query.key + "=" + query.value;
+			
+		} else {
+			
             apiUrl += name;
+			
+		};
 
             
         // call data

@@ -113,17 +113,91 @@ class static_data:
                     options.append(label)
                     
             return options
-            
-        
+		
+	def nest_json(json_array, nest_key, labels, axis):
+		
+		# label data
+		label_keys = {}
+		axis_keys = {}
+		
+		# loop through labels
+		for label in axis:
+			axis_keys[label["raw"]] = label["label"]
+			
+		for label in labels:
+			label_keys[label["raw"]] = label["label"] 
+					
+		# track existing algorithms
+		keys = []
+		nest_array = []
+		
+		# loop through objects
+		for obj in json_array:
+			
+			# value of the nested key
+			nest_value = obj[nest_key]
+			
+			# nest obj exists
+			if (nest_value in keys):
+				
+				# get the index
+				idx = keys.index(nest_value)
+				
+				# nest data in existing object
+				alg_obj = nest_array[idx]
+				
+				# empty obj for only the keys we want available to compare
+				value_obj = {}
+				
+				# loop through keys
+				for key, value in axis_keys.iteritems():
+				
+					# get data from nested obj
+					value_obj[key] = obj[key]
+					
+				alg_obj["values"].append(value_obj)
+				
+			# need a new object
+			else:
+				
+				# create new object
+				alg_obj = {}
+				value_obj = {}
+				
+				# loop through keys
+				for key, value in axis_keys.iteritems():
+				
+					# get data from nested obj
+					value_obj[key] = obj[key]
+						
+				alg_obj["key"] = label_keys[nest_value]
+				alg_obj["values"] = [value_obj]
+				
+				# add obj to array
+				nest_array.append(alg_obj)
+				
+				# track it
+				keys.append(nest_value)
+							
+		return nest_array
+		
         # set up params
-        i = web.input(name=None)
-        params = web.input()
+	i = web.input(name=None)
+	params = web.input()
+	query_term = "structure"
+	nest_key = "alg_type"
+		
+	if (query_term in params):
+		data = {}
+		data["labels"] = csv_to_json("label_data") # pull label data by default
+		data["viz"] = nest_json(csv_to_json(name), nest_key, data["labels"], configurable_axes(data["labels"]))
+			
+	else:
+		data = {}
+		data["viz"] = csv_to_json(name)
+		data["labels"] = csv_to_json("label_data") # pull label data by default
+		data["axisOptions"] = configurable_axes(data["labels"]) # populate axis data objects
         
-        data = {}
-        data["viz"] = csv_to_json(name)
-        data["labels"] = csv_to_json("label_data") # pull label data by default
-        data["axisOptions"] = configurable_axes(data["labels"]) # populate axis data objects
-        print configurable_axes(data["labels"])
         return json.dumps(data)
         
 app = web.application(urls, globals())

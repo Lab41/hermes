@@ -213,8 +213,8 @@ angular.module("scatter-plot-directive", [])
 								.attr({
 									class: "dot",
 									r: radius,
-									cx: function(d) { return xSelect == undefined ? 0 : xScale(d[xSelect]); },
-									cy: function(d) { return ySelect == undefined ? 0 : yScale(d[ySelect]); }
+									cx: function(d) { return xSelect == undefined ? -(diameter) : xScale(d[xSelect]); },
+									cy: function(d) { return ySelect == undefined ? -(diameter) : yScale(d[ySelect]); }
 								})
 								.style("fill", function(d, i) { return cScale(d.alg_type); });
                             
@@ -227,8 +227,8 @@ angular.module("scatter-plot-directive", [])
                                 .attr({
 									class: "dot",
 									r: radius,
-									cx: function(d) { return xSelect == undefined ? 0 : xScale(d[xSelect]); },
-									cy: function(d) { return ySelect == undefined ? 0 : yScale(d[ySelect]); }
+									cx: function(d) { return xSelect == undefined ? -(diameter) : xScale(d[xSelect]); },
+									cy: function(d) { return ySelect == undefined ? -(diameter) : yScale(d[ySelect]); }
 								})
 								.style("fill", function(d, i) { return cScale(d.alg_type); });
                             
