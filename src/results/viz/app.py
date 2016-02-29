@@ -235,6 +235,9 @@ class static_data:
             # parallel
             elif params[query_term] == "parallel":
                 data["viz"] = filtered_columns(csv_to_json(name), configurable_axes(labels))
+                data["raw"] = csv_to_json(name)
+                data["options"] = configurable_axes(labels) # populate axis data objects
+                data["labels"] = label_keys
         # basic json interpretation of csv
         else:
             data["viz"] = csv_to_json(name)

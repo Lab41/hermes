@@ -125,6 +125,7 @@ angular.module("scatter-plot-directive", [])
                             var labels = data[0].labels;
                             var axesOptions = data[0].options.axes;
 							var groupOptions = data[0].options.groups;
+                            var groupby = data[3];
                                              
                             ///////////////////////////////////////
                             ////// assign to variables scope //////
@@ -135,7 +136,7 @@ angular.module("scatter-plot-directive", [])
 							scope.groupOptions = groupOptions; // group by options
                             scope.options.xSelect = Object.keys(data[1]).length == 0 ? axesOptions[0] : data[1]; // dropdown value for x-axis as chart redraws
                             scope.options.ySelect = Object.keys(data[2]).length == 0 ? axesOptions[1] : data[2]; // dropdown value for y-axis as chart redraws
-							scope.options.groupby = data[3]; // group by value
+							scope.options.groupby = groupby; // group by value
                                              
                             var xSelect = data[1].raw;
                             var ySelect = data[2].raw;

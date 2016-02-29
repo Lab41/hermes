@@ -1,15 +1,34 @@
 angular.module("parallel-sets-directive", [])
 
-.directive("parallelSets", ["d3Service", function(d3Service){
+.directive("parallelSets", ["d3Service", "$stateParams", "$state", function(d3Service, $stateParams, $state){
     return {
         restrict: "E",
         scope: {
             vizData: "=",
             canvasWidth: "=",
             canvasHeight: "=",
-            colorRange: "="
+            colorRange: "=",
+            transitionTime: "="
         },
-        template: "<p>parallel sets</p>",
+        controller: function($scope) {
+            
+            // initial values
+            $scope.options = { groupby: $stateParams.groupby };
+			
+			// change state via url
+			$scope.changeState = function(groupby) {
+				
+				$state.go("app.viz", {
+					groupby: groupby
+				}, {
+					reload: false,
+					notify: false
+				});
+				
+			};
+            
+        },
+        templateUrl: "templates/directives/parallel-coordinates-plot.html",
         link: function(scope, element, attrs){
             
             //get d3 promise
@@ -23,6 +42,7 @@ angular.module("parallel-sets-directive", [])
                 // if not attributes present - use default
                 var width = parseInt(attrs.canvasWidth) || 400;
                 var height = parseInt(attrs.canvasHeight) || 200;
+                var transitionTime = parseInt(attrs.transitionTime) || 500;
                 
                 // extra work to get a color array from an attribute
                 // replace value commas with a pipe character so when we split later rgb values don't get broken
@@ -42,8 +62,7 @@ angular.module("parallel-sets-directive", [])
                 ///////////////////////////////////////////////////////
                                 
                 // create svg canvas
-                var canvas = d3.select(element[0])
-                    .append("svg")
+                var canvas = d3.select(element.find("svg")[0])
                     .attr({
                         viewBox: "0 0 " + width + " " + height
                     })
@@ -65,18 +84,30 @@ angular.module("parallel-sets-directive", [])
                 var line = d3.svg.line();
 				var axis = d3.svg.axis()
 					.orient("left");
-				var background;
-				var foreground;
+                
+                // de focus lines for context
+				var background = canvas
+                    .append("g")
+                    .attr({
+                        class: "background"
+                    });
+                
+                // focus
+                var foreground = canvas
+                    .append("g")
+                    .attr({
+                        class: "foreground"
+                    });
 				
 				///////////////////////////////////////////////
                 ////// dynamic d3 runs every data update //////
                 ///////////////////////////////////////////////
 												
                 // check for new data
-                scope.$watch("vizData", function(newData, oldData) {
+                scope.$watchGroup(["vizData", "options.groupby"], function(newData, oldData) {
                     
                     // async check
-                    if (newData !== undefined) {
+                    if (newData[0] !== undefined && newData[1] !== undefined) {
                     
                         // check new vs old
                         var isMatching = angular.equals(newData, oldData);
@@ -91,9 +122,29 @@ angular.module("parallel-sets-directive", [])
                         
                         function draw(data) {
                             
+                            ///////////////////////////////////////////////////////////////////////
+                            ////// assign variables (cleaner to read vs straight from scope) //////
+                            ///////////////////////////////////////////////////////////////////////
+                            
+                            var rawValues = data[0].raw;
+                            var groupby = data[1];
+                            var labels = data[0].labels;
+                            var axesOptions = data[0].options.axes;
+							var groupOptions = data[0].options.groups;
+                            var data = data[0].viz;
+                            
+                            ///////////////////////////////////////
+                            ////// assign to variables scope //////
+                            ///////////////////////////////////////
+                            
+                            scope.labels = labels;
+                            scope.axesOptions = axesOptions; // all drop down options
+							scope.groupOptions = groupOptions; // group by options
+                            scope.options.groupby = groupby; // group by value
+                            
                             var nest = d3.nest()
-                                .key(function(d) { return d.alg_type; })
-                                .entries(data);
+                                .key(function(d) { return d[groupby]; })
+                                .entries(rawValues);
                             
                             ////////////////////
                             ////// scales //////
@@ -122,34 +173,71 @@ angular.module("parallel-sets-directive", [])
                             ////// lines //////
                             ///////////////////
                             
-                            // background
-                            background = canvas
-                                .append("g")
+                            // set selection
+                            var bLine = background
+                                .selectAll(".line")
+                                .data(data);
+                            
+                            // update selection
+                            bLine
+                                .transition()
+                                .duration(transitionTime)
                                 .attr({
-                                    class: "background"
-                                })
-                                .selectAll("path")
-                                .data(data)
-                                .enter()
-                                .append("path")
-                                .attr({
-                                    d: path
+                                    d: path,
+                                    class: "line"
                                 });
                             
-                            // focus
-                            foreground = canvas
-                                .append("g")
-                                .attr({
-                                    class: "foreground"
-                                })
-                                .selectAll("path")
-                                .data(data)
+                            // enter selection
+                            bLine
                                 .enter()
                                 .append("path")
+                                .transition()
+                                .duration(transitionTime)
                                 .attr({
-                                    d: path
+                                    d: path,
+                                    class: "line"
+                                });
+                            
+                            // exit selection
+                            bLine
+                                .exit()
+                                .transition()
+                                .duration(transitionTime)
+                                .remove();
+                            
+                            // set selection
+                            var fLine = foreground
+                                .selectAll(".line")
+                                .data(rawValues);
+                            
+                            // update selection
+                            fLine
+                                .transition()
+                                .duration(transitionTime)
+                                .attr({
+                                    d: path,
+                                    class: "line"
                                 })
-                                .style("stroke", function(d, i) { return cScale(d.alg_type); });
+                                .style("stroke", function(d, i) { return cScale(d[groupby]); });
+                            
+                            // enter selection
+                            fLine
+                                .enter()
+                                .append("path")
+                                .transition()
+                                .duration(transitionTime)
+                                .attr({
+                                    d: path,
+                                    class: "line"
+                                })
+                                .style("stroke", function(d, i) { return cScale(d[groupby]); });
+                            
+                            // exit selection
+                            fLine
+                                .exit()
+                                .transition()
+                                .duration(transitionTime)
+                                .remove();
 
                             //////////////////
                             ////// axes //////
@@ -218,6 +306,7 @@ angular.module("parallel-sets-directive", [])
                                 
                                 // update forground lines
                                 foreground
+                                    .selectAll("path")
                                     .attr({
                                         class: "active"
                                     })

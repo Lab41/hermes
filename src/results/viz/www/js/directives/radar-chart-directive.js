@@ -39,6 +39,7 @@ angular.module("radar-chart-directive", [])
 				var activeWidth = width - (padding.left + padding.right);
 				var activeHeight = height - (padding.bottom + padding.top);
 				var rPadding = 6; // padding of text around outermost circle
+                var ringCount = 4; // number of ticks on radial scales
 				
 				///////////////////////////////////////////////////////
                 ////// main svg constructs not dependent on data //////
@@ -57,7 +58,7 @@ angular.module("radar-chart-directive", [])
                                 
                 // radius scale (rings)
 				var rScale = d3.scale.linear()
-                    .domain([0, 0.5])
+                    .domain([0, radius])
 					.range([0, radius]);
                 
                 // attribute scale (paths)
@@ -98,9 +99,6 @@ angular.module("radar-chart-directive", [])
                             ///////////////////////////////////////
 							scope.title = data.key;
                             
-                            // set scale domains with *nice* round numbers
-							//rScale.domain(d3.extent(data, function(d) { console.log(d);return parseFloat(d[labels["avg_lowest_rank"]]); })).nice();
-                            
 							///////////////////////////
                             ////// scales & axis //////
                             ///////////////////////////
@@ -110,7 +108,7 @@ angular.module("radar-chart-directive", [])
                                 
                                 // add each scale to the y object
                                 aScale[d] = d3.scale.linear()
-                                    .domain(d3.extent(data, function(p) { return +p[d]; }))
+                                    .domain(d3.extent(data.values, function(p) { return p[d]; }))
                                     .range([0, radius]);
                                 
                             });
@@ -122,7 +120,7 @@ angular.module("radar-chart-directive", [])
                                     class: "r-axis"
                                 })
                                 .selectAll("g")
-                                .data(rScale.ticks(4).splice(1))
+                                .data(rScale.ticks(ringCount))
                                 .enter()
                                 .append("g");
                             
@@ -173,20 +171,23 @@ angular.module("radar-chart-directive", [])
                                         .attr({
                                             x2: radius
                                         });
-
+console.log(aScale[aKeys[attrIdx]].ticks(ringCount));
                                     aGroup
                                         .selectAll(".tick")
-                                        .data([1,2,3,4,5])
+                                        .data(aScale[aKeys[attrIdx]].ticks(ringCount))
                                         .enter()
                                         .append("text")
                                         .attr({
                                             class: "tick",
-                                            dx: function(d, i){ return ringAngle < 270 && ringAngle > 90 ? -rScale(0.1) * i : rScale(0.1) * i; },
+                                            dx: function(d, i){ return ringAngle < 270 && ringAngle > 90 ? -aScale[aKeys[attrIdx]](d) : aScale[aKeys[attrIdx]](d); },
                                             dy: 0,
                                             transform: ringAngle < 270 && ringAngle > 90 ? "rotate(180)" : null
                                         })
                                         .text(function(d) { return d; })
-                                        .style("font-size", "0.65em");
+                                        .style({
+                                            "font-size": "0.65em",
+                                            "text-anchor": "start"
+                                        });
 
                                     // line lable
                                     aGroup
@@ -212,8 +213,8 @@ angular.module("radar-chart-directive", [])
                             //////////////////////////
 							
                             // value line
-                            /*var line = d3.svg.line.radial()
-                                .radius(function(d) { return /*rScale(d[1]);*//*rScale(0.13); }) // radial scale (y)
+                            var line = d3.svg.line.radial()
+                                .radius(function(d) { return /*rScale(d[1]);*/rScale(0.13); }) // radial scale (y)
                                 .angle(function(d) { return -(d * (Math.PI / 180)) + Math.PI / 2; }); // attribute scale (x)
                             
                             canvas
@@ -222,7 +223,7 @@ angular.module("radar-chart-directive", [])
                                 .attr({
                                     class: "line",
                                     d: line
-                                });*/
+                                });
 
                         };
                         

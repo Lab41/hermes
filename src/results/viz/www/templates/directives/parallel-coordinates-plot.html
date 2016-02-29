@@ -1,0 +1,27 @@
+<!-- OPTIONS -->
+<form>
+	
+	<!-- GROUP BY -->
+	<fieldset>
+
+		<legend>Group by</legend>
+
+		<ul class="usa-unstyled-list">
+			<li ng-repeat="option in groupOptions">
+				<label>
+					<input type="radio"
+						   ng-model="options.groupby"
+						   ng-value="option.raw"
+						   ng-change="changeState(option.raw);">
+					{{ option.label }}
+				</label>
+			</li>
+		</ul>
+
+	</fieldset>
+    <tt>{{ options.groupby | json }}</tt>
+    
+</form>
+
+<!-- CHART -->
+<svg></svg>
