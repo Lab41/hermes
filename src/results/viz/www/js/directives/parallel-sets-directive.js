@@ -100,7 +100,7 @@ angular.module("parallel-sets-directive", [])
                             ////////////////////
                             
                             // get dimensions excluding string-based columns
-                            var dimensions = d3.keys(data[0]).filter(function(d) { return d != "name"; });
+                            var dimensions = d3.keys(data[0]);
                             
                             // x scale
                             xScale.domain(dimensions);

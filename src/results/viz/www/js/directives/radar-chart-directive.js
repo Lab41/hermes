@@ -55,10 +55,13 @@ angular.module("radar-chart-directive", [])
 						transform: "translate(" + (width / 2) + "," + (width / 2) + ")"
 					});
                                 
-                // radius scale (like the y scale)
+                // radius scale (rings)
 				var rScale = d3.scale.linear()
                     .domain([0, 0.5])
 					.range([0, radius]);
+                
+                // attribute scale (paths)
+                var aScale = {};
 				
 				///////////////////////////////////////////////
                 ////// dynamic d3 runs every data update //////
@@ -101,6 +104,16 @@ angular.module("radar-chart-directive", [])
 							///////////////////////////
                             ////// scales & axis //////
                             ///////////////////////////
+                            
+                            // y scale for each dimension
+                            aKeys.forEach(function(d) {
+                                
+                                // add each scale to the y object
+                                aScale[d] = d3.scale.linear()
+                                    .domain(d3.extent(data, function(p) { return +p[d]; }))
+                                    .range([0, radius]);
+                                
+                            });
 							
                             // radial axis
                             var rAxis = canvas
@@ -109,7 +122,7 @@ angular.module("radar-chart-directive", [])
                                     class: "r-axis"
                                 })
                                 .selectAll("g")
-                                .data(rScale.ticks(5).splice(1))
+                                .data(rScale.ticks(4).splice(1))
                                 .enter()
                                 .append("g");
                             
@@ -121,7 +134,7 @@ angular.module("radar-chart-directive", [])
                                 });
                             
                             // ring label
-                            rAxis
+                            /*rAxis
                                 .append("text")
                                 .attr({
                                     y: function(d) { return -rScale(d); }
@@ -130,7 +143,7 @@ angular.module("radar-chart-directive", [])
 								.style({
 									"font-size": "0.7em",
 									fill: "red"
-								});
+								});*/
                             
                             var categories = d3.range(0, 360, (360 / aKeys.length));
                             
@@ -146,28 +159,50 @@ angular.module("radar-chart-directive", [])
                                 .append("g")
                                 .attr({
                                     transform: function(d) { return "rotate(" + d + ")"; }
-                                });
-                            
-                            // line
-                            aAxis
-                                .append("line")
-                                .attr({
-                                    x2: radius
-                                });
-                            
-                            // line lable
-                            aAxis
-                                .append("text")
-                                .attr({
-                                    x: radius + rPadding,
-                                    dy: 0,
-									transform: function(d) { return d < 270 && d > 90 ? "rotate(180 " + (radius + rPadding) + ",0)" : null; }
                                 })
-                                .text(function(d, i) { return aKeys[i]; })
-								.style({
-									"text-anchor": function(d) { return d < 270 && d > 90 ? "end" : null; },
-									"font-size": "0.5em"
-								});
+                            
+                                .each(function(d, i) {
+                                    
+                                    var aGroup = d3.select(this);
+                                    var ringAngle = d;
+                                    var attrIdx = i;
+                                    
+                                    // line
+                                    aGroup
+                                        .append("line")
+                                        .attr({
+                                            x2: radius
+                                        });
+
+                                    aGroup
+                                        .selectAll(".tick")
+                                        .data([1,2,3,4,5])
+                                        .enter()
+                                        .append("text")
+                                        .attr({
+                                            class: "tick",
+                                            dx: function(d, i){ return ringAngle < 270 && ringAngle > 90 ? -rScale(0.1) * i : rScale(0.1) * i; },
+                                            dy: 0,
+                                            transform: ringAngle < 270 && ringAngle > 90 ? "rotate(180)" : null
+                                        })
+                                        .text(function(d) { return d; })
+                                        .style("font-size", "0.65em");
+
+                                    // line lable
+                                    aGroup
+                                        .append("text")
+                                        .attr({
+                                            x: radius + rPadding,
+                                            dy: 0,
+                                            transform: ringAngle < 270 && ringAngle > 90 ? "rotate(180 " + (radius + rPadding) + ",0)" : null
+                                        })
+                                        .text(aKeys[attrIdx])
+                                        .style({
+                                            "text-anchor": ringAngle < 270 && ringAngle > 90 ? "end" : null,
+                                            "font-size": "0.5em"
+                                        });
+                                    
+                                });
 							                            
                             // add starting point to end of line to close the path
                             categories.push(categories[0]);
@@ -178,7 +213,7 @@ angular.module("radar-chart-directive", [])
 							
                             // value line
                             /*var line = d3.svg.line.radial()
-                                .radius(function(d) { return /*rScale(d[1]);*//*rScale(0.2); }) // radial scale (y)
+                                .radius(function(d) { return /*rScale(d[1]);*//*rScale(0.13); }) // radial scale (y)
                                 .angle(function(d) { return -(d * (Math.PI / 180)) + Math.PI / 2; }); // attribute scale (x)
                             
                             canvas
