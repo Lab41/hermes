@@ -36,7 +36,7 @@ app.config(function($stateProvider, $urlRouterProvider) {
     
     // explore vs explain
     .state("app.viz", {
-        url: "{type}",
+        url: "{type}?{groupby}",
         templateProvider: function($http, $stateParams) {
             return $http.get("templates/" + $stateParams.type + ".html").then(function(template) {
                 return template.data;
@@ -45,6 +45,7 @@ app.config(function($stateProvider, $urlRouterProvider) {
         controller: "vizCtrl"
     })
 
-    $urlRouterProvider.otherwise("/scatter");
+	// hardcoded for now need to create service
+    $urlRouterProvider.otherwise("/scatter?groupby=algorithm");
 
 });

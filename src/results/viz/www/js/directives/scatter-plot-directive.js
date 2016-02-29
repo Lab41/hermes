@@ -1,6 +1,6 @@
 angular.module("scatter-plot-directive", [])
 
-.directive("scatterPlot", ["d3Service", function(d3Service){
+.directive("scatterPlot", ["d3Service", "$stateParams", "$state", function(d3Service, $stateParams, $state){
     return {
         restrict: "E",
         scope: {
@@ -13,7 +13,19 @@ angular.module("scatter-plot-directive", [])
         controller: function($scope) {
             
             // initial values
-            $scope.options = { xSelect: {}, ySelect: {} };            
+            $scope.options = { xSelect: {}, ySelect: {}, groupby: $stateParams.groupby };
+			
+			// change state via url
+			$scope.changeState = function(groupby) {
+				
+				$state.go("app.viz", {
+					groupby: groupby
+				}, {
+					reload: false,
+					notify: false
+				});
+				
+			};
             
         },
         templateUrl: "templates/scatter-plot.html",
@@ -88,10 +100,10 @@ angular.module("scatter-plot-directive", [])
                 ///////////////////////////////////////////////
 												
                 // check for new data
-                scope.$watchGroup(["vizData", "options.xSelect", "options.ySelect"], function(newData, oldData) {
+                scope.$watchGroup(["vizData", "options.xSelect", "options.ySelect", "options.groupby"], function(newData, oldData) {
                     
                     // async check
-                    if (newData[0] !== undefined) {
+                    if (newData[0] !== undefined && newData[3] !== undefined) {
                     
                         // check new vs old
                         var isMatching = angular.equals(newData, oldData);
@@ -111,38 +123,33 @@ angular.module("scatter-plot-directive", [])
                             ///////////////////////////////////////////////////////////////////////
                         
                             var labels = data[0].labels;
-                            var axesOptions = data[0].axisOptions;
-							var tableHeader = {};
-							var algosSelected = {};
-							var selected = "";
+                            var axesOptions = data[0].options.axes;
+							var groupOptions = data[0].options.groups;
                                              
                             ///////////////////////////////////////
                             ////// assign to variables scope //////
                             ///////////////////////////////////////
                                              
+							scope.labels = labels;
                             scope.axesOptions = axesOptions; // all drop down options
+							scope.groupOptions = groupOptions; // group by options
                             scope.options.xSelect = Object.keys(data[1]).length == 0 ? axesOptions[0] : data[1]; // dropdown value for x-axis as chart redraws
                             scope.options.ySelect = Object.keys(data[2]).length == 0 ? axesOptions[1] : data[2]; // dropdown value for y-axis as chart redraws
+							scope.options.groupby = data[3]; // group by value
                                              
                             var xSelect = data[1].raw;
                             var ySelect = data[2].raw;
+							var groupby = data[3];
                             var data = data[0].viz; // sloppy naming here but easier to understand in all the d3 below
-							var filtered = data.filter(function(d, i) {
-								
-								// check for selected algorithms
-								return d;
-								
-							}); // filter data based on user selection
+							var filtered = data.filter(function(d) { return d; }); // filter data based on user selection
+											 
+							// nest by group by value
                             var nest = d3.nest()
-                                .key(function(d) { return d.alg_type; })
+                                .key(function(d) { return d[groupby]; })
                                 .entries(data);
                                              
 							// assign to scope
-							//scope.options.algos = nest;
-							//scope.options.algoSelect = algosSelected;
 							scope.filtered = filtered;
-                            //scope.runCount = filtered.length;
-                            //scope.tableHeader = tableHeader;
                                              
                             //////////////////////////
                             ////// scales & axis//////
@@ -216,7 +223,7 @@ angular.module("scatter-plot-directive", [])
 									cx: function(d) { return xSelect == undefined ? -(diameter) : xScale(d[xSelect]); },
 									cy: function(d) { return ySelect == undefined ? -(diameter) : yScale(d[ySelect]); }
 								})
-								.style("fill", function(d, i) { return cScale(d.alg_type); });
+								.style("fill", function(d, i) { return cScale(d[groupby]); });
                             
                             // enter selection
                             circle
@@ -230,7 +237,7 @@ angular.module("scatter-plot-directive", [])
 									cx: function(d) { return xSelect == undefined ? -(diameter) : xScale(d[xSelect]); },
 									cy: function(d) { return ySelect == undefined ? -(diameter) : yScale(d[ySelect]); }
 								})
-								.style("fill", function(d, i) { return cScale(d.alg_type); });
+								.style("fill", function(d, i) { return cScale(d[groupby]); });
                             
                             // selection events
                             circle
@@ -289,7 +296,7 @@ angular.module("scatter-plot-directive", [])
                             // set selction
                             var legend = d3.select(element.find("div")[0])
                                 .selectAll(".item")
-                                .data(cScale.domain());
+                                .data(nest);
                             
                             // update selection
                             legend
@@ -297,7 +304,11 @@ angular.module("scatter-plot-directive", [])
                                 .duration(transitionTime)
                                 .attr({
                                     class: "item"
-                                });
+                                })
+								.text(function(d) { return labels[d.key]; })
+								.style({
+									color: function(d) { return cScale([d.key]); }
+								});
                             
                             // enter selection
                             legend
@@ -308,26 +319,10 @@ angular.module("scatter-plot-directive", [])
                                 .attr({
                                     class: "item"
                                 })
-                            
-                                // each legend item
-                                .each(function(d) {
-
-                                    var item = d3.select(this);
-
-                                    // label shape
-                                    item
-                                        .append("span")
-                                        .html("&#x25A0;")
-                                        .style({
-                                            color: cScale
-                                        });
-
-                                    // label text
-                                    item
-                                        .append("span")
-                                        .text(function(d) { return tableHeader[d]; });
-
-                                });
+								.text(function(d) { return labels[d.key]; })
+								.style({
+									color: function(d) { return cScale([d.key]); }
+								});
                             
                             // exit selection
                             legend

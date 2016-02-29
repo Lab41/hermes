@@ -73,7 +73,7 @@ class static_data:
                     for i, column in enumerate(columns):
                         
                         # check column
-                        if (column == "configurable"):
+                        if column == "axes" or column == "groups":
                             
                             # add data to obj
                             # strip out any new lines/carriage returns
@@ -98,21 +98,31 @@ class static_data:
         # formatting axis data for drop downs/vizulations
         def configurable_axes(label_array):
             
-            options = []
+            axes = []
+	    groups = []
             
             # loop through labels
             for i, label in enumerate(label_array):
+				
+		# add idx for front-end drop downs
+		label["id"] = i
                 
                 # check if configurable
-                if (label["configurable"]):
+                if label["axes"]:
                     
-                    # add idx for front-end drop downs
-                    label["id"] = i
+                    # add to axis array
+                    axes.append(label)
+					
+		elif label["groups"]:
+					
+		    # add to group array
+		    groups.append(label)
+			
+	    data = {}
+	    data["axes"] = axes
+	    data["groups"] = groups
                     
-                    # add to new array
-                    options.append(label)
-                    
-            return options
+            return data
         
         def nest_json(json_array, nest_key, labels, axis):
 		
@@ -121,7 +131,7 @@ class static_data:
             axis_keys = {}
 
             # loop through labels
-            for label in axis:
+            for label in axis["axes"]:
                 axis_keys[label["raw"]] = label["label"]
 
             for label in labels:
@@ -191,7 +201,7 @@ class static_data:
                 filtered_obj = {}
                 
                 # loop through available values
-                for val in axes:
+                for val in axes["axes"]:
                     
                     # add data to filtered obj
                     filtered_obj[val["raw"]] = obj[val["raw"]]
@@ -203,25 +213,33 @@ class static_data:
 		
         # set up params
         i = web.input(name=None)
-        params = web.input(); print params
+        params = web.input()
         query_term = "structure"
         nest_key = "alg_type"
         
         data = {}
-        data["labels"] = csv_to_json("label_data") # pull label data by default
+        labels = csv_to_json("label_data") # pull label data by default
+	label_keys = {}
+		
+        # loop through labels
+        for label in labels:
+			
+	    # add key/value to object
+	    label_keys[label["raw"]] = label["label"]
 
         # check for query params to put data in specific structure for frontend
         if query_term in params:
             # radar
             if params[query_term] == "radar":
-                data["viz"] = nest_json(csv_to_json(name), nest_key, data["labels"], configurable_axes(data["labels"]))
+                data["viz"] = nest_json(csv_to_json(name), nest_key, labels, configurable_axes(labels))
             # parallel
             elif params[query_term] == "parallel":
-                data["viz"] = filtered_columns(csv_to_json(name), configurable_axes(data["labels"]))
+                data["viz"] = filtered_columns(csv_to_json(name), configurable_axes(labels))
         # basic json interpretation of csv
         else:
             data["viz"] = csv_to_json(name)
-            data["axisOptions"] = configurable_axes(data["labels"]) # populate axis data objects
+            data["options"] = configurable_axes(labels) # populate axis data objects
+	    data["labels"] = label_keys
 
         return json.dumps(data)
         

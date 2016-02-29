@@ -51,6 +51,15 @@ scatter-plot .legend {
     
 }
 
+/* legend shape */
+scatter-plot .item:before {
+	
+	content: '\25A0';
+	height: 0.5em;
+	width: 0.5em;
+	
+}
+
 /* legend text */
 scatter-plot .legend p {
     

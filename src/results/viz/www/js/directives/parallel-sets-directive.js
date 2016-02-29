@@ -149,7 +149,7 @@ angular.module("parallel-sets-directive", [])
                                 .attr({
                                     d: path
                                 })
-                                .style("stroke", function(d, i) { console.log(d); return cScale(d.alg_type); });
+                                .style("stroke", function(d, i) { return cScale(d.alg_type); });
 
                             //////////////////
                             ////// axes //////
