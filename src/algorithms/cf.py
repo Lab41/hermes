@@ -264,7 +264,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # create RDD for range of ratings, ie. [1, 2, 3, 4, 5] for ratings 1-5
     min_rating = training_data.map(lambda (u,i,r): r).min()
     max_rating = training_data.map(lambda (u,i,r): r).max()
-    range_of_ratings = sc.parallelize(list(range(int(min_rating), int(max_rating + 1))))
+    range_of_ratings = sc.broadcast(list(range(int(min_rating), int(max_rating + 1))))
 
     #predict on all user-item pairs
     user_ids = training_data.map(lambda (u,i,r): u).distinct()
@@ -275,13 +275,13 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # we have to create a RDD with [(rating, (user, item))] for each rating
     # ie. [(rating_1, (user, item)), (rating_2, (user, item)), (rating_3, (user, item)), ..., (rating_5, (user, item))]
     # do not combine rCombo_ui into uirCombo since rCombo_ui will be used later on
-    rCombo_ui = range_of_ratings.cartesian(ui_combo).map(lambda (r, (u,i)): (float(r), (u,i))).coalesce(num_partitions)
-    uirCombo = uirCombo.map(lambda (r, (u,i)): (u, i, r))
+    rCombo_ui = ui_combo.flatMap(lambda (u,i): [(float(r), (u, i)) for r in range_of_ratings.value]).coalesce(num_partitions)
+    uirCombo = rCombo_ui.map(lambda (r, (u,i)): (u, i, r))
 
     """
     Calculate P(r|u), probability of rating r for user u.
     P(r|u) = (number of ratings r that user u gives) / (total number of ratings that user u gives)
-    
+
     For example, if rating r == 1, then
     P(r|u) = (number of ratings r == 1 that user u gives) / (total number of ratings that user u gives)
     """
@@ -305,7 +305,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     u_componentsOfProb = u_totalRating.join(u_r_numRating)
     # [(user_id, rating, probRU)]
     probRU = u_componentsOfProb.map(lambda (u, (total_r, (r, num_r))): (u, r, float(num_r)/float(total_r)))
-    
+
     """
     Calculate P(r|i), probability of rating r for item i.
     P(r|i) = (number of ratings r that item i receives) / (total number of ratings that item i receives)
@@ -349,7 +349,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     r_numRating = r_1.reduceByKey(add)
     # [(rating, probR)]
     probR = r_numRating.mapValues(lambda num_rating: float(num_rating) / float(totalRatings))
-    
+
     """
     Calculate P(r|a,i), naive bayes probability.
     P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)) = ( (P(r|u) * P(r|i)) / P(r) ) 
@@ -377,7 +377,7 @@ def calc_naive_bayes_components(training_data, sc, num_partitions=20):
     # [((user_id, item_id), [(rating_1, bayes_prob_1), (rating_2, bayes_prob_2), ..., (rating_5, bayes_prob_5)])]
     # sort it by the lowest to the highest rating
     ui_allBayesProb = bayesProb.mapValues(lambda value: [value]).reduceByKey(lambda a, b: a + b)\
-                               .mapValues(lambda value: sorted(value, key=lambda(rating, bayes_prob): rating))
+                               .mapValues(lambda value: sorted(value, key=lambda (rating, bayes_prob): rating))
 
     return ui_allBayesProb
 
