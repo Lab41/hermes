@@ -17,7 +17,7 @@ import pandas as pd
 
 from bokeh.plotting import Figure
 from bokeh.models import ColumnDataSource, HoverTool, HBox, VBoxForm, CustomJS, Callback
-from bokeh.models.widgets import Slider, Select, TextInput, CheckboxGroup
+from bokeh.models.widgets import Slider, Select, TextInput, CheckboxGroup, Button
 from bokeh.io import curdoc
 import os
 
@@ -58,40 +58,18 @@ y_axis = Select(title="Y Axis", options=sorted(axis_map.keys()), value="Item Cov
 num_preds = Select(title="N", value='1000', options=['All', '100', '1000'])
 alg_type = Select(title = "Recommender Type", value='All', options = ['All', 'All CF', 'All CB', 'cf_mllib', 'cf_user', 'cf_item', 'cb_vect', 'cb_kmeans'])
 
+u_button = Button(label="User Vector")
+c_button = Button(label="Content Vector")
 
-label_source = ColumnDataSource(data=dict(labels=['other', 'hello', 'there']))
+#initialize to movielens
+labels = ['pos_ratings', 'ratings', 'ratings_to_interact']
+c_labels = ["genre"]
 
 
-callback1 = CustomJS(args=dict(source=source), code="""
-        var f = source.get('dataset')
-        if f=='movie_lens1m'{
-            #label_source.data= dict(labels = ['ratings', 'pos_ratings', 'ratings_to_interact'])
-            s2.set("options", ['ratings', 'pos_ratings', 'ratings_to_interact']
-        }
-        else if f=='Last_FM'{
-            #label_source.data= dict(labels = ['num_plays', 'any_interact', 'num_plays_log'])
-            s2.set("options", ['num_plays', 'any_interact', 'num_plays_log']
-        }
-        else {
-            #label_source.data= dict(labels = ['other', 'hello', 'there'])
-            s2.set("options", ['other', 'hello', 'there']
-        }
-        s2.trigger('change');
-    """)
+dataset_type = Select(title = "Dataset", value='movielens_1m', options = ['All', 'All MovieLens', 'movielens_1m', 'Last_FM', 'git'])
 
-dataset_type = Select(title = "Dataset", value='movielens_1m', options = ['All', 'All MovieLens', 'movielens_1m', 'Last_FM', 'git'], callback=callback1)
-
-checkbox_button_group = Select(value="", title = "User Vector")
-
-callback1.args["s2"] = checkbox_button_group
-
-labels_list = []
-active_list = []
-
-#checkbox_button_group.set('labels')
-#checkbox_button_group.trigger('change')
-
-#callback1.args['s2'] = checkbox_button_group
+checkbox_button_group = CheckboxGroup(labels=labels, active = [0,1,2])
+checkbox_button_group_content = CheckboxGroup(labels=c_labels, active = [0])
 
 
 hover = HoverTool(tooltips=[
@@ -109,8 +87,6 @@ def select_run():
     num_preds_val = num_preds.value
     alg_type_val = alg_type.value
     dataset_val = dataset_type.value
-#     director_val = director.value.strip()
-#     cast_val = cast.value.strip()
     selected = hermes_data
 #     selected = movies[
 #         (movies.Reviews >= reviews.value) &
@@ -136,14 +112,31 @@ def select_run():
         else:
             selected = selected[selected['dataset'].str.contains(dataset_val)]
 
-#     if (director_val != ""):
-#         selected = selected[selected.Director.str.contains(director_val)==True]
-#     if (cast_val != ""):
-#         selected = selected[selected.Cast.str.contains(cast_val)==True]
+    #this sometimes currently goes through two iterations, the first has not fully updated the list
+    #with the try except then we are able to set the list correctly and not error out
+    try:
+        u_vects = list(pd.unique(selected['user_vector']))
+        active_u_vects = checkbox_button_group.active
+
+        active_labels = []
+        for a in active_u_vects:
+            active_labels.append(u_vects[int(a)])
+
+        selected = selected[selected['user_vector'].isin(active_labels)]
+
+        c_vects = list(pd.unique(selected['content_vector']))
+        active_c_vects = checkbox_button_group_content.active
+
+        active_c_labels = []
+        for a in active_c_vects:
+            active_c_labels.append(c_vects[int(a)])
+        selected = selected[selected['content_vector'].isin(active_c_labels)]
+    except:
+        pass
+
     return selected
 
 def update(attrname, old, new):
-    global labels_list, active_list
     df = select_run()
     x_name = axis_map[x_axis.value]
     y_name = axis_map[y_axis.value]
@@ -162,25 +155,86 @@ def update(attrname, old, new):
         num_run = df["N"],
         #alpha = df["alpha"],
     )
-    # #update labels and
-    # if  df["dataset"].any()=='movielens_1m':
-    #     labels_list= ['ratings', 'pos_ratings', 'ratings_to_interact'],
-    #     active_list =[1,1,1]
-    #
-    #
-    # elif  df["dataset"].any()=='Last_FM':
-    #     labels_list= ['num_plays', 'any_interact', 'num_plays_log'],
-    #     active_list =[1,1,1]
-    #
-    # else:
-    #
-    #     labels_list = [],
-    #     active_list = []
 
 
-controls = [alg_type, dataset_type,  num_preds, x_axis, y_axis]
+def update_dataset(attrname, old, new):
+
+    #set up a dataframe for this type of dataset to get the user vectors
+    dataset_val = dataset_type.value
+    if (dataset_val!='All'):
+        if dataset_val =='All MovieLens':
+            df2 = hermes_data[hermes_data['dataset'].str.contains('movielens')]
+        else:
+            df2 = hermes_data[hermes_data['dataset'].str.contains(dataset_val)]
+    else:
+        df2 = hermes_data
+
+    #when changing the dataset reset the user vector labels
+    labels_list = list(pd.unique(df2['user_vector']))
+    active_list = range(0, len(labels_list))
+
+    checkbox_button_group.labels = labels_list
+    checkbox_button_group.active = active_list
+
+    #also change the content vector types
+    c_labels_list = list(pd.unique(df2['content_vector']))
+    c_active_list = range(0, len(c_labels_list))
+
+    checkbox_button_group_content.labels = c_labels_list
+    checkbox_button_group_content.active = c_active_list
+
+    df = select_run()
+
+    x_name = axis_map[x_axis.value]
+    y_name = axis_map[y_axis.value]
+
+    p.xaxis.axis_label = x_axis.value
+    p.yaxis.axis_label = y_axis.value
+    p.title = "%d runs selected" % len(df)
+    source.data = dict(
+        x=df[x_name],
+        y=df[y_name],
+        color=df["color"],
+        user_vector=df["user_vector"],
+        content_vector=df["content_vector"],
+        alg_type=df["alg_type"],
+        dataset = df["dataset"],
+        num_run = df["N"],
+        #alpha = df["alpha"],
+    )
+
+
+def checkbox_handler(active):
+    df = select_run()
+    x_name = axis_map[x_axis.value]
+    y_name = axis_map[y_axis.value]
+
+    p.xaxis.axis_label = x_axis.value
+    p.yaxis.axis_label = y_axis.value
+    p.title = "%d runs selected" % len(df)
+    source.data = dict(
+        x=df[x_name],
+        y=df[y_name],
+        color=df["color"],
+        user_vector=df["user_vector"],
+        content_vector=df["content_vector"],
+        alg_type=df["alg_type"],
+        dataset = df["dataset"],
+        num_run = df["N"],
+        #alpha = df["alpha"],
+    )
+
+
+
+controls = [alg_type,  num_preds, x_axis, y_axis, dataset_type, u_button, checkbox_button_group, c_button, checkbox_button_group_content]
 for control in controls:
-    control.on_change('value', update)
+    if control==dataset_type:
+        control.on_change('value', update_dataset)
+    else:
+        control.on_change('value', update)
+
+checkbox_button_group.on_click(checkbox_handler)
+checkbox_button_group_content.on_click(checkbox_handler)
 
 inputs = HBox(VBoxForm(*controls), width=300)
 
