@@ -90,7 +90,23 @@ def parseText(row):
     row = row.split(',')
     return (int(row[0]), int(row[1]), float(row[2]))
 
+def rm_hdfs_dir(hdfs_dir):
+    cmd = "hadoop fs -rm -R " + hdfs_dir
+    import subprocess
+    cmd_output = subprocess.check_output(cmd, shell=True)
+    return cmd_output
+
 def save_to_hadoop(vector, output_name):
+    import subprocess
+    try:
+        # overwrite the past vector that was saved
+        rm_hdfs_dir(output_name)
+    except subprocess.CalledProcessError as e:
+        # hdfs directory "output_name" does not exist
+        # do nothing
+        pass
+
+    # save vector as output_name in hdfs
     vector.saveAsPickleFile(output_name)
 
 def load_from_hadoop(input_name,sc,  num_partitions=20):
