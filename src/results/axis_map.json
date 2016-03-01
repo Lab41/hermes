@@ -1,0 +1,110 @@
+[
+    {
+        "raw": "mae",
+        "label": "Mean Absolute Error"
+    },
+    {
+        "raw": "avg_mean_rank",
+        "label": "Average Rank"
+    },
+    {
+        "raw": "user_coverage",
+        "label": "User Coverage"
+    },
+    {
+        "raw": "pred_n",
+        "label": "Precision @ N"
+    },
+    {
+        "raw": "cat_coverage",
+        "label": "Catalog Coverage"
+    },
+    {
+        "raw": "pred_coverage",
+        "label": "Prediction Coverage"
+    },
+    {
+        "raw": "novelty",
+        "label": "Novelty"
+    },
+    {
+        "raw": "rmse",
+        "label": "Root Mean Square Error"
+    },
+    {
+        "raw": "item_coverage",
+        "label": "Item Coverage"
+    },
+    {
+        "raw": "ils",
+        "label": "ILS (diversity)"
+    },
+    {
+        "raw": "cat_diversity",
+        "label": "Categroy Diversity"
+    },
+    {
+        "raw": "serendipity",
+        "label": "Serendipity"
+    },
+    {
+        "raw": "content_serendipity",
+        "label": "Content Serendipity"
+    },
+    {
+        "raw": "Column1",
+        "label": "ID"
+    },
+    {
+        "raw": "dataset",
+        "label": "Dataset"
+    },
+    {
+        "raw": "user_vector",
+        "label": "User Vector"
+    },
+    {
+        "raw": "content_vector",
+        "label": "Content Vector"
+    },
+    {
+        "raw": "CF_CB",
+        "label": "Recommender Type"
+    },
+    {
+        "raw": "alg_type",
+        "label": "Recommender"
+    },
+    {
+        "raw": "avg_lowest_rank",
+        "label": "Average Lowest Rank"
+    },
+    {
+        "raw": "avg_highest_rank",
+        "label": "Average Highest Rank"
+    },
+    {
+        "raw": "cf_mllib",
+        "label": "Mllib"
+    },
+    {
+        "raw": "cf_user",
+        "label": "User"
+    },
+    {
+        "raw": "cf_item",
+        "label": "Item"
+    },
+    {
+        "raw": "cb_vect",
+        "label": "Vector"
+    },
+    {
+        "raw": "cb_kmeans_100",
+        "label": "K Means 100"
+    },
+    {
+        "raw": "cb_kmeans_1000",
+        "label": "K Means 1000"
+    }
+]

@@ -275,7 +275,10 @@ angular.module("parallel-coordinates-directive", [])
                                 .attr({
                                     y: (padding.top / 2)
                                 })
-                                .text(function(d) { return labels[d]; });
+                                .text(function(d) { return labels[d]; })
+                                .style({
+                                    "font-size": "0.2em"
+                                });
 
                             // brush
                             g.append("g")
