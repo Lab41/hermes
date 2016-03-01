@@ -113,6 +113,45 @@ class hermes_run():
         else:
             print 'Please pass in either, book_crossing, git, jester, last_fm, movielens_1m, movielens_10m, movielens_20m, osm, or wiki'
 
+    def run_single_prediction(self, user_vector, content_vector, alg_type):
+        train_ratings_loc = self.directory + self.data_name + '_uv_train_' + user_vector + '.pkl'
+        train_ratings = sl.load_from_hadoop(train_ratings_loc, self.sc).repartition(self.num_partitions)
+
+        if content_vector:
+            content_path = self.directory + self.data_name +'_cv_' + content_vector + '.pkl'
+            content_vect = sl.load_from_hadoop(content_path, self.sc).repartition(self.num_partitions)
+            print 'Running ' + alg_type + ' for user vector ' + user_vector + ' and content vector ' + content_vector
+
+            pred_save_loc = self.directory + self.data_name + '_predictions_' + user_vector + '_' + content_vector + '_' + alg_type  + '.pkl'
+            print pred_save_loc
+
+            if alg_type=='cb_vect':
+                predictions = content_based.predict(train_ratings, content_vect, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cb_kmeans_100':
+                predictions = content_based_kmeans.predict(train_ratings, content_vect, num_predictions=100, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cb_kmeans_1000':
+                predictions = content_based_kmeans.predict(train_ratings, content_vect, num_predictions=1000, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+
+        else:
+            print 'Running ' + alg_type + ' for user vector ' + user_vector
+
+            pred_save_loc = self.directory + self.data_name + '_predictions_' + user_vector + '_' + alg_type  + '.pkl'
+            print pred_save_loc
+
+            if alg_type=='cf_mllib':
+                predictions = cf.calc_cf_mllib(train_ratings, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_item':
+                predictions = cf.calc_item_item_cf(train_ratings, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_user':
+                predictions = cf.calc_user_user_cf2(train_ratings, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+
+
     def run_cf_predictions(self):
         for uv in self.user_vector_types:
             train_ratings_loc = self.directory + self.data_name + '_uv_train_' + uv + '.pkl'
@@ -301,9 +340,13 @@ class hermes_run():
         if alg_type=='cb':
             pred_save_loc = self.directory + self.data_name + '_predictions_' + user_vector + '_' + content_vector + '_' \
                                 + algorithm + '.pkl'
+            results_path = self.results_directory + self.data_name + '_results_' + user_vector + '_' + content_vector + '_' \
+                + algorithm  + '_' + str(num_preds) + '.csv'
         else:
             pred_save_loc = self.directory + self.data_name + '_predictions_' + user_vector +  '_' \
                                 + algorithm + '.pkl'
+            results_path = self.results_directory + self.data_name + '_results_' + user_vector  + '_' \
+                + algorithm  + '_' + str(num_preds) + '.csv'
         print 'Getting results for: ' + pred_save_loc
         preds = sl.load_from_hadoop(pred_save_loc, self.sc).repartition(self.num_partitions)
 
@@ -321,8 +364,6 @@ class hermes_run():
         print results
 
         #save off the results
-        results_path = self.results_directory + self.data_name + '_results_' + user_vector + '_' + content_vector + '_' \
-                        + algorithm  + '_' + str(num_preds) + '.csv'
         print results_path
         f = open(results_path, 'w')
         f.write(str(results))
