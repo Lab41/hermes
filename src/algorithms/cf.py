@@ -406,12 +406,15 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
     """
 
     def calculate_bayes_map(value):
+        # value is in the format of (rating, bayes_prob)
+        RATING_INDEX = 0
+        BAYES_PROB_INDEX = 1
         # extract the bayes_prob 
-        bayesProbList = [x[1] for x in value]
-        
-        # define the argmax, return the index
-        argmax = bayesProbList.index(max(bayesProbList))
-        
+        bayesProbList = [tup[BAYES_PROB_INDEX] for tup in value]
+        # return the index of the highest bayes_prob
+        argmax_index = bayesProbList.index(max(bayesProbList))
+        # from the index, determine the prediction 
+        argmax = value[argmax_index][RATING_INDEX]
         return argmax
 
     if computeFromScratch:
@@ -465,7 +468,8 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
     Determine the predicted rating of every user-item combination using Naive Bayes MAE.
     Pai     : predicted rating for user a on item i
     P(r|a,i): Naive Bayes that computes the probability of rating r for a given user a on item i
-
+    Pai = Argmin from r=1 to 5(Sum of (P(n|a,i) * |r-n|) from n=1 to 5)
+    
     Assumption:
     Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
@@ -484,15 +488,17 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
     """
 
     def calculate_bayes_mae(value):
+        # value is in the format of (rating, bayes_prob)
+        RATING_INDEX = 0
+        # calculate the sum of the product
         sumOfProductList = []
         for rating, bayes_prob in value:
             sumOfProduct = 0.
             for i in range(1, 6):
                 sumOfProduct += bayes_prob * abs(rating - i)
             sumOfProductList.append(sumOfProduct)
-            
-        argmin = sumOfProductList.index(min(sumOfProductList))
-
+        argmin_index = sumOfProductList.index(min(sumOfProductList))
+        argmin = value[argmin_index][RATING_INDEX]
         return argmin
 
     if computeFromScratch:
