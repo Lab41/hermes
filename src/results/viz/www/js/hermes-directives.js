@@ -1,6 +1,4 @@
 var app = angular.module("hermes.directives", [
 	"scatter-plot-directive",
-    "parallel-sets-directive",
-    "radar-chart-directive",
-    "module-title-directive"
+    "parallel-coordinates-directive"
 ]);

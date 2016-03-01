@@ -19,7 +19,7 @@
 		</ul>
 
 	</fieldset>
-    <tt>{{ options.groupby | json }}</tt>
+    
     <!-- X AXIS -->
     <fieldset>
         <label for="options">X Axis</label>
@@ -40,36 +40,15 @@
         </select>
     </fieldset>
     
-    <!-- RECOMMENDER -->
-    <fieldset>
-        <legend>Recommender</legend>
-
-        <ul class="usa-unstyled-list">
-            <li ng-repeat="option in options.algos">
-                <label>
-                    <input type="checkbox"
-                       name="{{ option.key }}"
-                       ng-model="options.algoSelect[option.key]"/>
-                    
-                    {{ option.key }}
-                </label>
-				
-            </li>
-        </ul>
-        
-    </fieldset>
-    
 </form>
-<!--<pre>{{ options.algoSelect | json }}</pre>-->
+
 <!-- CHART -->
 <div class='legend'></div>
 <svg></svg>
 
 <!-- RAW DATA -->
 <div>
-    
-    <h1>{{ runCount + ' runs' }}</h1>
-    
+        
     <table>
         
         <thead>

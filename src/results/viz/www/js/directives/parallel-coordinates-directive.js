@@ -1,6 +1,6 @@
-angular.module("parallel-sets-directive", [])
+angular.module("parallel-coordinates-directive", [])
 
-.directive("parallelSets", ["d3Service", "$stateParams", "$state", function(d3Service, $stateParams, $state){
+.directive("parallelCoordinates", ["d3Service", "$stateParams", "$state", function(d3Service, $stateParams, $state){
     return {
         restrict: "E",
         scope: {
@@ -53,7 +53,7 @@ angular.module("parallel-sets-directive", [])
                 ////// basic layout settings //////
                 ///////////////////////////////////
 				
-				var padding = { bottom: 20, left: 10, right: 10, top: 20 };
+				var padding = { bottom: 10, left: 10, right: 10, top: 10 };
 				var activeWidth = width - (padding.left + padding.right);
 				var activeHeight = height - (padding.bottom + padding.top);
 				
@@ -83,7 +83,9 @@ angular.module("parallel-sets-directive", [])
                 // misc
                 var line = d3.svg.line();
 				var axis = d3.svg.axis()
-					.orient("left");
+					.orient("left")
+					.tickSize(0,0)
+					.tickPadding(2);
                 
                 // de focus lines for context
 				var background = canvas
@@ -132,6 +134,7 @@ angular.module("parallel-sets-directive", [])
                             var axesOptions = data[0].options.axes;
 							var groupOptions = data[0].options.groups;
                             var data = data[0].viz;
+							var filtered = data.filter(function(d) { return d; }); // filter data based on user selection
                             
                             ///////////////////////////////////////
                             ////// assign to variables scope //////
@@ -141,6 +144,7 @@ angular.module("parallel-sets-directive", [])
                             scope.axesOptions = axesOptions; // all drop down options
 							scope.groupOptions = groupOptions; // group by options
                             scope.options.groupby = groupby; // group by value
+							scope.filtered = filtered;
                             
                             var nest = d3.nest()
                                 .key(function(d) { return d[groupby]; })
@@ -271,13 +275,14 @@ angular.module("parallel-sets-directive", [])
                                 .attr({
                                     y: (padding.top / 2)
                                 })
-                                .text(function(d) { return d; });
+                                .text(function(d) { return labels[d]; });
 
                             // brush
                             g.append("g")
                                 .attr({
                                     class: "brush"
                                 })
+								.on("click", function(d) { console.log(d); })
                                 .each(function(d) {
                                 
                                     // update axis
@@ -292,6 +297,46 @@ angular.module("parallel-sets-directive", [])
                                     x: -8,
                                     width: 16
                                 });
+							
+							// legend
+                            
+                            // set selction
+                            var legend = d3.select(element.find("div")[0])
+                                .selectAll(".item")
+                                .data(nest);
+                            
+                            // update selection
+                            legend
+                                .transition()
+                                .duration(transitionTime)
+                                .attr({
+                                    class: "item"
+                                })
+								.text(function(d) { return labels[d.key]; })
+								.style({
+									color: function(d) { return cScale([d.key]); }
+								});
+                            
+                            // enter selection
+                            legend
+                                .enter()
+                                .append("p")
+                                .transition()
+                                .duration(transitionTime)
+                                .attr({
+                                    class: "item"
+                                })
+								.text(function(d) { return labels[d.key]; })
+								.style({
+									color: function(d) { return cScale([d.key]); }
+								});
+                            
+                            // exit selection
+                            legend
+                                .exit()
+                                .transition()
+                                .duration(transitionTime)
+                                .remove();
 
                             // return the path for a given data point
                             function path(d) {

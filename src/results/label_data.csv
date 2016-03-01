@@ -38,3 +38,10 @@ pos_ratings,Positive Ratings,FALSE,FALSE
 ratings_to_interact,Ratings to Interaction,FALSE,FALSE
 ratings,Ratings,FALSE,FALSE
 num_interact,Number Interaction,FALSE,FALSE
+tags,Tags,FALSE,FALSE
+genre,Genre,FALSE,FALSE
+py2vec,Py2vec,FALSE,FALSE
+CF,CF,FALSE,FALSE
+CB,CB,FALSE,FALSE
+100,Hundred,FALSE,FALSE
+1000,Thousand,FALSE,FALSE

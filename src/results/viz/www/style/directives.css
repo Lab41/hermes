@@ -9,41 +9,14 @@
 /* !GLOBALS
 /* !CUSTOM
 /* --- !scatter plot
-/* --- !radar chart
 /* --- !parallel coordinates
 
 /******************************* !IMPORTS *******************************/
 
 /******************************* !GLOBALS *******************************/
 
-/******************************* !CUSTOM *******************************/
-
-/**************************/
-/***** !scatter plot ******/
-/**************************/
-
-/* chart title */
-scatter-plot h1,
-radar-chart h1 {
-    
-    font-size: 1.5em;
-    margin-bottom: 0.5em;
-    margin-top: 1em;
-    
-}
-
-/* chart unit of measure */
-scatter-plot h2 {
-    
-    font-size: 0.75em;
-    font-style: italic;
-    margin-bottom: 0;
-    margin-top: 0;
-    
-}
-
 /* legend */
-scatter-plot .legend {
+.legend {
     
     display: flex;
     margin-bottom: 0.15em;
@@ -52,7 +25,7 @@ scatter-plot .legend {
 }
 
 /* legend shape */
-scatter-plot .item:before {
+.item:before {
 	
 	content: '\25A0';
 	height: 0.5em;
@@ -61,7 +34,7 @@ scatter-plot .item:before {
 }
 
 /* legend text */
-scatter-plot .legend p {
+.legend p {
     
     font-size: 1em;
     line-height: 1;
@@ -71,13 +44,11 @@ scatter-plot .legend p {
     
 }
 
-/* legend shape */
-scatter-plot .legend p span:first-child {
-    
-    font-size: 1.5em;
-    margin-right: 0.15em;
-    
-}
+/******************************* !CUSTOM *******************************/
+
+/**************************/
+/***** !scatter plot ******/
+/**************************/
 
 /* chart text */
 scatter-plot text {
@@ -201,20 +172,23 @@ scatter-plot div.tooltip {
 }
 
 /* form */
-scatter-plot form {
+scatter-plot form,
+parallel-coordinates form {
     
     display: flex;
     
 }
 
 /* form fieldset */
-scatter-plot form fieldset {
+scatter-plot form fieldset,
+parallel-coordinates form fieldset {
     
     margin-right: 1em;
     
 }
 
 /* checkbox */
+scatter-plot form ul,
 scatter-plot form ul {
     
     display: flex;
@@ -222,7 +196,8 @@ scatter-plot form ul {
 }
 
 /* form legend */
-scatter-plot form legend {
+scatter-plot form legend,
+parallel-coordinates form legend {
     
     font-size: inherit;
     font-weight: inherit;
@@ -230,7 +205,8 @@ scatter-plot form legend {
 }
 
 /* form buttons */
-scatter-plot .usa-unstyled-list label::before {
+scatter-plot .usa-unstyled-list label::before,
+parallel-coordinates .usa-unstyled-list label::before {
     
     background: white;
     border-radius: 0.3rem;
@@ -253,74 +229,36 @@ scatter-plot select {
     
 }
 
-/*************************/
-/***** !radar chart ******/
-/*************************/
-
-/* axis */
-radar-chart .r-axis line,
-radar-chart .a-axis line,
-radar-chart .r-axis circle {
-  
-    fill: none;
-    stroke: #777;
-    stroke-dasharray: 1,4;
-    
-}
-
-/* outermost axis ring */
-radar-chart .r-axis :last-of-type circle {
-    
-    stroke: #333;
-    stroke-dasharray: none;
-    
-}
-
-/* axis text */
-radar-chart .r-axis text {
-    
-    text-anchor: middle;
-    
-}
-
-/* value line */
-radar-chart .line {
-    
-    fill: none;
-    stroke: currentColor;
-    
-}
-
 /**********************************/
 /***** !parallel coordinates ******/
 /**********************************/
 
-parallel-sets .background path {
+parallel-coordinates .background path {
   
     fill: none;
-    opacity: 0.2;
+    opacity: 0.5;
     shape-rendering: crispEdges;
     stroke: #d9d9d9;
     
 }
 
 /* focus paths */
-parallel-sets .foreground path {
+parallel-coordinates .foreground path {
   
     fill: none;
-    opacity: 0.1;
+    opacity: 0.2;
     stroke: currentColor;
 
 }
 
 /* active path */
-parallel-sets .foreground path.active {
+parallel-coordinates .foreground path.active {
     
     opacity: 0.5;
     
 }
 
-parallel-sets .brush .extent {
+parallel-coordinates .brush .extent {
   
     fill: white;
     fill-opacity: 0.3;
@@ -331,19 +269,32 @@ parallel-sets .brush .extent {
 }
 
 /* axis line */
-parallel-sets .axis line,
-parallel-sets .axis path {
+parallel-coordinates .axis line,
+parallel-coordinates .axis path {
   
     fill: none;
-    stroke: currentColor;
+    stroke: white;
     shape-rendering: crispEdges;
     
 }
 
 /* axis text */
-.axis text {
+parallel-coordinates .axis text {
     
-    font-size: 0.25em;
+    font-size: 0.3em;
     pointer-events: none;
+    
+}
+
+parallel-coordinates ul {
+	
+	display: flex;
+	
+}
+
+/* table wrap */
+parallel-coordinates > div:nth-of-type(2) {
+    
+    overflow-x: scroll;
     
 }

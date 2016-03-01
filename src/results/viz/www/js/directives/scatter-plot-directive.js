@@ -28,7 +28,7 @@ angular.module("scatter-plot-directive", [])
 			};
             
         },
-        templateUrl: "templates/scatter-plot.html",
+        templateUrl: "templates/directives/scatter-plot.html",
         link: function(scope, element, attrs){
             
             //get d3 promise
@@ -253,6 +253,15 @@ angular.module("scatter-plot-directive", [])
                                         tip.html(d.content_vector)	
                                             .style("left", (d3.event.pageX) + "px")		
                                             .style("top", (d3.event.pageY - 28) + "px");
+                                        
+                                    },
+									mouseout: function(d) {
+                                        
+                                        var tip = d3.select(element.find("div")[2]);
+                                        
+                                        tip.transition()
+                                            .duration(200)
+                                            .style("opacity", 0);
                                         
                                     },
                                     click: function(d) {

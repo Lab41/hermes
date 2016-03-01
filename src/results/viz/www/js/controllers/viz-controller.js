@@ -11,7 +11,6 @@ angular.module("viz-controller", [])
 	$scope.parallelData;
     
     getStatic("scatter", "combined_results"); // get formatted for scatter plot
-	getStatic("radar", "combined_results", { key: "structure", value: "radar" }); // get formatted for radar plot
     getStatic("parallel", "combined_results", { key: "structure", value: "parallel" }); // get for parallel coordinates plot
     
     /****************************/
