@@ -389,8 +389,9 @@ def calc_naive_bayes_map(training_data, sc, computeFromScratch=True, ui_allBayes
     Pai = Argmax(r=1 to 5) P(r|a,i)
 
     Assumption:
-    Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
+    (1) Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+    (2) Currently, it does not support continuous rating.
 
     TODO: 
         Implement this using PyMC?
@@ -433,8 +434,9 @@ def calc_naive_bayes_mse(training_data, sc, computeFromScratch=True, ui_allBayes
     Pai = Sum of (r * P(r|a,i)) from r=1 to 5
 
     Assumption:
-    Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
+    (1) Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+    (2) Currently, it does not support continuous rating.
 
     TODO: 
         Implement this using PyMC?
@@ -469,10 +471,11 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
     Pai     : predicted rating for user a on item i
     P(r|a,i): Naive Bayes that computes the probability of rating r for a given user a on item i
     Pai = Argmin from r=1 to 5(Sum of (P(n|a,i) * |r-n|) from n=1 to 5)
-    
+
     Assumption:
-    Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
+    (1) Since Naive Bayes can be defined as P(r|u,i) = ( (P(r|u) * P(r|i)) / P(r) ) * ( (P(u) * P(i)) / P(u, i)), 
     we make the assumption that the latter part of the multiplication, ( (P(u) * P(i)) / P(u, i)), can be ignored.
+    (2) Currently, it does not support continuous rating.
 
     TODO: 
         Implement this using PyMC?
@@ -490,13 +493,20 @@ def calc_naive_bayes_mae(training_data, sc, computeFromScratch=True, ui_allBayes
     def calculate_bayes_mae(value):
         # value is in the format of (rating, bayes_prob)
         RATING_INDEX = 0
+        # determine the minimum and maximum rating
+        ratingList = [tup[RATING_INDEX] for tup in value]
+        min_rating_index = ratingList.index(min(ratingList))
+        min_rating = int(value[min_rating_index][RATING_INDEX])
+        max_rating_index = ratingList.index(max(ratingList))
+        max_rating = int(value[max_rating_index][RATING_INDEX])
         # calculate the sum of the product
         sumOfProductList = []
         for rating, bayes_prob in value:
             sumOfProduct = 0.
-            for i in range(1, 6):
+            for i in range(min_rating, max_rating+1):
                 sumOfProduct += bayes_prob * abs(rating - i)
             sumOfProductList.append(sumOfProduct)
+        # from the index, determine the prediction
         argmin_index = sumOfProductList.index(min(sumOfProductList))
         argmin = value[argmin_index][RATING_INDEX]
         return argmin
