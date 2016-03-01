@@ -2,7 +2,7 @@
 Creates an interactive viewer for the hermes run data.
 
 Use the 'bokeh serve' command to run the example by executing:
-    bokeh serve hermes_run_view.py
+    bokeh serve src/results/hermes_run_view.py
 
 If you haven't already you can run 'bokeh serve' by first running:
     conda install bokeh
