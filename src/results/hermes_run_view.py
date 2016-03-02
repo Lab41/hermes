@@ -65,8 +65,10 @@ c_button = Button(label="Content Vector")
 labels = ['pos_ratings', 'ratings', 'ratings_to_interact']
 c_labels = ["genre"]
 
-
-dataset_type = Select(title = "Dataset", value='movielens_1m', options = ['All', 'All MovieLens', 'movielens_1m', 'Last_FM', 'git'])
+dataset_names = list(pd.unique(hermes_data['dataset']))
+initial_dataset_names = ["All", "All Movielens"]
+initial_dataset_names.extend(dataset_names)
+dataset_type = Select(title = "Dataset", value='movielens_1m', options = initial_dataset_names)
 
 checkbox_button_group = CheckboxGroup(labels=labels, active = [0,1,2])
 checkbox_button_group_content = CheckboxGroup(labels=c_labels, active = [0])
