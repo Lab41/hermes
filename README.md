@@ -17,5 +17,6 @@ We are trying varied tools and concepts to visualize the results of this project
 
 ### d3
 
+* `easy_install web.py`
 * from viz folder `$python app.py`
 * view in browser from location:port displayed in terminal

@@ -8,7 +8,8 @@ angular.module("scatter-plot-directive", [])
             canvasWidth: "=",
             canvasHeight: "=",
             colorRange: "=",
-            transitionTime: "="
+            transitionTime: "=",
+            scaleReadable: "="
         },
         controller: function($scope) {
             
@@ -43,7 +44,8 @@ angular.module("scatter-plot-directive", [])
                 var width = parseInt(attrs.canvasWidth) || 400;
                 var height = parseInt(attrs.canvasHeight) || 200;
                 var transitionTime = parseInt(attrs.transitionTime) || 200;
-                
+                var scaleReadable = ["poor", "ok", "neutral", "good", "excellent"];
+                console.log(scaleReadable);
                 // extra work to get a color array from an attribute
                 // replace value commas with a pipe character so when we split later rgb values don't get broken
                 // and replace quotes with nothing so our values can be consumed by d3
@@ -87,6 +89,8 @@ angular.module("scatter-plot-directive", [])
 				var xAxis = d3.svg.axis()
 					.scale(xScale)
 					.tickSize(0,0)
+                    .ticks(5)
+                    //.tickValues(scaleReadable)
 					.orient("bottom");
 				
 				var yAxis = d3.svg.axis()
@@ -134,8 +138,8 @@ angular.module("scatter-plot-directive", [])
 							scope.labels = labels;
                             scope.axesOptions = axesOptions; // all drop down options
 							scope.groupOptions = groupOptions; // group by options
-                            scope.options.xSelect = Object.keys(data[1]).length == 0 ? axesOptions[0] : data[1]; // dropdown value for x-axis as chart redraws
-                            scope.options.ySelect = Object.keys(data[2]).length == 0 ? axesOptions[1] : data[2]; // dropdown value for y-axis as chart redraws
+                            scope.options.xSelect = Object.keys(data[1]).length == 0 ? axesOptions[11] : data[1]; // dropdown value for x-axis as chart redraws
+                            scope.options.ySelect = Object.keys(data[2]).length == 0 ? axesOptions[4] : data[2]; // dropdown value for y-axis as chart redraws
 							scope.options.groupby = groupby; // group by value
                                              
                             var xSelect = data[1].raw;
@@ -205,7 +209,7 @@ angular.module("scatter-plot-directive", [])
 								.selectAll("text")
 								.attr({
 									dy: "1em" // TODO dynamically pull this value from computed CSS font size
-								});
+								})
                             
 							// scatter
                             
