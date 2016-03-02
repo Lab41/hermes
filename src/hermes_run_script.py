@@ -1,6 +1,6 @@
 import os.path
 from src.utils import save_load as sl
-from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics, dataset_stats
+from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics, dataset_stats, random_recommender
 from src.data_prep import book_vectorize, git_vectorize, jester_vectorize, last_fm_vectorize, movieLens_vectorize, osm_vectorize, wiki_vectorize
 import csv
 import pandas as pd
@@ -149,6 +149,18 @@ class hermes_run():
                 sl.save_to_hadoop(predictions, pred_save_loc)
             elif alg_type=='cf_user':
                 predictions = cf.calc_user_user_cf2(train_ratings, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_bayes_map':
+                predictions = cf.calc_naive_bayes_map(train_ratings, self.sc)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_bayes_mse':
+                predictions = cf.calc_naive_bayes_mse(train_ratings, self.sc)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_bayes_mae':
+                predictions = cf.calc_naive_bayes_mae(train_ratings, self.sc)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_random':
+                predictions = random_recommender.predict(train_ratings, self.sc)
                 sl.save_to_hadoop(predictions, pred_save_loc)
 
 
