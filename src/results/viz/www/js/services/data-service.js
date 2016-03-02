@@ -1,12 +1,12 @@
 angular.module("data-service", [])
 
-.factory("dataService", ["$http", "$stateParams", function($http, $stateParams) {
+.factory("dataService", ["$http", function($http) {
 	
     var urlBase="/rest/";
     var dataService = {};
 
 	// get data
-    dataService.getStatic = function(name, query) {
+    dataService.getStatic = function(name, query, params) {
         
         var apiUrl = urlBase + "static/"
 
@@ -16,7 +16,7 @@ angular.module("data-service", [])
             // check for parallel TODO clean up make more modular
             if (query.value == "parallel") {
                 
-                apiUrl += name + "?structure=parallel&dimensions=" + $stateParams.dimensions;
+                apiUrl += name + "?structure=parallel&dimensions=" + params;
                 
             } else {
 			

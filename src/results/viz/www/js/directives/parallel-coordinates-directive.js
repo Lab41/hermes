@@ -1,6 +1,6 @@
 angular.module("parallel-coordinates-directive", [])
 
-.directive("parallelCoordinates", ["d3Service", "$stateParams", "$state", function(d3Service, $stateParams, $state){
+.directive("parallelCoordinates", ["d3Service", "$stateParams", "$state", "dataService", function(d3Service, $stateParams, $state, dataService){
     return {
         restrict: "E",
         scope: {
@@ -13,7 +13,9 @@ angular.module("parallel-coordinates-directive", [])
         controller: function($scope) {
             
             // initial values
-            $scope.options = { groupby: $stateParams.groupby, dimensions: {} };
+            $scope.options = { groupby: $stateParams.groupby, dimensions: {
+                mae: false
+            } };
 			
 			// change state via url
 			$scope.changeState = function(groupby) {
@@ -37,8 +39,21 @@ angular.module("parallel-coordinates-directive", [])
 					reload: false,
 					notify: false
 				});
+                
+                getStatic("parallel", "combined_results", { key: "structure", value: "parallel" }, $stateParams.dimensions + "," + axis); // get for parallel coordinates plot
 				
 			};
+            
+            // viz data
+            function getStatic(format, name, query, params) {
+                dataService.getStatic(name, query, params).then(function(data) {
+
+                    // assign to scope
+                    $scope.$parent[format + "Data"] = data;
+
+                });
+
+            };
             
         },
         templateUrl: "templates/directives/parallel-coordinates-plot.html",
@@ -112,8 +127,9 @@ angular.module("parallel-coordinates-directive", [])
                 ///////////////////////////////////////////////
 												
                 // check for new data
-                scope.$watchGroup(["vizData", "options.groupby", "options.dimensions"], function(newData, oldData) {
-                    
+                // TODO fix watch so it's not hardcoded for values
+                scope.$watchGroup(["vizData", "options.groupby"], function(newData, oldData) {
+                    console.log("****** watch triggered *******")
                     // async check
                     if (newData[0] !== undefined && newData[1] !== undefined) {
                     
@@ -142,7 +158,7 @@ angular.module("parallel-coordinates-directive", [])
                             var dims = $stateParams.dimensions.split(",");
                             var data = data[0].viz;
 							var filtered = data.filter(function(d) { return d; }); // filter data based on user selection
-                            
+                            console.log(data);
                             // add default dimensions
                             angular.forEach(dims, function(value, key) {
                                 
@@ -169,8 +185,8 @@ angular.module("parallel-coordinates-directive", [])
                             ////////////////////
                             
                             // get dimensions excluding string-based columns
-                            var dimensions = d3.keys(data[0]);
-                            
+                            var dimensions = d3.keys(data[0]).filter(function(d) { return d != "$$hashKey"; });
+                            console.log(dimensions);
                             // x scale
                             xScale.domain(dimensions);
                             
