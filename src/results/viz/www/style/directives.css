@@ -15,6 +15,71 @@
 
 /******************************* !GLOBALS *******************************/
 
+/* us web standards overwrites */
+label {
+    
+    display: inline;
+    
+}
+
+input[type="checkbox"] + span,
+input[type="radio"] + span {
+  cursor: pointer;
+  font-weight: 400;
+  margin-bottom: 0.5em; }
+
+input[type="checkbox"] + span::before,
+input[type="radio"] + span::before {
+  background: white;
+  border-radius: 0.3rem;
+  box-shadow: 0 0 0 1px #757575;
+  content: '\a0';
+  display: inline-block;
+  height: 1.8rem;
+  line-height: 0.8;
+  margin-right: 0.6em;
+  text-indent: 0.15em;
+  vertical-align: 0.2em;
+  width: 1.8rem; }
+
+input[type="radio"] + span::before {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px #757575;
+  height: 1.6rem;
+  width: 1.6rem; }
+
+input[type="radio"] + span::before {
+  border-radius: 100%; }
+
+input[type="checkbox"]:checked + span::before,
+input[type="radio"]:checked + span::before {
+  background-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor; }
+
+input[type="radio"]:checked + span::before {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px currentColor; }
+
+input[type="radio"]:focus + span::before {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px currentColor, 0 0 3px 4px #3e94cf, 0 0 7px 4px #3e94cf; }
+
+input[type="checkbox"]:checked + span::before {
+  background-image: url("../img/correct8.png");
+  background-image: url("../img/correct8.svg");
+  background-position: 50%;
+  background-repeat: no-repeat; }
+
+input[type="checkbox"]:focus + span::before {
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px currentColor; }
+
+input[type="checkbox"]:disabled + label {
+  color: #5b616b; }
+
+input[type="checkbox"]:disabled + span::before,
+input[type="radio"]:disabled + span::before {
+  background: #d6d7d9;
+  box-shadow: 0 0 0 1px #aeb0b5;
+  cursor: not-allowed; 
+}
+
 /* legend */
 .legend {
     
@@ -171,54 +236,12 @@ scatter-plot div.tooltip {
     
 }
 
-/* form */
-scatter-plot form,
-parallel-coordinates form {
-    
-    display: flex;
-    
-}
-
-/* form fieldset */
-scatter-plot form fieldset,
-parallel-coordinates form fieldset {
-    
-    margin-right: 1em;
-    
-}
-
-/* checkbox */
-scatter-plot form ul,
-scatter-plot form ul {
-    
-    display: flex;
-    
-}
-
 /* form legend */
 scatter-plot form legend,
 parallel-coordinates form legend {
     
     font-size: inherit;
     font-weight: inherit;
-    
-}
-
-/* form buttons */
-scatter-plot .usa-unstyled-list label::before,
-parallel-coordinates .usa-unstyled-list label::before {
-    
-    background: white;
-    border-radius: 0.3rem;
-    box-shadow: 0 0 0 1px #757575;
-    content: '\a0';
-    display: inline-block;
-    height: 1.8rem;
-    line-height: 0.8;
-    margin-right: 0.6em;
-    text-indent: 0.15em;
-    vertical-align: 0.2em;
-    width: 1.8rem;
     
 }
 
@@ -284,12 +307,6 @@ parallel-coordinates .axis text {
     font-size: 0.3em;
     pointer-events: none;
     
-}
-
-parallel-coordinates ul {
-	
-	display: flex;
-	
 }
 
 /* table wrap */

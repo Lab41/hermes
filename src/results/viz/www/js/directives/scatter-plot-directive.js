@@ -30,7 +30,7 @@ angular.module("scatter-plot-directive", [])
             
         },
         templateUrl: "templates/directives/scatter-plot.html",
-        link: function(scope, element, attrs){
+        link: function(scope, element, attrs) {
             
             //get d3 promise
             d3Service.d3().then(function(d3) {
@@ -107,7 +107,7 @@ angular.module("scatter-plot-directive", [])
                 scope.$watchGroup(["vizData", "options.xSelect", "options.ySelect", "options.groupby"], function(newData, oldData) {
                     
                     // async check
-                    if (newData[0] !== undefined && newData[3] !== undefined) {
+                    if (newData[0] !== undefined && newData[1] !== undefined && newData[3] !== undefined) {
                     
                         // check new vs old
                         var isMatching = angular.equals(newData, oldData);
@@ -120,7 +120,23 @@ angular.module("scatter-plot-directive", [])
 
                         //};
                         
-                        function draw(data) {console.log(data);
+                        function draw(data) {
+                            
+                            function getObj(string, array) {
+                                
+                                // loop through array
+                                for (var i=0; i < array.length; i++) {
+                                    
+                                    // check against string
+                                    if (array[i].raw == string) {
+                                        
+                                        return array[i];
+                                        
+                                    };
+                                    
+                                };
+                                
+                            };
                                              
                             ///////////////////////////////////////////////////////////////////////
                             ////// assign variables (cleaner to read vs straight from scope) //////

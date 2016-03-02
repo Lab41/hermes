@@ -191,8 +191,9 @@ class static_data:
                     
             return nest_array
         
-        def filtered_columns(json_array, axes):
+        def filtered_columns(json_array, axes, dimensions):
             
+            dims = dimensions.dimensions.split(",")
             filtered_array = []
             
             # loop through json objects
@@ -203,8 +204,13 @@ class static_data:
                 # loop through available values
                 for val in axes["axes"]:
                     
-                    # add data to filtered obj
-                    filtered_obj[val["raw"]] = obj[val["raw"]]
+                    # check for param requested
+                    for d in dims:
+                        
+                        if d == val["raw"]:
+                            
+                            # add data to filtered obj
+                            filtered_obj[val["raw"]] = obj[val["raw"]]
                     
                 # add new obj to array
                 filtered_array.append(filtered_obj)
@@ -234,7 +240,7 @@ class static_data:
                 data["viz"] = nest_json(csv_to_json(name), nest_key, labels, configurable_axes(labels))
             # parallel
             elif params[query_term] == "parallel":
-                data["viz"] = filtered_columns(csv_to_json(name), configurable_axes(labels))
+                data["viz"] = filtered_columns(csv_to_json(name), configurable_axes(labels), params)
                 data["raw"] = csv_to_json(name)
                 data["options"] = configurable_axes(labels) # populate axis data objects
                 data["labels"] = label_keys

@@ -13,13 +13,26 @@ angular.module("parallel-coordinates-directive", [])
         controller: function($scope) {
             
             // initial values
-            $scope.options = { groupby: $stateParams.groupby };
+            $scope.options = { groupby: $stateParams.groupby, dimensions: {} };
 			
 			// change state via url
 			$scope.changeState = function(groupby) {
 				
 				$state.go("app.viz", {
-					groupby: groupby
+					groupby: groupby,
+                    dimensions: $stateParams.dimensions
+				}, {
+					reload: false,
+					notify: false
+				});
+				
+			};
+            
+            $scope.changeAxis = function(axis) {
+				
+				$state.go("app.viz", {
+					groupby: $stateParams.groupby,
+                    dimensions: $stateParams.dimensions + "," + axis
 				}, {
 					reload: false,
 					notify: false
@@ -87,13 +100,6 @@ angular.module("parallel-coordinates-directive", [])
 					.tickSize(0,0)
 					.tickPadding(2);
                 
-                // de focus lines for context
-				var background = canvas
-                    .append("g")
-                    .attr({
-                        class: "background"
-                    });
-                
                 // focus
                 var foreground = canvas
                     .append("g")
@@ -106,7 +112,7 @@ angular.module("parallel-coordinates-directive", [])
                 ///////////////////////////////////////////////
 												
                 // check for new data
-                scope.$watchGroup(["vizData", "options.groupby"], function(newData, oldData) {
+                scope.$watchGroup(["vizData", "options.groupby", "options.dimensions"], function(newData, oldData) {
                     
                     // async check
                     if (newData[0] !== undefined && newData[1] !== undefined) {
@@ -133,8 +139,16 @@ angular.module("parallel-coordinates-directive", [])
                             var labels = data[0].labels;
                             var axesOptions = data[0].options.axes;
 							var groupOptions = data[0].options.groups;
+                            var dims = $stateParams.dimensions.split(",");
                             var data = data[0].viz;
 							var filtered = data.filter(function(d) { return d; }); // filter data based on user selection
+                            
+                            // add default dimensions
+                            angular.forEach(dims, function(value, key) {
+                                
+                                scope.options.dimensions[value] = true;
+                                
+                            });
                             
                             ///////////////////////////////////////
                             ////// assign to variables scope //////
@@ -176,38 +190,6 @@ angular.module("parallel-coordinates-directive", [])
                             ///////////////////
                             ////// lines //////
                             ///////////////////
-                            
-                            // set selection
-                            var bLine = background
-                                .selectAll(".line")
-                                .data(data);
-                            
-                            // update selection
-                            bLine
-                                .transition()
-                                .duration(transitionTime)
-                                .attr({
-                                    d: path,
-                                    class: "line"
-                                });
-                            
-                            // enter selection
-                            bLine
-                                .enter()
-                                .append("path")
-                                .transition()
-                                .duration(transitionTime)
-                                .attr({
-                                    d: path,
-                                    class: "line"
-                                });
-                            
-                            // exit selection
-                            bLine
-                                .exit()
-                                .transition()
-                                .duration(transitionTime)
-                                .remove();
                             
                             // set selection
                             var fLine = foreground
@@ -267,6 +249,8 @@ angular.module("parallel-coordinates-directive", [])
                                     
                                     // update axis
                                     d3.select(this)
+                                        .transition()
+                                        .duration(transitionTime)
                                         .call(axis.scale(yScale[d]));
                                 
                                 })

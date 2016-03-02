@@ -1,6 +1,6 @@
 angular.module("data-service", [])
 
-.factory("dataService", ["$http", function($http) {
+.factory("dataService", ["$http", "$stateParams", function($http, $stateParams) {
 	
     var urlBase="/rest/";
     var dataService = {};
@@ -12,8 +12,17 @@ angular.module("data-service", [])
 
 		// check query
 		if (query != null) {
+            
+            // check for parallel TODO clean up make more modular
+            if (query.value == "parallel") {
+                
+                apiUrl += name + "?structure=parallel&dimensions=" + $stateParams.dimensions;
+                
+            } else {
 			
-			apiUrl += name + "?" + query.key + "=" + query.value;
+			     apiUrl += name + "?" + query.key + "=" + query.value;
+                
+            };
 			
 		} else {
 			

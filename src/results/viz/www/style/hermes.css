@@ -15,4 +15,41 @@
 
 /******************************* !GLOBALS *******************************/
 
+section {
+    
+    background: #e8e8e8;
+    padding: 2em;
+    
+}
+
+form {
+    
+    display: flex;
+    margin-bottom: 2em;
+    
+}
+
+fieldset {
+    
+    margin-right: 1em;
+    width: 100%;
+    
+}
+
+fieldset:last-child {
+    
+    margin-right: 0;
+    
+}
+
 /******************************* !CUSTOM *******************************/
+
+@media screen and (min-width: 600px) {
+    
+    form {
+        
+        max-width: 60%;
+        
+    }
+    
+}

@@ -36,7 +36,7 @@ app.config(function($stateProvider, $urlRouterProvider) {
     
     // concepts
     .state("app.viz", {
-        url: "{type}?{groupby}",
+        url: "{type}?{groupby}&{dimensions}",
         templateProvider: function($http, $stateParams) {
             return $http.get("templates/" + $stateParams.type + ".html").then(function(template) {
                 return template.data;
@@ -46,6 +46,6 @@ app.config(function($stateProvider, $urlRouterProvider) {
     })
 
 	// hardcoded for now need to create service
-    $urlRouterProvider.otherwise("/scatter?groupby=alg_type");
+    $urlRouterProvider.otherwise("/scatter?groupby=alg_type&dimensions=serendipity,cat_coverage");
 
 });

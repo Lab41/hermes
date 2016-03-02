@@ -13,12 +13,29 @@
 						   ng-model="options.groupby"
 						   ng-value="option.raw"
 						   ng-change="changeState(option.raw);">
-					{{ option.label }}
+                    <span>{{ option.label }}</span>
 				</label>
 			</li>
 		</ul>
 
 	</fieldset>
+    
+    <fieldset class="usa-fieldset-inputs usa-sans">
+
+        <legend class="usa-sr-only">Historical figures 1</legend>
+
+        <ul class="usa-unstyled-list">
+            <li ng-repeat="option in axesOptions">
+                <label>
+                    <input type="checkbox"
+                           ng-model="options.dimensions[option.raw]"
+                           ng-change="changeAxis(option.raw)">
+                    <span>{{ option.label }}</span>
+                </label>
+            </li>
+        </ul>
+
+  </fieldset>
     
 </form>
 

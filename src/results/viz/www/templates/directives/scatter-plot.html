@@ -4,7 +4,7 @@
 	<!-- GROUP BY -->
 	<fieldset>
 
-		<legend>Group by</legend>
+		<legend>Color by</legend>
 
 		<ul class="usa-unstyled-list">
 			<li ng-repeat="option in groupOptions">
@@ -13,7 +13,7 @@
 						   ng-model="options.groupby"
 						   ng-value="option.raw"
 						   ng-change="changeState(option.raw);">
-					{{ option.label }}
+                    <span>{{ option.label }}</span>
 				</label>
 			</li>
 		</ul>
@@ -26,7 +26,8 @@
 
         <select name="options" 
                 ng-model="options.xSelect"
-                ng-options="ao as ao.label for ao in axesOptions track by ao.id">
+                ng-options="ao as ao.label for ao in axesOptions track by ao.id"
+                ng-change="changeAxis(option.raw)">
         </select>
     </fieldset>
     
