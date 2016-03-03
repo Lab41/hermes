@@ -65,21 +65,50 @@ def __get_import_docstring(ast_module):
         return ""
 
 def __get_function_docstring(ast_module):
+    # this function grabs all functions' docstrings in a file
     try:
         function_definitions = [node for node in ast_module.body if isinstance(node, ast.FunctionDef)]
         docstring = ""
         for function_definition in function_definitions:
             #function_name = function_definition.name
-            docstring += ast.get_docstring(function_definition)
+            function_docstring = ast.get_docstring(function_definition)
+            if function_docstring is not None:
+                docstring += function_docstring
         return docstring
     except Exception:
         return ""
 
 def __get_class_docstring(ast_module):
-    return ""
-
-def __get_class_function_docstring(ast_module):
-    return ""
+    # this function grab all classes' docstrings in a file
+    # as well as each class's functions' docstrings
+    try:
+        class_definitions = [node for node in ast_module.body if isinstance(node, ast.ClassDef)]
+        docstring = ""
+        for class_definition in class_definitions:
+            #class_name = class_definition.name
+            class_docstring = ast.get_docstring(class_definition)
+            if class_docstring is not None:
+                docstring += class_docstring
+            # add the class's functions' docstrings too!
+            docstring += __get_class_function_docstring(class_definition.body)
+        return docstring
+    except Exception:
+        return ""
+        
+def __get_class_function_docstring(function_definitions):
+    # this function grabs the class's functions' docsstrings
+    # TODO: integrate this with __get_function_docstring
+    try:
+        docstring = ""
+        for function_definition in function_definitions:
+            if isinstance(function_definition, ast.FunctionDef):
+                #function_name = function_definition.name
+                function_docstring = ast.get_docstring(function_definition)
+                if function_docstring is not None:
+                    docstring += function_docstring
+        return docstring
+    except Exception:
+        return ""
 
 def get_docstring(((repo_name, file_path), file_lines)):
     # returns [((repo_name, file_path), file_docstrings)]
@@ -95,6 +124,5 @@ def get_docstring(((repo_name, file_path), file_lines)):
         docstring += __get_import_docstring(ast_module)
         docstring += __get_function_docstring(ast_module)
         docstring += __get_class_docstring(ast_module)
-        docstring += __get_class_function_docstring(ast_module)
         
     return ((repo_name, file_path), docstring)
