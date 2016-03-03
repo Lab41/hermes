@@ -48,7 +48,22 @@ def __get_file_docstring(file_path):
         return ""
 
 def __get_import_docstring(file_lines):
-    return ""
+    # this function does not grab the docstring of 
+    # import libraries within the same project
+    try:
+        # get ast's module from file's lines
+        ast_module = ast.parse(file_lines)
+        # get import library docstring
+        import_definitions =  [node for node in ast_module.body if isinstance(node, ast.Import)]
+        docstring = ""
+        for import_definition in import_definitions:
+            import_alias = import_definition.names[0]
+            import_module_name = import_alias.name
+            import_module = getModule(import_module_name, None)
+            docstring += inspect.getdoc(import_module)
+        return docstring
+    except Exception:
+        return ""
 
 def __get_function_docstring(file_lines):
     return ""
