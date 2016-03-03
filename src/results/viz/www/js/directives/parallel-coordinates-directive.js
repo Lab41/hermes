@@ -13,9 +13,7 @@ angular.module("parallel-coordinates-directive", [])
         controller: function($scope) {
             
             // initial values
-            $scope.options = { groupby: $stateParams.groupby, dimensions: {
-                mae: false
-            } };
+            $scope.options = { groupby: $stateParams.groupby, dimensions: {} };
 			
 			// change state via url
 			$scope.changeState = function(groupby) {
@@ -31,10 +29,15 @@ angular.module("parallel-coordinates-directive", [])
 			};
             
             $scope.changeAxis = function(axis) {
+                
+                var dimensions = $stateParams.dimensions.split(",");
+                
+                // check if item already in params
+                var idx = dimensions.indexOf(axis);
 				
 				$state.go("app.viz", {
 					groupby: $stateParams.groupby,
-                    dimensions: $stateParams.dimensions + "," + axis
+                    dimensions: idx == -1 ? $stateParams.dimensions + "," + axis : getDimensions(idx, dimensions)
 				}, {
 					reload: false,
 					notify: false
@@ -42,6 +45,27 @@ angular.module("parallel-coordinates-directive", [])
                 
                 getStatic("parallel", "combined_results", { key: "structure", value: "parallel" }, $stateParams.dimensions + "," + axis); // get for parallel coordinates plot
 				
+                function getDimensions(idx, dimensions) {
+                    
+                    var newArray = [];
+                    
+                    // check each item 
+                    angular.forEach(dimensions, function(value, key) {
+                        
+                        // check index
+                        if (key !== idx) {
+                            
+                            // add it to new array
+                            this.push(value);
+                            
+                        };
+                        
+                    }, newArray);
+                    
+                    return newArray.toString();
+                    
+                };
+                
 			};
             
             // viz data
@@ -129,7 +153,7 @@ angular.module("parallel-coordinates-directive", [])
                 // check for new data
                 // TODO fix watch so it's not hardcoded for values
                 scope.$watchGroup(["vizData", "options.groupby"], function(newData, oldData) {
-                    console.log("****** watch triggered *******")
+                    
                     // async check
                     if (newData[0] !== undefined && newData[1] !== undefined) {
                     
@@ -158,7 +182,7 @@ angular.module("parallel-coordinates-directive", [])
                             var dims = $stateParams.dimensions.split(",");
                             var data = data[0].viz;
 							var filtered = data.filter(function(d) { return d; }); // filter data based on user selection
-                            console.log(data);
+                            
                             // add default dimensions
                             angular.forEach(dims, function(value, key) {
                                 
@@ -184,12 +208,12 @@ angular.module("parallel-coordinates-directive", [])
                             ////// scales //////
                             ////////////////////
                             
-                            // get dimensions excluding string-based columns
+                            // get dimensions excluding angular specific hash key
                             var dimensions = d3.keys(data[0]).filter(function(d) { return d != "$$hashKey"; });
-                            console.log(dimensions);
+                            
                             // x scale
                             xScale.domain(dimensions);
-                            
+                            console.log(xScale.domain());
                             // y scale for each dimension
                             dimensions.forEach(function(d) {
                                 
@@ -246,18 +270,34 @@ angular.module("parallel-coordinates-directive", [])
                             //////////////////
                             
                             // y axes group
-                            var g = canvas
+                            
+                            // set selection
+                            var yGroup = canvas
                                 .selectAll(".dimension")
-                                .data(dimensions)
-                                .enter()
-                                .append("g")
+                                .data(dimensions);
+                            
+                            // update selection
+                            yGroup
+                                .transition()
+                                .duration(transitionTime)
                                 .attr({
                                     class: "dimension",
-                                    transform: function(d) { return "translate(" + xScale(d) + ")"; }
+                                    transform: function(d) {console.log(d); return "translate(" + xScale(d) + ")"; }
+                                });
+                            
+                            // enter selection
+                            yGroup
+                                .enter()
+                                .append("g")
+                                .transition()
+                                .duration(transitionTime)
+                                .attr({
+                                    class: "dimension",
+                                    transform: function(d) {console.log(d); return "translate(" + xScale(d) + ")"; }
                                 });
 
                             // line
-                            g.append("g")
+                            yGroup.append("g")
                                 .attr({
                                     class: "axis"
                                 })
@@ -279,9 +319,16 @@ angular.module("parallel-coordinates-directive", [])
                                 .style({
                                     "font-size": "0.2em"
                                 });
+                            
+                            // exit selection
+                            yGroup
+                                .exit()
+                                .transition()
+                                .duration(transitionTime)
+                                .remove();
 
                             // brush
-                            g.append("g")
+                            yGroup.append("g")
                                 .attr({
                                     class: "brush"
                                 })
