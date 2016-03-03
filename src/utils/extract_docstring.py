@@ -38,21 +38,20 @@ def __get_file_docstring(file_path):
     # ie. grandparent_module.parent_module.child_module.granchild_module
     # this function will only grab the docstring of child_module and grandchild_module
     # but not grandparent_module or parent_module
-    parent_module_name = os.path.dirname(file_path).replace("/", ".")
-    this_module_name = os.path.splitext(os.path.basename(file_path))[0]
     try:
+        parent_module_name = os.path.dirname(file_path).replace("/", ".")
+        this_module_name = os.path.splitext(os.path.basename(file_path))[0]
         docstring = inspect.getdoc(getModule(str(parent_module_name), None))
         docstring += inspect.getdoc(getModule(str(parent_module_name), str(this_module_name)))
         return docstring
     except Exception:
         return ""
 
-def __get_import_docstring(file_lines):
+def __get_import_docstring(ast_module):
     # this function does not grab the docstring of 
     # import libraries within the same project
+    
     try:
-        # get ast's module from file's lines
-        ast_module = ast.parse(file_lines)
         # get import library docstring
         import_definitions =  [node for node in ast_module.body if isinstance(node, ast.Import)]
         docstring = ""
@@ -65,21 +64,37 @@ def __get_import_docstring(file_lines):
     except Exception:
         return ""
 
-def __get_function_docstring(file_lines):
+def __get_function_docstring(ast_module):
+    try:
+        function_definitions = [node for node in ast_module.body if isinstance(node, ast.FunctionDef)]
+        docstring = ""
+        for function_definition in function_definitions:
+            #function_name = function_definition.name
+            docstring += ast.get_docstring(function_definition)
+        return docstring
+    except Exception:
+        return ""
+
+def __get_class_docstring(ast_module):
     return ""
 
-def __get_class_docstring(file_lines):
-    return ""
-
-def __get_class_function_docstring(file_lines):
+def __get_class_function_docstring(ast_module):
     return ""
 
 def get_docstring(((repo_name, file_path), file_lines)):
     # returns [((repo_name, file_path), file_docstrings)]
+    docstring = ""
     docstring = __get_repo_docstring(repo_name)
     docstring += __get_file_docstring(file_path)
-    docstring += __get_import_docstring(file_lines)
-    docstring += __get_function_docstring(file_lines)
-    docstring += __get_class_docstring(file_lines)
-    docstring += __get_class_function_docstring(file_lines)
+    try:
+        # get ast's module from file's lines
+        ast_module = ast.parse(file_lines)
+    except Exception:
+        pass
+    else:
+        docstring += __get_import_docstring(ast_module)
+        docstring += __get_function_docstring(ast_module)
+        docstring += __get_class_docstring(ast_module)
+        docstring += __get_class_function_docstring(ast_module)
+        
     return ((repo_name, file_path), docstring)
