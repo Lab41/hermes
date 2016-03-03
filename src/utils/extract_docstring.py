@@ -68,7 +68,7 @@ def __get_import_docstring(file_lines):
 def __get_function_docstring(file_lines):
     return ""
 
-def ___get_class_docstring(file_lines):
+def __get_class_docstring(file_lines):
     return ""
 
 def __get_class_function_docstring(file_lines):
