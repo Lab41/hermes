@@ -1,6 +1,6 @@
 import os.path
 from src.utils import save_load as sl
-from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics, dataset_stats
+from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics, dataset_stats, random_recommender
 from src.data_prep import book_vectorize, git_vectorize, jester_vectorize, last_fm_vectorize, movieLens_vectorize, osm_vectorize, wiki_vectorize
 import csv
 import pandas as pd
@@ -149,6 +149,18 @@ class hermes_run():
                 sl.save_to_hadoop(predictions, pred_save_loc)
             elif alg_type=='cf_user':
                 predictions = cf.calc_user_user_cf2(train_ratings, num_partitions=self.num_partitions)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_bayes_map':
+                predictions = cf.calc_naive_bayes_map(train_ratings, self.sc)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_bayes_mse':
+                predictions = cf.calc_naive_bayes_mse(train_ratings, self.sc)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_bayes_mae':
+                predictions = cf.calc_naive_bayes_mae(train_ratings, self.sc)
+                sl.save_to_hadoop(predictions, pred_save_loc)
+            elif alg_type=='cf_random':
+                predictions = random_recommender.predict(train_ratings, self.sc)
                 sl.save_to_hadoop(predictions, pred_save_loc)
 
 
@@ -395,9 +407,51 @@ class hermes_run():
         #this file has all the info - but to bring into pandas we want to transpose the data
         df = pd.read_csv(full_results_loc, index_col=0)
         df2 = df.transpose()
+
+        #before saving run rmse_map to add the adjusted rmse and mae scores
+        df2 = self.map_rmse_mae(df2)
+
         #save off the results file
         full_results_loc2 = self.results_directory + self.data_name + '_full_results.csv'
         print 'Saving: ' + full_results_loc2
         df2.to_csv(full_results_loc2, delimiter=',')
 
         #this data can then be brought back in with: pd.read_csv(full_results_loc2, delimiter=',', index_col=0)
+
+    def map_rmse_mae(self, m_data):
+        #this function will convert the RMSE and MAE scores to a Likert scale (1-5 where 5 is good, 1 is worse)
+        #this will help compare the data accross dataset - user_vectors pairs
+        #So for example the lowest RMSE for the MovieLens runs with the user_vector=ratings will all be compared together
+        #this isn't the best way to do Pandas slicing so you will get warnings, but it works for now
+
+        datasets =  list(pd.unique(m_data['dataset']))
+        new_data = []
+        for dataset in datasets:
+            sub_data = m_data[m_data['dataset']==dataset]
+            u_vects = list(pd.unique(sub_data['user_vector']))
+
+            for vect in u_vects:
+                sub_u_data = sub_data[sub_data['user_vector']==vect]
+                non_zero = sub_u_data[sub_u_data['rmse']!=0]
+                zero = sub_u_data[sub_u_data['rmse']==0]
+                min_rmse = min(non_zero['rmse'])
+                max_rmse = max(non_zero['rmse'])
+                min_mae = min(non_zero['mae'])
+                max_mae = max(non_zero['mae'])
+
+                #go from the current to being 1-5
+                diff_desired = 4
+                diff_have_rmse = max_rmse- min_rmse
+                diff_have_mae = max_mae- min_mae
+
+                non_zero['rmse_adj'] = (max_rmse - non_zero['rmse'])*float(diff_desired/diff_have_rmse)+1
+                zero['rmse_adj'] = 3
+                non_zero['mae_adj'] = (max_mae - non_zero['mae'])*float(diff_desired/diff_have_mae)+1
+                zero['mae_adj'] = 3
+
+                if len(new_data)==0:
+                    new_data = non_zero
+                    new_data = new_data.append(zero)
+                else:
+                    new_data = new_data.append(non_zero)
+                    new_data = new_data.append(zero)

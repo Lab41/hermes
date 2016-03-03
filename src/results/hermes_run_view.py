@@ -38,23 +38,25 @@ labels_ds = ColumnDataSource(data=dict(labels=[], active = []))
 
 
 axis_map = {
+    "Root Mean Square Error": "rmse",
+    "Adjusted Root Mean Square Error": "rmse_adj",
     "Mean Absolute Error": "mae",
-    "Average Rank": "avg_mean_rank",
-    "User Coverage": "user_coverage",
+    "Adjusted Mean Absolute Error": "mae_adj",
     "Precision @ N": "pred_n",
+    "Item Coverage": "item_coverage",
+    "User Coverage": "user_coverage",
     "Catalog Coverage": "cat_coverage",
     "Prediction Coverage": "pred_coverage",
-    "Novelty": "novelty",
-    "Root Mean Square Error": "rmse",
-    "Item Coverage": "item_coverage",
-    "ILS (diversity)": "ils",
     "Category Diversity": "cat_diversity",
+    "ILS (diversity)": "ils",
     "Serendipity": "serendipity",
     "Content Serendipity": "content_serendipity",
+    "Novelty": "novelty",
+    "Average Rank": "avg_mean_rank",
 }
 
-x_axis = Select(title="X Axis", options=sorted(axis_map.keys()), value="Precision @ N")
-y_axis = Select(title="Y Axis", options=sorted(axis_map.keys()), value="Item Coverage")
+x_axis = Select(title="X Axis", options=axis_map.keys(), value="Precision @ N")
+y_axis = Select(title="Y Axis", options=axis_map.keys(), value="Item Coverage")
 num_preds = Select(title="N", value='1000', options=['All', '100', '1000'])
 alg_type = Select(title = "Recommender Type", value='All', options = ['All', 'All CF', 'All CB', 'cf_mllib', 'cf_user', 'cf_item', 'cb_vect', 'cb_kmeans'])
 
@@ -65,8 +67,10 @@ c_button = Button(label="Content Vector")
 labels = ['pos_ratings', 'ratings', 'ratings_to_interact']
 c_labels = ["genre"]
 
-
-dataset_type = Select(title = "Dataset", value='movielens_1m', options = ['All', 'All MovieLens', 'movielens_1m', 'Last_FM', 'git'])
+dataset_names = list(pd.unique(hermes_data['dataset']))
+initial_dataset_names = ["All", "All Movielens"]
+initial_dataset_names.extend(dataset_names)
+dataset_type = Select(title = "Dataset", value='movielens_1m', options = initial_dataset_names)
 
 checkbox_button_group = CheckboxGroup(labels=labels, active = [0,1,2])
 checkbox_button_group_content = CheckboxGroup(labels=c_labels, active = [0])
