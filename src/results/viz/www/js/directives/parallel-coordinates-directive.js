@@ -34,17 +34,22 @@ angular.module("parallel-coordinates-directive", [])
                 
                 // check if item already in params
                 var idx = dimensions.indexOf(axis);
-				
-				$state.go("app.viz", {
-					groupby: $stateParams.groupby,
-                    dimensions: idx == -1 ? $stateParams.dimensions + "," + axis : getDimensions(idx, dimensions)
-				}, {
-					reload: false,
-					notify: false
-				});
                 
-                getStatic("parallel", "combined_results", { key: "structure", value: "parallel" }, $stateParams.dimensions + "," + axis); // get for parallel coordinates plot
+                // set up new params for dimensions
+                var newDimensions = idx == -1 ? $stateParams.dimensions + "," + axis : getDimensions(idx, dimensions);
+                
+                 // change state
+                $state.go("app.viz", {
+                    groupby: $stateParams.groupby,
+                    dimensions: newDimensions
+                }, {
+                    reload: false,
+                    notify: false
+                });
 				
+                // data call before state change
+                getStatic("parallel", "combined_results", { key: "structure", value: "parallel" }, newDimensions); // get for parallel coordinates plot
+                                    
                 function getDimensions(idx, dimensions) {
                     
                     var newArray = [];
@@ -74,7 +79,7 @@ angular.module("parallel-coordinates-directive", [])
 
                     // assign to scope
                     $scope.$parent[format + "Data"] = data;
-
+                    
                 });
 
             };
@@ -282,7 +287,262 @@ angular.module("parallel-coordinates-directive", [])
                                 .duration(transitionTime)
                                 .attr({
                                     class: "dimension",
-                                    transform: function(d) {console.log(d); return "translate(" + xScale(d) + ")"; }
+                                    transform: function(d) { return "translate(" + xScale(d) + ")"; }
+                                })
+                                .each(function(d) {
+                                
+                                    // AXIS
+                                
+                                    // set selection
+                                    var aGroup = d3.select(this)
+                                        .selectAll(".axis")
+                                        .data([d]);
+                                
+                                    // update selection
+                                    aGroup
+                                        .attr({
+                                            class: "axis"
+                                        })
+                                        .each(function(d) {
+                                        
+                                            // set selection
+                                            var container = d3.select(this);
+                                        
+                                            // axis
+                                        
+                                            // update axis
+                                            container
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .call(axis.scale(yScale[d]));
+                                        
+                                            // text
+                                        
+                                            // set selection
+                                            var aText = container
+                                                .selectAll(".label")
+                                                .data([d]);
+                                        
+                                            // update text
+                                            aText
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .attr({
+                                                    class: "label",
+                                                    y: (padding.top / 2)
+                                                })
+                                                .text(function(d) { return labels[d]; });
+                                        
+                                            // enter text
+                                            aText
+                                                .enter()
+                                                .append("text")
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .attr({
+                                                    class: "label",
+                                                    y: (padding.top / 2)
+                                                })
+                                                .text(function(d) { return labels[d]; });
+                                        
+                                            // exit text
+                                            aText
+                                                .exit()
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .remove();
+                                        
+                                        });
+                                
+                                    // enter selection
+                                    aGroup
+                                        .enter()
+                                        .append("g")
+                                        .attr({
+                                            class: "axis"
+                                        })
+                                        .each(function(d) {
+                                        
+                                            // set selection
+                                            var container = d3.select(this);
+                                        
+                                            // axis
+                                        
+                                            // update axis
+                                            container
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .call(axis.scale(yScale[d]));
+                                        
+                                            // text
+                                        
+                                            // set selection
+                                            var aText = container
+                                                .selectAll(".label")
+                                                .data([d]);
+                                        
+                                            // update text
+                                            aText
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .attr({
+                                                    class: "label",
+                                                    y: (padding.top / 2)
+                                                })
+                                                .text(function(d) { return labels[d]; });
+                                        
+                                            // enter text
+                                            aText
+                                                .enter()
+                                                .append("text")
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .attr({
+                                                    class: "label",
+                                                    y: (padding.top / 2)
+                                                })
+                                                .text(function(d) { return labels[d]; });
+                                        
+                                            // exit text
+                                            aText
+                                                .exit()
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .remove();
+                                        
+                                        });
+                                
+                                    // exit selection
+                                    aGroup
+                                        .exit()
+                                        .transition()
+                                        .duration(transitionTime)
+                                        .remove();
+                                
+                                    // BRUSH
+                                
+                                    // set selection
+                                    var bGroup = d3.select(this)
+                                        .selectAll(".brush")
+                                        .data([d]);
+                                
+                                    // update selection
+                                    bGroup
+                                        .attr({
+                                            class: "brush"
+                                        })
+                                        .each(function(d) {
+                                        
+                                            // set selection
+                                            var container = d3.select(this);
+                                        
+                                            // BRUSH
+                                        
+                                            // update brush
+                                            container
+                                                .call(yScale[d].brush = d3.svg.brush()
+                                                  .y(yScale[d])
+                                                  .on("brush", brush));                                        
+                                        
+                                            // RECT
+                                        
+                                            // set selection
+                                            var bRect = container
+                                                .selectAll(".brush-rect")
+                                                .data([d]);
+                                        
+                                            // update text
+                                            bRect
+                                                .attr({
+                                                    x: -8,
+                                                    width: 16
+                                                });
+                                        
+                                            // enter text
+                                            bRect
+                                                .enter()
+                                                .append("text")
+                                                .attr({
+                                                    x: -8,
+                                                    width: 16
+                                                });
+                                        
+                                            // exit text
+                                            bRect
+                                                .exit()
+                                                .remove();
+                                        
+                                        });
+                                
+                                    // enter selection
+                                    bGroup
+                                        .enter()
+                                        .append("g")
+                                        .attr({
+                                            class: "brush"
+                                        })
+                                        .each(function(d) {
+                                        
+                                            // set selection
+                                            var container = d3.select(this);
+                                        
+                                            // BRUSH
+                                        
+                                            // update brush
+                                            container
+                                                .call(yScale[d].brush = d3.svg.brush()
+                                                  .y(yScale[d])
+                                                  .on("brush", brush));
+                                        
+                                            // RECT
+                                        
+                                            // set selection
+                                            var bRect = container
+                                                .selectAll(".brush-rect")
+                                                .data([d]);
+                                        
+                                            // update text
+                                            bRect
+                                                .attr({
+                                                    x: -8,
+                                                    width: 16
+                                                });
+                                        
+                                            // enter text
+                                            bRect
+                                                .enter()
+                                                .append("text")
+                                                .attr({
+                                                    x: -8,
+                                                    width: 16
+                                                });
+                                        
+                                            // exit text
+                                            bRect
+                                                .exit()
+                                                .remove();
+                                        
+                                        
+                                        });
+                                
+                                    // exit selection
+                                    bGroup
+                                        .exit()
+                                        .transition()
+                                        .duration(transitionTime)
+                                        .remove();
+
+                                });
+                            
+                            // enter selection
+                            yGroup
+                                .enter()
+                                .append("g")
+                                .transition()
+                                .duration(transitionTime)
+                                .attr({
+                                    class: "dimension",
+                                    transform: function(d) { return "translate(" + xScale(d) + ")"; }
                                 })
                                 .each(function(d) {
                                 
@@ -299,25 +559,29 @@ angular.module("parallel-coordinates-directive", [])
                                         .each(function(d) {
                                         
                                             // set selection
-                                            var aText = d3.select(this)
-                                                .selectAll(".label")
-                                                .data([d]);
+                                            var container = d3.select(this);
+                                        
+                                            // axis
                                         
                                             // update axis
-                                            aText
+                                            container
                                                 .transition()
                                                 .duration(transitionTime)
                                                 .call(axis.scale(yScale[d]));
+                                        
+                                            // text
+                                        
+                                            // set selection
+                                            var aText = container
+                                                .selectAll(".label")
+                                                .data([d]);
                                         
                                             // update text
                                             aText
                                                 .transition()
                                                 .duration(transitionTime)
-                                                .style({
-                                                    "text-anchor": "end",
-                                                    "font-size": "0.2em"
-                                                })
                                                 .attr({
+                                                    class: "label",
                                                     y: (padding.top / 2)
                                                 })
                                                 .text(function(d) { return labels[d]; });
@@ -328,63 +592,18 @@ angular.module("parallel-coordinates-directive", [])
                                                 .append("text")
                                                 .transition()
                                                 .duration(transitionTime)
-                                                .style({
-                                                    "text-anchor": "end",
-                                                    "font-size": "0.2em"
-                                                })
                                                 .attr({
+                                                    class: "label",
                                                     y: (padding.top / 2)
                                                 })
                                                 .text(function(d) { return labels[d]; });
                                         
-                                        });
-                                
-                                    // enter selection
-                                    aGroup
-                                        .enter()
-                                        .append("g")
-                                        .attr({
-                                            class: "axis"
-                                        });
-                                
-                                    // exit selection
-                                    aGroup
-                                        .exit()
-                                        .transition()
-                                        .duration(transitionTime)
-                                        .remove();
-
-                                });
-                            
-                            // enter selection
-                            yGroup
-                                .enter()
-                                .append("g")
-                                .transition()
-                                .duration(transitionTime)
-                                .attr({
-                                    class: "dimension",
-                                    transform: function(d) {console.log(d); return "translate(" + xScale(d) + ")"; }
-                                })
-                                .each(function(d) {
-                                
-                                    // set selection
-                                    var aGroup = d3.select(this)
-                                        .selectAll(".axis")
-                                        .data([d]);
-                                
-                                    // update selection
-                                    aGroup
-                                        .attr({
-                                            class: "axis"
-                                        })
-                                        .each(function(d) {
-                                        
-                                            // update axis
-                                            d3.select(this)
+                                            // exit text
+                                            aText
+                                                .exit()
                                                 .transition()
                                                 .duration(transitionTime)
-                                                .call(axis.scale(yScale[d]));
+                                                .remove();
                                         
                                         });
                                 
@@ -397,11 +616,52 @@ angular.module("parallel-coordinates-directive", [])
                                         })
                                         .each(function(d) {
                                         
+                                            // set selection
+                                            var container = d3.select(this);
+                                        
+                                            // axis
+                                        
                                             // update axis
-                                            d3.select(this)
+                                            container
                                                 .transition()
                                                 .duration(transitionTime)
                                                 .call(axis.scale(yScale[d]));
+                                        
+                                            // text
+                                        
+                                            // set selection
+                                            var aText = container
+                                                .selectAll(".label")
+                                                .data([d]);
+                                        
+                                            // update text
+                                            aText
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .attr({
+                                                    class: "label",
+                                                    y: (padding.top / 2)
+                                                })
+                                                .text(function(d) { return labels[d]; });
+                                        
+                                            // enter text
+                                            aText
+                                                .enter()
+                                                .append("text")
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .attr({
+                                                    class: "label",
+                                                    y: (padding.top / 2)
+                                                })
+                                                .text(function(d) { return labels[d]; });
+                                        
+                                            // exit text
+                                            aText
+                                                .exit()
+                                                .transition()
+                                                .duration(transitionTime)
+                                                .remove();
                                         
                                         });
                                 
@@ -413,16 +673,6 @@ angular.module("parallel-coordinates-directive", [])
                                         .remove();
 
                                 });
-
-                                /*.append("text")
-                                .style("text-anchor", "end")
-                                .attr({
-                                    y: (padding.top / 2)
-                                })
-                                .text(function(d) { return labels[d]; })
-                                .style({
-                                    "font-size": "0.2em"
-                                });*/
                             
                             // exit selection
                             yGroup
@@ -430,27 +680,7 @@ angular.module("parallel-coordinates-directive", [])
                                 .transition()
                                 .duration(transitionTime)
                                 .remove();
-
-                            // brush
-                            /*yGroup.append("g")
-                                .attr({
-                                    class: "brush"
-                                })
-								.on("click", function(d) { console.log(d); })
-                                .each(function(d) {
-                                
-                                    // update axis
-                                    d3.select(this)
-                                        .call(yScale[d].brush = d3.svg.brush()
-                                              .y(yScale[d])
-                                              .on("brush", brush));
-                                
-                                })
-                                .selectAll("rect")
-                                .attr({
-                                    x: -8,
-                                    width: 16
-                                });*/
+                            
 							
 							// legend
                             

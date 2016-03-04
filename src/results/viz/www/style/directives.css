@@ -309,6 +309,14 @@ parallel-coordinates .axis text {
     
 }
 
+/* axis label */
+parallel-coordinates .label {
+    
+    font-size: 0.2em;
+    text-anchor: end;
+                                                    
+}
+
 /* table wrap */
 parallel-coordinates > div:nth-of-type(2) {
     
