@@ -44,7 +44,7 @@ angular.module("parallel-coordinates-directive", [])
                     dimensions: newDimensions
                 }, {
                     reload: false,
-                    notify: false
+                    notify: true
                 });
 				
                 // data call before state change
@@ -263,6 +263,32 @@ angular.module("parallel-coordinates-directive", [])
                                 })
                                 .style("stroke", function(d, i) { return cScale(d[groupby]); });
                             
+                            // bind events
+                            fLine
+                                .on({
+                                    mouseover: function(d) {
+
+                                        var tip = d3.select(element.find("div")[2]);
+
+                                        tip.transition()		
+                                            .duration(200)		
+                                            .style("opacity", .9);		
+                                        tip.html("id: " + d["Column1"])	
+                                            .style("left", (d3.event.pageX) + "px")		
+                                            .style("top", (d3.event.pageY - 28) + "px");
+                                        
+                                    },
+									mouseout: function(d) {
+                                        
+                                        var tip = d3.select(element.find("div")[2]);
+                                        
+                                        tip.transition()
+                                            .duration(200)
+                                            .style("opacity", 0);
+                                        
+                                    }
+                                })
+                            
                             // exit selection
                             fLine
                                 .exit()
@@ -291,12 +317,15 @@ angular.module("parallel-coordinates-directive", [])
                                 })
                                 .each(function(d) {
                                 
+                                    var dGroup = d3.select(this);
+                                    var dItem = d;
+                                
                                     // AXIS
                                 
                                     // set selection
-                                    var aGroup = d3.select(this)
+                                    var aGroup = dGroup
                                         .selectAll(".axis")
-                                        .data([d]);
+                                        .data([dItem]);
                                 
                                     // update selection
                                     aGroup
@@ -422,57 +451,16 @@ angular.module("parallel-coordinates-directive", [])
                                     // BRUSH
                                 
                                     // set selection
-                                    var bGroup = d3.select(this)
+                                    var bGroup = dGroup
                                         .selectAll(".brush")
-                                        .data([d]);
+                                        .data([dItem]);
                                 
                                     // update selection
                                     bGroup
                                         .attr({
                                             class: "brush"
                                         })
-                                        .each(function(d) {
-                                        
-                                            // set selection
-                                            var container = d3.select(this);
-                                        
-                                            // BRUSH
-                                        
-                                            // update brush
-                                            container
-                                                .call(yScale[d].brush = d3.svg.brush()
-                                                  .y(yScale[d])
-                                                  .on("brush", brush));                                        
-                                        
-                                            // RECT
-                                        
-                                            // set selection
-                                            var bRect = container
-                                                .selectAll(".brush-rect")
-                                                .data([d]);
-                                        
-                                            // update text
-                                            bRect
-                                                .attr({
-                                                    x: -8,
-                                                    width: 16
-                                                });
-                                        
-                                            // enter text
-                                            bRect
-                                                .enter()
-                                                .append("text")
-                                                .attr({
-                                                    x: -8,
-                                                    width: 16
-                                                });
-                                        
-                                            // exit text
-                                            bRect
-                                                .exit()
-                                                .remove();
-                                        
-                                        });
+                                        .each(function(d) { d3.select(this).call(yScale[d].brush = d3.svg.brush().y(yScale[d]).on("brush", brush)); });
                                 
                                     // enter selection
                                     bGroup
@@ -481,55 +469,11 @@ angular.module("parallel-coordinates-directive", [])
                                         .attr({
                                             class: "brush"
                                         })
-                                        .each(function(d) {
-                                        
-                                            // set selection
-                                            var container = d3.select(this);
-                                        
-                                            // BRUSH
-                                        
-                                            // update brush
-                                            container
-                                                .call(yScale[d].brush = d3.svg.brush()
-                                                  .y(yScale[d])
-                                                  .on("brush", brush));
-                                        
-                                            // RECT
-                                        
-                                            // set selection
-                                            var bRect = container
-                                                .selectAll(".brush-rect")
-                                                .data([d]);
-                                        
-                                            // update text
-                                            bRect
-                                                .attr({
-                                                    x: -8,
-                                                    width: 16
-                                                });
-                                        
-                                            // enter text
-                                            bRect
-                                                .enter()
-                                                .append("text")
-                                                .attr({
-                                                    x: -8,
-                                                    width: 16
-                                                });
-                                        
-                                            // exit text
-                                            bRect
-                                                .exit()
-                                                .remove();
-                                        
-                                        
-                                        });
+                                        .each(function(d) { d3.select(this).call(yScale[d].brush = d3.svg.brush().y(yScale[d]).on("brush", brush)); });
                                 
                                     // exit selection
                                     bGroup
                                         .exit()
-                                        .transition()
-                                        .duration(transitionTime)
                                         .remove();
 
                                 });
@@ -546,10 +490,15 @@ angular.module("parallel-coordinates-directive", [])
                                 })
                                 .each(function(d) {
                                 
+                                    var dGroup = d3.select(this);
+                                    var dItem = d;
+                                
+                                    // AXIS
+                                
                                     // set selection
-                                    var aGroup = d3.select(this)
+                                    var aGroup = dGroup
                                         .selectAll(".axis")
-                                        .data([d]);
+                                        .data([dItem]);
                                 
                                     // update selection
                                     aGroup
@@ -670,6 +619,45 @@ angular.module("parallel-coordinates-directive", [])
                                         .exit()
                                         .transition()
                                         .duration(transitionTime)
+                                        .remove();
+                                
+                                    // BRUSH
+                                
+                                    // set selection
+                                    var bGroup = dGroup
+                                        .selectAll(".brush")
+                                        .data([dItem]);
+                                
+                                    // update selection
+                                    bGroup
+                                        .attr({
+                                            class: "brush"
+                                        })
+                                        .each(function(d) { d3.select(this).call(yScale[d].brush = d3.svg.brush().y(yScale[d]).on("brush", brush)); })
+                                        .selectAll("rect")
+                                        .attr({
+                                            x: -8,
+                                            width: 16
+                                        });
+                                
+                                    // enter selection
+                                    bGroup
+                                        .enter()
+                                        .append("g")
+                                        .attr({
+                                            class: "brush"
+                                        })
+                                        .each(function(d) { d3.select(this)
+                                            .call(yScale[d].brush = d3.svg.brush().y(yScale[d]).on("brush", brush)); })
+                                        .selectAll("rect")
+                                        .attr({
+                                            x: -8,
+                                            width: 16
+                                        });
+                                
+                                    // exit selection
+                                    bGroup
+                                        .exit()
                                         .remove();
 
                                 });
@@ -732,6 +720,7 @@ angular.module("parallel-coordinates-directive", [])
                             
                                 var actives = dimensions.filter(function(p) { return !yScale[p].brush.empty(); });
                                 var extents = actives.map(function(p) { return yScale[p].brush.extent(); });
+                                var selected = [];
                                 
                                 // update forground lines
                                 foreground
@@ -742,11 +731,22 @@ angular.module("parallel-coordinates-directive", [])
                                     .style({
                                         display: function(d) {
                                             return actives.every(function(p, i) {
+                                                
+                                                // capture selected items in brush
+                                                if (extents[i][0] <= d[p] && d[p] <= extents[i][1]) {
+                                                    selected.push(d);
+                                                }
+                                                
                                                 return extents[i][0] <= d[p] && d[p] <= extents[i][1];
                                             }) ? null : "none";
                                         }
                                     });
                                 
+                                // add items to scope
+                                scope.selected = selected;
+                                
+                                scope.$apply();
+
                             };
 
                         };

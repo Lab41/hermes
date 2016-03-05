@@ -270,7 +270,7 @@ angular.module("scatter-plot-directive", [])
                                         tip.transition()		
                                             .duration(200)		
                                             .style("opacity", .9);		
-                                        tip.html(d.content_vector)	
+                                        tip.html("id: " + d["Column1"])	
                                             .style("left", (d3.event.pageX) + "px")		
                                             .style("top", (d3.event.pageY - 28) + "px");
                                         
@@ -285,31 +285,57 @@ angular.module("scatter-plot-directive", [])
                                         
                                     },
                                     click: function(d) {
+                                        
+                                        // current class
+                                        var currentClasses = d3.select(this).attr("class").split(" ");
+                                        
+                                        // check if active
+                                        if (currentClasses.indexOf("active") == -1) {
 
-                                        // clear all active styles
-                                        d3.selectAll(".dot")
-                                            .transition()
-                                            .duration(200)
-                                            .style({
-                                                opacity: 0.1
-                                            });
+                                            // clear all active styles
+                                            d3.selectAll(".dot")
+                                                .transition()
+                                                .duration(200)
+                                                .style({
+                                                    opacity: 0.1
+                                                });
 
-                                        // add active style
-                                        d3.select(this)
-                                            .transition()
-                                            .delay(200)
-                                            .duration(200)
-                                            .style({
-                                                opacity: 1.0,
-                                                stroke: "white",
-                                                "stroke-width": 2
-                                            });
+                                            // add active style
+                                            d3.select(this)
+                                                .transition()
+                                                .delay(200)
+                                                .duration(200)
+                                                .attr({
+                                                    class: "dot active"
+                                                })
+                                                .style({
+                                                    opacity: 1.0,
+                                                    stroke: "white",
+                                                    "stroke-width": 2
+                                                });
 
-                                        // assign sope so row highlights
-                                        scope.showRow = d.Column1;
+                                            // assign sope so row highlights
+                                            scope.showRow = d.Column1;
 
-                                        // trigger $digest
-                                        scope.$apply();
+                                            // trigger $digest
+                                            scope.$apply();
+                                            
+                                        } else {
+                                            
+                                            // clear all active styles
+                                            d3.selectAll(".dot")
+                                                .transition()
+                                                .duration(200)
+                                                .attr({
+                                                    class: "dot"
+                                                })
+                                                .style({
+                                                    opacity: 0.5,
+                                                    stroke: "none",
+                                                    "stroke-width": 0
+                                                });
+                                            
+                                        };
 
                                     }
                                 });

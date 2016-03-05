@@ -323,3 +323,14 @@ parallel-coordinates > div:nth-of-type(2) {
     overflow-x: scroll;
     
 }
+
+/* tool tip */
+parallel-coordinates div.tooltip {	
+    
+    position: absolute;			
+    text-align: center;			
+    padding: 0.25em;					
+    background: white;	
+    pointer-events: none;
+    
+}

@@ -50,13 +50,13 @@
         
         <thead>
             <tr>
-                <th ng-repeat='(key, value) in filtered[0]' 
+                <th ng-repeat='(key, value) in selected[0]' 
                     ng-class='(key == labels[options.xSelect] || key == labels[options.ySelect]) ? "active" : ""'>{{ labels[key] }}</th>
             </tr>
         </thead>
         
         <tbody>
-            <tr ng-repeat='row in filtered' 
+            <tr ng-repeat='row in selected' 
                 ng-class='row.Column1 == showRow ? "active" : ""'>
                 
                 <td ng-repeat='(key, value) in row' 
@@ -67,3 +67,5 @@
     </table>
 
 </div>
+
+<div class="tooltip"></div>
