@@ -1,0 +1,336 @@
+@charset "UTF-8";
+/* CSS Document */
+
+/*************************************** directives STYLE ***************************************/
+
+/* Highest directives specific styling. */
+
+/* !IMPORTS
+/* !GLOBALS
+/* !CUSTOM
+/* --- !scatter plot
+/* --- !parallel coordinates
+
+/******************************* !IMPORTS *******************************/
+
+/******************************* !GLOBALS *******************************/
+
+/* us web standards overwrites */
+label {
+    
+    display: inline;
+    
+}
+
+input[type="checkbox"] + span,
+input[type="radio"] + span {
+  cursor: pointer;
+  font-weight: 400;
+  margin-bottom: 0.5em; }
+
+input[type="checkbox"] + span::before,
+input[type="radio"] + span::before {
+  background: white;
+  border-radius: 0.3rem;
+  box-shadow: 0 0 0 1px #757575;
+  content: '\a0';
+  display: inline-block;
+  height: 1.8rem;
+  line-height: 0.8;
+  margin-right: 0.6em;
+  text-indent: 0.15em;
+  vertical-align: 0.2em;
+  width: 1.8rem; }
+
+input[type="radio"] + span::before {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px #757575;
+  height: 1.6rem;
+  width: 1.6rem; }
+
+input[type="radio"] + span::before {
+  border-radius: 100%; }
+
+input[type="checkbox"]:checked + span::before,
+input[type="radio"]:checked + span::before {
+  background-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor; }
+
+input[type="radio"]:checked + span::before {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px currentColor; }
+
+input[type="radio"]:focus + span::before {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px currentColor, 0 0 3px 4px #3e94cf, 0 0 7px 4px #3e94cf; }
+
+input[type="checkbox"]:checked + span::before {
+  background-image: url("../img/correct8.png");
+  background-image: url("../img/correct8.svg");
+  background-position: 50%;
+  background-repeat: no-repeat; }
+
+input[type="checkbox"]:focus + span::before {
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px currentColor; }
+
+input[type="checkbox"]:disabled + label {
+  color: #5b616b; }
+
+input[type="checkbox"]:disabled + span::before,
+input[type="radio"]:disabled + span::before {
+  background: #d6d7d9;
+  box-shadow: 0 0 0 1px #aeb0b5;
+  cursor: not-allowed; 
+}
+
+/* legend */
+.legend {
+    
+    display: flex;
+    margin-bottom: 0.15em;
+    margin-top: 0.5em;
+    
+}
+
+/* legend shape */
+.item:before {
+	
+	content: '\25A0';
+	height: 0.5em;
+	width: 0.5em;
+	
+}
+
+/* legend text */
+.legend p {
+    
+    font-size: 1em;
+    line-height: 1;
+    margin-bottom: 0;
+    margin-right: 0.5em;
+    margin-top: 0;
+    
+}
+
+/******************************* !CUSTOM *******************************/
+
+/**************************/
+/***** !scatter plot ******/
+/**************************/
+
+/* chart text */
+scatter-plot text {
+	
+	font-size: 1em;
+	
+}
+
+/* axis label */
+scatter-plot .label {
+	
+	text-anchor: end;
+	
+}
+
+/* axis and tick lines */
+scatter-plot .domain,
+scatter-plot .tick line {
+	
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 0.2px;
+	
+}
+
+/* tick line */
+scatter-plot .tick line {
+	
+	stroke-dasharray: 2;
+	
+}
+
+/* hide y-axis solid line */
+scatter-plot .y-axis .domain {
+	
+	stroke: transparent;
+	
+}
+
+/* main x-axis line */
+scatter-plot .x-axis .domain {
+	
+	stroke-width: 2px;
+	
+}
+
+/* hide y-axis line that sits on top of x-axis */
+scatter-plot .y-axis g:first-child line {
+	
+	stroke: transparent;
+	
+}
+
+/* y-axis text */
+scatter-plot .y-axis .tick text {
+	
+	text-anchor: left !important;
+	
+} 
+
+/* hide x-axis first value */
+scatter-plot .x-axis g:first-child text {
+	
+	display: none;
+	
+}
+
+/* item */
+scatter-plot .dot {
+	
+    cursor: pointer;
+	opacity: 0.5;
+	
+}
+
+scatter-plot .dot:hover {
+    
+    opacity: 1.0;
+    
+}
+
+/* table wrap */
+scatter-plot > div:nth-of-type(2) {
+    
+    overflow-x: scroll;
+    
+}
+
+/* table */
+scatter-plot table {
+    
+    font-size: 0.65em;
+    
+}
+
+/* active columns */
+scatter-plot tr.active,
+scatter-plot th.active,
+scatter-plot td.active {
+    
+    background: white;
+    
+}
+
+/* table cell */
+scatter-plot table td {
+    
+    padding: 0.5em;
+    
+}
+
+/* tool tip */
+scatter-plot div.tooltip {	
+    
+    position: absolute;			
+    text-align: center;			
+    padding: 0.25em;					
+    background: white;	
+    pointer-events: none;
+    
+}
+
+/* form legend */
+scatter-plot form legend,
+parallel-coordinates form legend {
+    
+    font-size: inherit;
+    font-weight: inherit;
+    
+}
+
+/* otherwise select box is 0 width */
+scatter-plot select {
+    
+    width: auto;
+    
+}
+
+/**********************************/
+/***** !parallel coordinates ******/
+/**********************************/
+
+parallel-coordinates .background path {
+  
+    fill: none;
+    opacity: 0.5;
+    shape-rendering: crispEdges;
+    stroke: #d9d9d9;
+    
+}
+
+/* focus paths */
+parallel-coordinates .foreground path {
+  
+    fill: none;
+    opacity: 0.2;
+    stroke: currentColor;
+
+}
+
+/* active path */
+parallel-coordinates .foreground path.active {
+    
+    opacity: 0.5;
+    
+}
+
+parallel-coordinates .brush .extent {
+  
+    fill: white;
+    fill-opacity: 0.3;
+    shape-rendering: crispEdges;
+    stroke: white;
+    stroke-width: 1.2;
+    
+}
+
+/* axis line */
+parallel-coordinates .axis line,
+parallel-coordinates .axis path {
+  
+    fill: none;
+    stroke: white;
+    shape-rendering: crispEdges;
+    
+}
+
+/* axis text */
+parallel-coordinates .axis text {
+    
+    font-size: 0.3em;
+    pointer-events: none;
+    
+}
+
+/* axis label */
+parallel-coordinates .label {
+    
+    font-size: 0.2em;
+    text-anchor: end;
+                                                    
+}
+
+/* table wrap */
+parallel-coordinates > div:nth-of-type(2) {
+    
+    overflow-x: scroll;
+    
+}
+
+/* tool tip */
+parallel-coordinates div.tooltip {	
+    
+    position: absolute;			
+    text-align: center;			
+    padding: 0.25em;					
+    background: white;	
+    pointer-events: none;
+    
+}

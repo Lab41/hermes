@@ -1,0 +1,47 @@
+raw,label,axes,groups
+mae,Mean Absolute Error,TRUE,FALSE
+avg_mean_rank,Average Rank,TRUE,FALSE
+user_coverage,User Coverage,TRUE,FALSE
+pred_n,Precision @ N,TRUE,FALSE
+cat_coverage,Catalog Coverage,TRUE,FALSE
+pred_coverage,Prediction Coverage,TRUE,FALSE
+novelty,Novelty,TRUE,FALSE
+rmse,Root Mean Square Error,TRUE,FALSE
+item_coverage,Item Coverage,TRUE,FALSE
+ils,ILS (diversity),TRUE,FALSE
+cat_diversity,Category Diversity,TRUE,FALSE
+serendipity,Serendipity,TRUE,FALSE
+content_serendipity,Content Serendipity,TRUE,FALSE
+Column1,ID,FALSE,FALSE
+dataset,Data,FALSE,TRUE
+user_vector,User,FALSE,TRUE
+content_vector,Content,FALSE,TRUE
+CF_CB,Type,FALSE,TRUE
+alg_type,Algorithm,FALSE,TRUE
+N,Number,FALSE,TRUE
+avg_lowest_rank,Average Lowest Rank,FALSE,FALSE
+avg_highest_rank,Average Highest Rank,FALSE,FALSE
+cf_mllib,Mllib,FALSE,FALSE
+cf_user,User,FALSE,FALSE
+cf_item,Item,FALSE,FALSE
+cb_vect,Vector,FALSE,FALSE
+cb_kmeans_100,Means,FALSE,FALSE
+cb_kmeans_1000,Means2,FALSE,FALSE
+Last_FM,Last FM,FALSE,FALSE
+movielens_1m,Movie Lens,FALSE,FALSE
+git,Git,FALSE,FALSE
+no_data,No Data,FALSE,FALSE
+num_plays,Number of plays,FALSE,FALSE
+any_interact,Any Interaction,FALSE,FALSE
+num_plays_log,Number of Plays Log,FALSE,FALSE
+pos_ratings,Positive Ratings,FALSE,FALSE
+ratings_to_interact,Ratings to Interaction,FALSE,FALSE
+ratings,Ratings,FALSE,FALSE
+num_interact,Number Interaction,FALSE,FALSE
+tags,Tags,FALSE,FALSE
+genre,Genre,FALSE,FALSE
+py2vec,Py2vec,FALSE,FALSE
+CF,CF,FALSE,FALSE
+CB,CB,FALSE,FALSE
+100,Hundred,FALSE,FALSE
+1000,Thousand,FALSE,FALSE
