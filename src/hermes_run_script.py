@@ -434,19 +434,19 @@ class hermes_run():
                 sub_u_data = sub_data[sub_data['user_vector']==vect]
                 non_zero = sub_u_data[sub_u_data['rmse']!=0]
                 zero = sub_u_data[sub_u_data['rmse']==0]
-                min_rmse = min(non_zero['rmse'])
-                max_rmse = max(non_zero['rmse'])
-                min_mae = min(non_zero['mae'])
-                max_mae = max(non_zero['mae'])
+                min_rmse = min(non_zero['rmse'].astype(float))
+                max_rmse = max(non_zero['rmse'].astype(float))
+                min_mae = min(non_zero['mae'].astype(float))
+                max_mae = max(non_zero['mae'].astype(float))
 
                 #go from the current to being 1-5
                 diff_desired = 4
                 diff_have_rmse = max_rmse- min_rmse
                 diff_have_mae = max_mae- min_mae
 
-                non_zero['rmse_adj'] = (max_rmse - non_zero['rmse'])*float(diff_desired/diff_have_rmse)+1
+                non_zero['rmse_adj'] = (max_rmse - non_zero['rmse'].astype(float))*float(diff_desired/diff_have_rmse)+1
                 zero['rmse_adj'] = 3
-                non_zero['mae_adj'] = (max_mae - non_zero['mae'])*float(diff_desired/diff_have_mae)+1
+                non_zero['mae_adj'] = (max_mae - non_zero['mae'].astype(float))*float(diff_desired/diff_have_mae)+1
                 zero['mae_adj'] = 3
 
                 if len(new_data)==0:
