@@ -1,0 +1,71 @@
+<!-- OPTIONS -->
+<form>
+	
+	<!-- GROUP BY -->
+	<fieldset>
+
+		<legend>Group by</legend>
+
+		<ul class="usa-unstyled-list">
+			<li ng-repeat="option in groupOptions">
+				<label>
+					<input type="radio"
+						   ng-model="options.groupby"
+						   ng-value="option.raw"
+						   ng-change="changeState(option.raw);">
+                    <span>{{ option.label }}</span>
+				</label>
+			</li>
+		</ul>
+
+	</fieldset>
+    
+    <fieldset class="usa-fieldset-inputs usa-sans">
+
+        <legend class="usa-sr-only">Dimensions</legend>
+
+        <ul class="usa-unstyled-list">
+            <li ng-repeat="option in axesOptions">
+                <label>
+                    <input type="checkbox"
+                           ng-model="options.dimensions[option.raw]"
+                           ng-change="changeAxis(option.raw)">
+                    <span>{{ option.label }}</span>
+                </label>
+            </li>
+        </ul>
+
+  </fieldset>
+    
+</form>
+
+<!-- CHART -->
+<div class='legend'></div>
+<svg></svg>
+
+<!-- RAW DATA -->
+<div>
+        
+    <table>
+        
+        <thead>
+            <tr>
+                <th ng-repeat='(key, value) in selected[0]' 
+                    ng-class='(key == labels[options.xSelect] || key == labels[options.ySelect]) ? "active" : ""'>{{ labels[key] }}</th>
+            </tr>
+        </thead>
+        
+        <tbody>
+            <tr ng-repeat='row in selected' 
+                ng-class='row.Column1 == showRow ? "active" : ""'>
+                
+                <td ng-repeat='(key, value) in row' 
+                    ng-class='(key == labels[options.xSelect] || key == labels[options.ySelect]) ? "active" : ""'>{{ value }}</td>
+            </tr>
+        </tbody>
+    
+    </table>
+
+</div>
+
+<div class="tooltip"></div>

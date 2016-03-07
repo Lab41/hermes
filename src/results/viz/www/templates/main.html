@@ -1,0 +1,14 @@
+<!-- GLOBAL NAV -->
+<nav role="navigation"
+     class="horizontal">
+    
+    <a ui-sref="app.viz({ type: 'scatter', groupby: 'alg_type' })"
+       ui-sref-active="active">Scatter</a>
+    
+    <a ui-sref="app.viz({ type: 'parallel' })"
+       ui-sref-active="active">Parallel</a>
+    
+</nav>
+
+<!-- CONTENT -->
+<main ui-view></main>
