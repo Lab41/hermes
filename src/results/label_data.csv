@@ -25,11 +25,13 @@ cf_mllib,Mllib,FALSE,FALSE
 cf_user,User,FALSE,FALSE
 cf_item,Item,FALSE,FALSE
 cb_vect,Vector,FALSE,FALSE
-cb_kmeans_100,Means,FALSE,FALSE
-cb_kmeans_1000,Means2,FALSE,FALSE
-Last_FM,Last FM,FALSE,FALSE
+cb_kmeans_100,KMeans 100,FALSE,FALSE
+cb_kmeans_1000,KMeans 1000,FALSE,FALSE
+last_fm,Last FM,FALSE,FALSE
 movielens_1m,Movie Lens,FALSE,FALSE
 git,Git,FALSE,FALSE
+osm,OSM,FALSE,FALSE
+jester,Jester,FALSE,FALSE
 no_data,No Data,FALSE,FALSE
 num_plays,Number of plays,FALSE,FALSE
 any_interact,Any Interaction,FALSE,FALSE
@@ -38,9 +40,14 @@ pos_ratings,Positive Ratings,FALSE,FALSE
 ratings_to_interact,Ratings to Interaction,FALSE,FALSE
 ratings,Ratings,FALSE,FALSE
 num_interact,Number Interaction,FALSE,FALSE
+num_edits,Number Edits,FALSE,FALSE
+num_edits_ceil,Number Edits w Ceiling,FALSE,FALSE
 tags,Tags,FALSE,FALSE
+glove,Glove,FALSE,FALSE
 genre,Genre,FALSE,FALSE
 py2vec,Py2vec,FALSE,FALSE
+tags_w_geo,TagsWGeo,FALSE,FALSE
+tags_only,TagsOnly,FALSE,FALSE
 CF,CF,FALSE,FALSE
 CB,CB,FALSE,FALSE
 100,Hundred,FALSE,FALSE
