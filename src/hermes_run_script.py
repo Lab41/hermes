@@ -455,3 +455,4 @@ class hermes_run():
                 else:
                     new_data = new_data.append(non_zero)
                     new_data = new_data.append(zero)
+        return new_data
