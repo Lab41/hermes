@@ -46,8 +46,8 @@ def predict(user_info, content_array, num_predictions, k=10, num_partitions=20):
         .map(lambda(user, array): (user, rechelp.sum_components(array)))
 
     #ensure that there are no user_preference vectors or content vectors with a zero array - this causes the predictions to be nan
-    user_prefs = user_prefs.filter(lambda (u_id,user_vect ): sum(list(user_vect))>0.0)
-    clustered_content = clustered_content.filter(lambda (cluster, (item, item_vector)): sum(list(item_vector))>0.0)
+    user_prefs = user_prefs.filter(lambda (u_id,user_vect ): all(v == 0 for v in list(user_vect))==False)
+    clustered_content = clustered_content.filter(lambda (cluster, (item, item_vector)): all(v == 0 for v in list(item_vector))==False)
 
     # Make predictions
     max_rating = user_info.map(lambda (user, item, rating): rating).max()

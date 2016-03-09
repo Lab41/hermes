@@ -17,7 +17,7 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
     results = {}
 
     #most of the content arrays should already filter out zero vectors, but some of the metrics will crash if they are present
-    content_array = content_array.filter(lambda (i_id, vect): sum(vect)!=0)
+    content_array = content_array.filter(lambda (i_id, vect): all(v == 0 for v in list(vect))==False)
 
     #because some of the algorithms we will use will only return n predictions per user all results should be analyazed for n recommendations
     n_predictions = predictions_to_n(y_predicted, number_recommended=num_predictions)

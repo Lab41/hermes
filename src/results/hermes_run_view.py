@@ -53,6 +53,7 @@ axis_map = {
     "Content Serendipity": "content_serendipity",
     "Novelty": "novelty",
     "Average Rank": "avg_mean_rank",
+    "Dataset Density": "density",
 }
 
 x_axis = Select(title="X Axis", options=axis_map.keys(), value="Precision @ N")
