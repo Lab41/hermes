@@ -2,6 +2,19 @@ import ast
 import inspect
 import imp
 import os
+from pyspark.mllib.feature import Word2Vec
+
+# =============================================================================
+# Helper Functions
+# 
+# These helper functions extract the docstring of each:
+# * function definition
+# * class definition
+# * class's function definition
+# * import library
+# * from ... import ... library
+# 
+# =============================================================================
 
 def getModule(parent_module_name, this_module_name):
     # this implementation only works on python 2.7
