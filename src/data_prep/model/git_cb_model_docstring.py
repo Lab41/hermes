@@ -77,6 +77,25 @@ def __get_import_docstring(ast_module):
     except Exception:
         return ""
 
+def __get_import_from_docstring(ast_module):
+    # this function does not grab the docstring of 
+    # import libraries within the same project
+    
+    try:
+        # get import library docstring
+        import_definitions =  [node for node in ast_module.body if isinstance(node, ast.ImportFrom)]
+        docstring = ""
+        for import_definition in import_definitions:
+            import_alias = import_definition.names[0]
+            import_module_name = import_alias.name
+            import_module = getModule(import_module_name, None)
+            tmp_docstring = inspect.getdoc(import_module)
+            if tmp_docstring is not None:
+                docstring += tmp_docstring
+        return docstring
+    except Exception:
+        return ""
+
 def __get_function_docstring(ast_module):
     # this function grabs all functions' docstrings in a file
     try:
@@ -135,7 +154,9 @@ def get_docstring(((repo_name, file_path), file_lines)):
         pass
     else:
         docstring += __get_import_docstring(ast_module)
+        docstring += __get_import_from_docstring(ast_module)
         docstring += __get_function_docstring(ast_module)
         docstring += __get_class_docstring(ast_module)
         
     return ((repo_name, file_path), docstring)
+
