@@ -2,10 +2,13 @@ import ast
 import inspect
 import imp
 import os
+import re
 from pyspark.mllib.feature import Word2Vec
 
 # =============================================================================
 # Helper Functions
+# 
+# These helper functions will be used in Py2VecModel's __get_file_docstrings()
 # 
 # These helper functions extract the docstring of each:
 # * function definition
@@ -160,3 +163,129 @@ def get_docstring(((repo_name, file_path), file_lines)):
         
     return ((repo_name, file_path), docstring)
 
+# =============================================================================
+# Py2VecModel 
+# takes in the dataframe of the JSON file and the setting of Word2Vec
+# =============================================================================
+
+class Py2VecModel(object):
+    def __init__(self, gitdf, word2vec_setting=[20, 41, 0.025, 50]):
+        # gitdf is a dataframe of your data's JSON file 
+        self.gitdf = gitdf 
+        self.word2vec = self.__get_word2vec(word2vec_setting)
+
+    def __get_word2vec(self, word2vec_setting):
+        min_count, seed, learning_rate, vector_size = word2vec_setting
+        word2vec = Word2Vec()
+        # Word2Vec's default min count is 100; our default min count is 20.
+        word2vec.setMinCount(min_count)
+        word2vec.setSeed(seed)
+        # Word2Vec's default learning rate is 0.025; our default min count is also 0.025.
+        word2vec.setLearningRate(learning_rate)
+        # Word2Vec's default vector size is 100; our default vector size is 50.
+        word2vec.setVectorSize(vector_size)
+        return word2vec
+
+    def get_model(self):
+        raise NotImplemented
+
+    def get_model_dict(self):
+        raise NotImplemented
+
+# =============================================================================
+# Py2VecDocstringModel 
+# You want to pass in get_model_dict() from this object to git_vectorize() 
+# as a support file.
+# 
+# How to use it:
+# 1. py2vecDocstringModel = Py2VecDocstringModel(gitdf) 
+#    or 
+#    py2vecDocstringModel = Py2VecDocstringModel(gitdf, [20, 41, 0.025, 50])
+# 2. model_dict = py2vecDocstringModel.get_model_dict()
+# 3. vectorizer = git_vectorize(gitdf, None, "py2vec", sc, model=model_dict)
+# 4. content_vector = vectorizer.get_content_vector()
+# 
+# =============================================================================
+
+class Py2VecDocstringModel(Py2VecModel):
+    def get_model(self):
+        wordstrings = self.__get_each_word_in_docstrings()
+        return word2vec.fit(wordstrings)
+
+    def get_model_dict(self):
+        model = self.get_model()
+        return {k:np.array(list(v)) for k,v in dict(model.getVectors()).iteritems()}
+
+    def __get_code_lines(self):
+        """
+        extract all lines in files
+        output: code_lines == [((reponame, filename), (line_num, line))]
+        """
+        code_lines = self.gitdf.map(
+            lambda (
+                author,
+                author_mail,
+                author_time,
+                author_timezone,
+                comment,
+                commit_id,
+                committer,
+                committer_mail,
+                committer_time,
+                committer_timezone,
+                filename,
+                line,
+                line_num,
+                reponame,
+            ):
+            ((reponame, filename), (line_num, line))
+        ).cache()
+        return code_lines
+    
+    def __get_file_lines(self):
+        """
+        append each file's code lines
+        output: file_lines == [((reponame, filename), filelines)]
+        """
+        # code_lines == [((reponame, filename), (line_num, line))]
+        code_lines = self.__get_code_lines()
+        # file_lines == [((reponame, filename), [(line_num_1, line_1), ..., (line_num_n, line_n)])]
+        file_lines = code_lines.mapValues(lambda val:[val]).reduceByKey(lambda a, b: a + b)
+        # sort each file's code lines by line number and extract only the lines from a file
+        def sortByLineNumberAndExtractLines(listOfCodeLines):
+            sortedListOfCodeLines = sorted(listOfCodeLines, key=lambda (line_num, line): line_num)
+            fileLines = ""
+            for lineNum, line in sortedListOfCodeLines:
+                fileLines += line + "\n"
+            return fileLines
+        # file_lines == [((reponame, filename), filelines)]
+        file_lines = file_lines.mapValues(lambda listOfCodeLines: sortByLineNumberAndExtractLines(listOfCodeLines))
+        return file_lines
+
+    def __get_file_docstrings(self):
+        """
+        get docstring of each file
+        output: file_docstrings == [((reponame, filepath), docstring)]
+        """
+        # file_lines == [((reponame, filename), filelines)]
+        file_lines = self.__get_file_lines()
+        file_docstrings = file_lines.map(
+            lambda ((repo_name, file_path), file_lines): get_docstring(((repo_name, file_path), file_lines))
+        )
+        return file_docstrings
+
+    def __get_docstrings(self):
+        """
+        get specifically just the docstring of all files
+        output: docstrings == [docstring]
+        """
+        docstrings = fileDocstrings.map(lambda ((repo_name, file_path), docstring): docstring)
+        return docstrings
+
+    def __get_each_word_in_docstrings(self):
+        """
+        get each word from the docstring of all files
+        output: wordstrings == [[word1, word2, ..., wordn]]
+        """
+        wordstrings = docstrings.map(lambda docstring: re.sub("[^\w]", " ", docstring).split())
+        return wordstrings
