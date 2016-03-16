@@ -1,6 +1,7 @@
 import ast
 import inspect
 import imp
+import numpy as np
 import os
 import re
 from pyspark.mllib.feature import Word2Vec
@@ -210,7 +211,7 @@ class Py2VecModel(object):
 class Py2VecDocstringModel(Py2VecModel):
     def get_model(self):
         wordstrings = self.__get_each_word_in_docstrings()
-        return word2vec.fit(wordstrings)
+        return self.word2vec.fit(wordstrings)
 
     def get_model_dict(self):
         model = self.get_model()
@@ -279,7 +280,8 @@ class Py2VecDocstringModel(Py2VecModel):
         get specifically just the docstring of all files
         output: docstrings == [docstring]
         """
-        docstrings = fileDocstrings.map(lambda ((repo_name, file_path), docstring): docstring)
+        file_docstrings = self.__get_file_docstrings()
+        docstrings = file_docstrings.map(lambda ((repo_name, file_path), docstring): docstring)
         return docstrings
 
     def __get_each_word_in_docstrings(self):
@@ -287,5 +289,6 @@ class Py2VecDocstringModel(Py2VecModel):
         get each word from the docstring of all files
         output: wordstrings == [[word1, word2, ..., wordn]]
         """
+        docstrings = self.__get_docstrings()
         wordstrings = docstrings.map(lambda docstring: re.sub("[^\w]", " ", docstring).split())
         return wordstrings
