@@ -1,7 +1,7 @@
 import os.path
 from src.utils import save_load as sl
 from src.algorithms import content_based_kmeans, content_based, cf, performance_metrics, dataset_stats, random_recommender
-from src.data_prep import book_vectorize, git_vectorize, jester_vectorize, last_fm_vectorize, movieLens_vectorize, osm_vectorize, wiki_vectorize
+from src.data_prep import book_vectorize, git_vectorize, jester_vectorize, last_fm_vectorize, movieLens_vectorize, osm_vectorize, wiki_vectorize, kaggle_vectorize
 import csv
 import pandas as pd
 
@@ -109,6 +109,8 @@ class hermes_run():
             return osm_vectorize.osm_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
         elif self.data_name.startswith('wiki'):
             return wiki_vectorize.wiki_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, **self.support_files )
+        elif self.data_name == 'kaggle':
+            return kaggle_vectorize.kaggle_vectorize(self.user_interactions, self.content, user_vector_type, content_vector_type, self.sqlCtx, self.sc, **self.support_files )
 
         else:
             print 'Please pass in either, book_crossing, git, jester, last_fm, movielens_1m, movielens_10m, movielens_20m, osm, or wiki'
