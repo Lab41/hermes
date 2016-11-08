@@ -1,6 +1,6 @@
 import numpy as np
 from pyspark.mllib.clustering import KMeans
-import recommender_helpers as rechelp
+from src.algorithms import recommender_helpers as rechelp
 from numpy.linalg import norm
 
 
