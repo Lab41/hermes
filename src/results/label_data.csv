@@ -32,6 +32,7 @@ movielens_1m,Movie Lens,FALSE,FALSE
 git,Git,FALSE,FALSE
 osm,OSM,FALSE,FALSE
 jester,Jester,FALSE,FALSE
+kaggle,Kaggle,FALSE,FALSE
 no_data,No Data,FALSE,FALSE
 num_plays,Number of plays,FALSE,FALSE
 any_interact,Any Interaction,FALSE,FALSE

@@ -216,7 +216,7 @@ class kaggle_vectorize():
             model = self.sc.broadcast(deepcopy(word_model))
             function_map = self.sc.broadcast(deepcopy(self.function_map))
 
-            # Starts as ((repo, file, line_num), function)
+            # Starts as (functionid, function)
             functions = self.sc.parallelize(self.function_map.keys())
             content_vector = functions\
                 .map(lambda function: (function_map.value[function], function_to_vector(function, model.value)))\
@@ -310,7 +310,7 @@ def run_lexer(row):
     # There is a bug in Python when the first line is a coding statement:
     # https://bugs.python.org/issue22221
     for line in content.splitlines():
-        if not (line.startswith("#") or "coding:" in line or '%' in line):
+        if not ((line.startswith("#") and "coding:" in line) or '%' in line):
             new_content.append(line)
 
     try:  # Sometimes Python3 files sneak in that can not be parsed
