@@ -5,6 +5,16 @@ It also explores how recommender systems may assist a software developer of data
 
 This readme will be updated as the project progresses so stay tuned!
 
+##Blog Overviews
+|       |      |
+|-------|------|
+| [Join the Hermes Running Club](http://www.lab41.org/join-the-hermes-running-club/) | March 2016 |
+| [Python2Vec: Word Embeddings for Source Code](http://www.lab41.org/py2vec/) | March 2016|
+| [TPS Report for Recommender Systems? Traditional Performance Metrics](http://www.lab41.org/tps-report-for-recommender-systems-yeah-that-would-be-great/) | March 2016|
+| [Recommender Systems - It's Not All About the Accuracy ](http://www.lab41.org/recommender-systems-its-not-all-about-the-accuracy/) | January 2016|
+| [The Nine Must-Have Datasets for Investigating Recommender Systems](http://www.lab41.org/py2vec/) | February 2016|
+| [Recommending Recommendation Systems (project intro)](http://www.lab41.org/recommending-recommendation-systems/) | December 2015|
+
 ## visualization
 We are trying varied tools and concepts to visualize the results of this project.
 

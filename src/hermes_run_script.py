@@ -257,7 +257,7 @@ class hermes_run():
 
                     #save off the results
                     results_path = self.results_directory + self.data_name + '_results_' + uv + '_' \
-                                + cf_pred  + '_' + str(run) + '.pkl'
+                                + cf_pred  + '_' + str(run) + '.csv'
                     f = open(results_path, 'w')
                     f.write(str(results))
                     f.close()
