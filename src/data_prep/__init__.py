@@ -1,4 +1,4 @@
-from . import jester_vectorize
-from . import movieLens_vectorize
-from . import osm_vectorize
-from . import wiki_vectorize
+import jester_vectorize
+import movieLens_vectorize
+import osm_vectorize
+import wiki_vectorize

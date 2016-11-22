@@ -279,7 +279,7 @@ def run_lexer(row):
     # There is a bug in Python when the first line is a coding statement:
     # https://bugs.python.org/issue22221
     for line in content.splitlines():
-        if not (line.startswith("#") or "coding:" in line or '%' in line):
+        if not ((line.startswith("#") and "coding:" in line) or '%' in line):
             new_content.append(line)
 
     try:  # Sometimes Python3 files sneak in that can not be parsed

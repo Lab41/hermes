@@ -1,5 +1,5 @@
 import numpy as np
-from . import recommender_helpers as rechelp
+import recommender_helpers as rechelp
 from numpy.linalg import norm
 
 
