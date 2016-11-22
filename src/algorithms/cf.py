@@ -1,5 +1,5 @@
 import numpy as np
-from . import recommender_helpers as rechelp
+from src.algorithms import recommender_helpers as rechelp
 from pyspark.sql.types import *
 from pyspark.mllib.recommendation import ALS
 from pyspark.mllib.regression import LabeledPoint
