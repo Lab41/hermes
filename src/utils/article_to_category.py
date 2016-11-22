@@ -77,7 +77,7 @@ class article_to_category():
 
         #run the category mapping filtering out any articles where the mapping was not found
         article_map = filtered_rdd.map(lambda row: (row.article_title, row.article_id, extract_categories(row.full_text))) \
-            .map(lambda (article_title, article_id, cats): self.category_mapping(article_title, article_id, cats)) \
+            .map(lambda article_title_article_id_cats: self.category_mapping(article_title_article_id_cats[0], article_title_article_id_cats[1], article_title_article_id_cats[2])) \
             .filter(lambda row: row != None)
         return article_map
 
@@ -150,7 +150,7 @@ def clean_name(catName):
         cleanName: the cleaned category name which matches the dbPedia dump
     """
     cleanName = catName.replace(' ', '_')
-    cleanName = cleanName.replace('\u2013', '-')
+    cleanName = cleanName.replace('\\u2013', '-')
     return cleanName
 
 def extract_categories(text):

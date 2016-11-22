@@ -297,7 +297,7 @@ def extract_title_and_year(orig_title, encoding=None):
         if encoding is None:
             tmp_title = orig_title[:paren_location].strip()
         else:
-            tmp_title = unicode(orig_title[:paren_location].strip(), encoding=encoding)
+            tmp_title = str(orig_title[:paren_location].strip(), encoding=encoding)
         tmp_year = orig_title[paren_location:]
         # Check that it looks like a year
         if len(tmp_year) == 6 \
@@ -361,7 +361,7 @@ def set_genres(genre_string, row):
         "War": "genre_war",
         "Western": "genre_western",
         }
-    for genre, key in genre_map.iteritems():
+    for genre, key in genre_map.items():
         if genre in genre_string:
             row[key] = True
 

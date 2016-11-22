@@ -22,8 +22,8 @@ sys.path.append("../algorithms")
 
 import performance_metrics as pm
 import content_based as cb
-from singleton import SCSingleton
-from timer import Timer
+from .singleton import SCSingleton
+from .timer import Timer
 
 """
 This entire file is to provide a basic understanding of collaborative filtering
@@ -141,7 +141,7 @@ def test_simple_rmse():
 
     # calculate RMSE
     testRmse = pm.calculate_rmse_using_rdd(testRDD, testPredRDD)
-    print "testRmse using RDD = ", testRmse
+    print("testRmse using RDD = ", testRmse)
 
     return
 
@@ -184,18 +184,18 @@ def test_rmse():
     # without validation
     with Timer() as t:
         model = ALS.train(trainingRDD, rank=3)
-    print "ALS.train(trainingRDD, rank=3): %s seconds" % t.secs
+    print("ALS.train(trainingRDD, rank=3): %s seconds" % t.secs)
 
     # make a prediction
     with Timer() as t:
         testPredRDD = model.predictAll( testRDD.map( lambda x: (x[0], x[1]) ) ).cache()
-    print "testPredRDD: %s seconds" % t.secs
+    print("testPredRDD: %s seconds" % t.secs)
 
     # calculate RMSE
     with Timer() as t:
         testRmse = pm.calculate_rmse_using_rdd(testRDD, testPredRDD)
-    print "testRmse: %s seconds" % t.secs
-    print "testRmse", testRmse
+    print("testRmse: %s seconds" % t.secs)
+    print("testRmse", testRmse)
 
     return
 
@@ -216,17 +216,17 @@ def test_simple_prfs():
 
     #print "data\n", data[0]
     #print "labels\n", labels
-    print "numData = ", len(digits.data)
-    print "numTarget = ", len(digits.target)
+    print("numData = ", len(digits.data))
+    print("numTarget = ", len(digits.target))
 
     # split data into train (60%), test(40%)
     # TODO: add validation in the future? train (60%), validation (20%), test(20%)?
     trainingData, testData, trainingLabel, testLabel = train_test_split(data, labels, test_size=0.4)
 
-    print "numTrainingData  = ", len(trainingData)
-    print "numTestData = ", len(testData)
-    print "numTrainingLabel = ", len(trainingLabel)
-    print "numTestLabel == ", len(testLabel)
+    print("numTrainingData  = ", len(trainingData))
+    print("numTestData = ", len(testData))
+    print("numTrainingLabel = ", len(trainingLabel))
+    print("numTestLabel == ", len(testLabel))
 
     # train the model
     model = svm.SVC(gamma=0.001, C=100)
@@ -236,16 +236,16 @@ def test_simple_prfs():
     testPredLabel = model.predict(testData)
 
     # calculate PRFS
-    print "testLabel"
-    print testLabel
-    print "testPredictedLabel"
-    print testPredLabel
+    print("testLabel")
+    print(testLabel)
+    print("testPredictedLabel")
+    print(testPredLabel)
  
     p, r, f, s = pm.calculate_prfs_using_array(testLabel, testPredLabel)
-    print "precision =\n", p
-    print "recall =\n", r
-    print "fscore =\n", f
-    print "support =\n", s
+    print("precision =\n", p)
+    print("recall =\n", r)
+    print("fscore =\n", f)
+    print("support =\n", s)
 
     return
 
@@ -277,38 +277,38 @@ def test_prfs():
 
     with Timer() as t:
         numTest = testRDD.count()
-    print "testRDD.count(): %s seconds" % t.secs
+    print("testRDD.count(): %s seconds" % t.secs)
 
     # run training algorithm to build the model
     # without validation
     with Timer() as t:
         model = LogisticRegressionWithLBFGS.train(trainingRDD, numClasses=3)
-    print "LogisticRegressionWithLBFGS.train(trainingRDD, numClasses=3): %s seconds" % t.secs
+    print("LogisticRegressionWithLBFGS.train(trainingRDD, numClasses=3): %s seconds" % t.secs)
 
     # make a prediction
     with Timer() as t:
         testPredAndLabel = testRDD.map(lambda lp: (float(model.predict(lp.features)), lp.label))
-    print "testPredAndLabel: %s seconds" % t.secs
+    print("testPredAndLabel: %s seconds" % t.secs)
 
     # calculate Precision, Recall, F1-score
     metrics = MulticlassMetrics(testPredAndLabel)
-    print( "precision = %s" % metrics.precision() )
-    print( "recall = %s" % metrics.recall() )
-    print( "f1-score = %s" % metrics.fMeasure() )
+    print(( "precision = %s" % metrics.precision() ))
+    print(( "recall = %s" % metrics.recall() ))
+    print(( "f1-score = %s" % metrics.fMeasure() ))
 
     # statistics by class
     labels = data.map(lambda lp: lp.label).distinct().collect()
     for label in sorted(labels):
-        print( "Class %s precision = %s" % (label, metrics.precision(label)) )
-        print( "Class %s recall = %s" % (label, metrics.recall(label)) )
-        print( "Class %s f1-score = %s" % (label, metrics.fMeasure(label, beta=1.0)) )
+        print(( "Class %s precision = %s" % (label, metrics.precision(label)) ))
+        print(( "Class %s recall = %s" % (label, metrics.recall(label)) ))
+        print(( "Class %s f1-score = %s" % (label, metrics.fMeasure(label, beta=1.0)) ))
 
     # weighted stats
-    print( "Weighted precision = %s" % metrics.weightedPrecision )
-    print( "Weighted recall = %s" % metrics.weightedRecall )
-    print( "Weighted f1-score = %s" % metrics.weightedFMeasure() )
-    print( "Weighted f(0.5)-score = %s" % metrics.weightedFMeasure(beta=0.5) )
-    print( "Weighted false positive rate = %s" % metrics.weightedFalsePositiveRate )
+    print(( "Weighted precision = %s" % metrics.weightedPrecision ))
+    print(( "Weighted recall = %s" % metrics.weightedRecall ))
+    print(( "Weighted f1-score = %s" % metrics.weightedFMeasure() ))
+    print(( "Weighted f(0.5)-score = %s" % metrics.weightedFMeasure(beta=0.5) ))
+    print(( "Weighted false positive rate = %s" % metrics.weightedFalsePositiveRate ))
     
     return
 

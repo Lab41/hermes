@@ -186,7 +186,7 @@ if __name__ == "__main__":
                 newest_date = None
         elif event == "end" and elem.tag == NAMESPACE + "page":
             if args.save_newest_only:
-                print json.dumps(newest)
+                print(json.dumps(newest))
                 del newest
                 del newest_date
             in_page = False
@@ -205,7 +205,7 @@ if __name__ == "__main__":
                 child.clear()
             in_revision = False
             if not args.save_newest_only:
-                print json.dumps(cur_rev)
+                print(json.dumps(cur_rev))
             else:
                 if not newest:
                     newest = cur_rev

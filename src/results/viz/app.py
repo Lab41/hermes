@@ -160,7 +160,7 @@ class static_data:
                     value_obj = {}
 
                     # loop through keys
-                    for key, value in axis_keys.iteritems():
+                    for key, value in axis_keys.items():
 
                         # get data from nested obj
                         value_obj[key] = obj[key]
@@ -175,7 +175,7 @@ class static_data:
                     value_obj = {}
 
                     # loop through keys
-                    for key, value in axis_keys.iteritems():
+                    for key, value in axis_keys.items():
 
                         # get data from nested obj
                         value_obj[key] = obj[key]

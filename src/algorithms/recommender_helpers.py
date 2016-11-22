@@ -16,7 +16,7 @@ def sum_components(array):
         r_i = rating * vector
         rated_info.append(r_i)
 
-    array_out = map(sum, zip(*np.array(rated_info)))
+    array_out = list(map(sum, list(zip(*np.array(rated_info)))))
     #renormalize to be between 0 and 1
     min_val = min(array_out)
     max_val = max(array_out)

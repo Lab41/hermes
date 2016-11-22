@@ -170,7 +170,7 @@ def file_map_to_json(file_map, repo_name):
     jsons = []
     for file in file_map:
         counter = Counter(file_map[file])
-        for key, count in counter.iteritems():
+        for key, count in counter.items():
             current_json = deepcopy(JSON_LINE)
             current_json["repo_name"] = repo_name
             current_json["author"] = clean_text(key[0])

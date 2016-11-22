@@ -1,6 +1,6 @@
-import cf
-import content_based
-import content_based_kmeans
-import performance_metrics
-import recommender_helpers
-import simple_hybrid
+from . import cf
+from . import content_based
+from . import content_based_kmeans
+from . import performance_metrics
+from . import recommender_helpers
+from . import simple_hybrid

@@ -1,1 +1,1 @@
-import jester
+from . import jester

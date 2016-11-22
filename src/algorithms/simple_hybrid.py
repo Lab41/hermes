@@ -47,12 +47,12 @@ def predict(predictions_vector_0, predictions_vector_1, mixing_variable=0.5, num
 
     # Otherwise calculate the linear average
     keyed_vector_0 = predictions_vector_0\
-        .map(lambda (u, i, r): ((u, i), r))
+        .map(lambda u_i_r: ((u_i_r[0], u_i_r[1]), u_i_r[2]))
     keyed_vector_1 = predictions_vector_1\
-        .map(lambda (u, i, r): ((u, i), r))
+        .map(lambda u_i_r1: ((u_i_r1[0], u_i_r1[1]), u_i_r1[2]))
 
     predictions = keyed_vector_0.join(keyed_vector_1)\
-        .map(lambda ((u, i), (r0, r1)): (u, i, (1. - mixing_variable) * r0 + mixing_variable * r1))\
+        .map(lambda u_i_r0_r1: (u_i_r0_r1[0][0], u_i_r0_r1[0][1], (1. - mixing_variable) * u_i_r0_r1[1][0] + mixing_variable * u_i_r0_r1[1][1]))\
         .coalesce(num_partitions)
 
     return predictions

@@ -13,6 +13,6 @@ class SCSingleton(object):
             SCSingleton.__instance.sc = SparkContext(conf=conf)
             SCSingleton.__instance.sqlCtx = SQLContext(SCSingleton.__instance.sc)
         else:
-            print "ERROR: An instance of a SparkContext is already created. " + \
-                          " That instance is ", SCSingleton.__instance.conf
+            print("ERROR: An instance of a SparkContext is already created. " + \
+                          " That instance is ", SCSingleton.__instance.conf)
         return SCSingleton.__instance

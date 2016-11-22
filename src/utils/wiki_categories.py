@@ -40,7 +40,7 @@ def create_linked_list(file_path):
                     type_relationship =='core#broader':
                 category_list.append([parent_name, page_name])
 
-    print ('Number of elements:', len(category_list))
+    print(('Number of elements:', len(category_list)))
 
     category_list = pd.DataFrame(category_list, columns=['parent','child'])
 
@@ -89,7 +89,7 @@ def create_category_idx_dicts(category_list):
 
     idx_dict = defaultdict(list)
     idx = 1
-    for key in g.keys():
+    for key in list(g.keys()):
         idx_dict[key]=idx
         idx += 1
 
@@ -105,7 +105,7 @@ def create_category_idx_dicts(category_list):
 
 def linked_list_to_dict(graph_list, formated_df, top_name = 'Category:Fundamental_categories'):
 
-    print 'Creating graph dictionary from linked elements'
+    print('Creating graph dictionary from linked elements')
     #start by seeding the top category
     graph_list = {}
     fundamentals = formated_df.query('parent=="%s"'%top_name)
@@ -121,7 +121,7 @@ def linked_list_to_dict(graph_list, formated_df, top_name = 'Category:Fundamenta
 
 def populate_elem(graph_list, elem_name, elem_list, formated_df):
     for elem in elem_list:
-        if elem not in graph_list.iterkeys():
+        if elem not in iter(graph_list.keys()):
             #print elem
             elem_list = get_children_elements(elem, formated_df)
             #by appending the parent name we are ensuring that the data is bi-directional
@@ -134,7 +134,7 @@ def populate_elem(graph_list, elem_name, elem_list, formated_df):
             populate_elem(graph_list, elem, elem_list, formated_df)
 
             if len(graph_list)%1000==0:
-                print len(graph_list), "graph elements created"
+                print(len(graph_list), "graph elements created")
 
 
 def get_children_elements(parent_name, formated_df):
@@ -152,7 +152,7 @@ def find_shortest_path(graph, start, end, path=[]):
         path = path + [start]
         if start == end:
             return path
-        if not graph.has_key(start):
+        if start not in graph:
             return None
         shortest = None
         for node in graph[start]:

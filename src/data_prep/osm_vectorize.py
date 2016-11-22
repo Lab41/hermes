@@ -50,24 +50,24 @@ class osm_vectorize():
 
         if self.user_vector_type=='num_edits':
             user_info = self.sqlCtx.sql("select uid, id, count(1) as rating from filtered_osm group by uid, id")\
-                .map(lambda (user, item, interact):(int(user), int(item), interact))
+                .map(lambda user_item_interact:(int(user_item_interact[0]), int(user_item_interact[1]), user_item_interact[2]))
             return user_info
 
         elif self.user_vector_type=='any_interact':
             user_info = self.sqlCtx.sql("select uid, id, 1 as rating from filtered_osm group by uid, id")\
-                .map(lambda (user, item, interact):(int(user), int(item), interact))
+                .map(lambda user_item_interact1:(int(user_item_interact1[0]), int(user_item_interact1[1]), user_item_interact1[2]))
             return user_info
 
         elif self.user_vector_type=='num_edits_ceil':
             user_info = self.sqlCtx.sql("select uid, id, count(1) as rating from filtered_osm group by uid, id") \
-                                   .map(lambda (user, item, interact) : (int(user), int(item), min(interact, 5)))
+                                   .map(lambda user_item_interact2 : (int(user_item_interact2[0]), int(user_item_interact2[1]), min(user_item_interact2[2], 5)))
             return user_info
 
         elif self.user_vector_type=='none':
             return None
 
         else:
-            print "Please choose a user_vector_type between 'num_edits', 'any_interact', 'num_edits_ceil', and 'none'"
+            print("Please choose a user_vector_type between 'num_edits', 'any_interact', 'num_edits_ceil', and 'none'")
             return None
 
     def get_content_vector(self):
@@ -88,7 +88,7 @@ class osm_vectorize():
             return None
 
         else:
-            print "Please choose a content_vector_type between 'tags_only', tags_w_geo or 'none'"
+            print("Please choose a content_vector_type between 'tags_only', tags_w_geo or 'none'")
             return None
 
 
@@ -98,44 +98,44 @@ class osm_vectorize():
         #this is because relations consist of both ways and nodes
 
         content_with_types = self.osm_recent_data.map(lambda row: (int(row.id),str(row.osm_type))).join(orig_content_array)\
-            .map(lambda (n_id, (o_type, cv)): (n_id, (o_type, cv)))
+            .map(lambda n_id_o_type_cv: (n_id_o_type_cv[0], (n_id_o_type_cv[1][0], n_id_o_type_cv[1][1])))
 
         #have to have the ways inherrit their info first and then the relations
         #this is because relations consist of both ways and nodes
 
         way_relations = self.content_relations.filter(lambda row: row[2]=='way')
 
-        inheret_info = way_relations.map(lambda (w,n,w_t,n_t): (n,w)).join(orig_content_array)\
-            .map(lambda (n,(w,c)):(w,[c])).combineByKey(lambda first:first, \
+        inheret_info = way_relations.map(lambda w_n_w_t_n_t: (w_n_w_t_n_t[1],w_n_w_t_n_t[0])).join(orig_content_array)\
+            .map(lambda n_w_c:(n_w_c[1][0],[n_w_c[1][1]])).combineByKey(lambda first:first, \
                     lambda com_vals, new_val : com_vals + new_val,\
                     lambda com_val1, com_val2 : com_val1+com_val2)\
-            .map(lambda (way_id, vals): (way_id, np.max(vals, axis=0)))
+            .map(lambda way_id_vals: (way_id_vals[0], np.max(way_id_vals[1], axis=0)))
 
-        way_content = content_with_types.filter(lambda (n_id, (o_type, cv)): o_type=='Way')\
-                .map(lambda (n_id, (o_type, cv)): (n_id, cv))
+        way_content = content_with_types.filter(lambda n_id_o_type_cv3: n_id_o_type_cv3[1][0]=='Way')\
+                .map(lambda n_id_o_type_cv4: (n_id_o_type_cv4[0], n_id_o_type_cv4[1][1]))
 
-        full_way_info = inheret_info.rightOuterJoin(way_content).map(lambda (way_id,(w_in, w_orig)): \
-            (way_id, combine_cv(w_in, w_orig)))
+        full_way_info = inheret_info.rightOuterJoin(way_content).map(lambda way_id_w_in_w_orig: \
+            (way_id_w_in_w_orig[0], combine_cv(way_id_w_in_w_orig[1][0], way_id_w_in_w_orig[1][1])))
 
         #now get the relation information
 
         relation_relations = self.content_relations.filter(lambda row: row[2]=='relation')
 
-        relation_info = relation_relations.map(lambda (w,n,w_t,n_t): (n,w)).join(orig_content_array)\
-            .map(lambda (n,(w,c)):(w,[c])).combineByKey(lambda first:first, \
+        relation_info = relation_relations.map(lambda w_n_w_t_n_t5: (w_n_w_t_n_t5[1],w_n_w_t_n_t5[0])).join(orig_content_array)\
+            .map(lambda n_w_c6:(n_w_c6[1][0],[n_w_c6[1][1]])).combineByKey(lambda first:first, \
                     lambda com_vals, new_val : com_vals + new_val,\
                     lambda com_val1, com_val2 : com_val1+com_val2)\
-            .map(lambda (way_id, vals): (way_id, np.max(vals, axis=0)))
+            .map(lambda way_id_vals7: (way_id_vals7[0], np.max(way_id_vals7[1], axis=0)))
 
-        relation_content = content_with_types.filter(lambda (n_id, (o_type, cv)): o_type=='Relation')\
-            .map(lambda (n_id, (o_type, cv)): (n_id, cv))
+        relation_content = content_with_types.filter(lambda n_id_o_type_cv8: n_id_o_type_cv8[1][0]=='Relation')\
+            .map(lambda n_id_o_type_cv9: (n_id_o_type_cv9[0], n_id_o_type_cv9[1][1]))
 
-        full_relation_info = relation_info.rightOuterJoin(relation_content).map(lambda (way_id,(w_in, w_orig)): \
-                (way_id, combine_cv(w_in, w_orig)))
+        full_relation_info = relation_info.rightOuterJoin(relation_content).map(lambda way_id_w_in_w_orig10: \
+                (way_id_w_in_w_orig10[0], combine_cv(way_id_w_in_w_orig10[1][0], way_id_w_in_w_orig10[1][1])))
 
         #now that we have ways and relations we just add the node content info
-        nodes_vectors = content_with_types.filter(lambda (n_id, (o_type, cv)): o_type=='Node')\
-                .map(lambda (n_id, (o_type, cv)): (n_id, cv))
+        nodes_vectors = content_with_types.filter(lambda n_id_o_type_cv11: n_id_o_type_cv11[1][0]=='Node')\
+                .map(lambda n_id_o_type_cv12: (n_id_o_type_cv12[0], n_id_o_type_cv12[1][1]))
 
         #and put all three of them together again
         #is there a better way to do this - probably...does this work though - yes :)

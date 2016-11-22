@@ -19,7 +19,7 @@ def tf_idf(content_vector):
         content_vector_tf_idf: An RDD of (item, [content_features]) where now the content features are normalized by their tf-idf
     """
     corpus_idf = idf(content_vector)
-    content_vector_tf_idf = content_vector.map(lambda (movie_id, array): (movie_id, tf_content(array, corpus_idf)))
+    content_vector_tf_idf = content_vector.map(lambda movie_id_array: (movie_id_array[0], tf_content(movie_id_array[1], corpus_idf)))
     return content_vector_tf_idf
 
 
@@ -36,7 +36,7 @@ def idf(content_vector):
     """
 
     num_items = content_vector.count()
-    items_local = content_vector.map(lambda (item_id, array): array).collect()
+    items_local = content_vector.map(lambda item_id_array: item_id_array[1]).collect()
     col_totals = [ sum(x) for x in zip(*items_local) ]
     item_idf = []
     for c in col_totals:

@@ -50,16 +50,16 @@ class jester_vectorize():
             return uir
 
         elif self.user_vector_type == 'pos_ratings':
-            return uir.filter(lambda (u, i, r): r > 0)
+            return uir.filter(lambda u_i_r: u_i_r[2] > 0)
 
         elif self.user_vector_type == 'ratings_to_interact':
-            return uir.map(lambda (u, i, r): (u, i, 1 if r > 0 else -1))
+            return uir.map(lambda u_i_r1: (u_i_r1[0], u_i_r1[1], 1 if u_i_r1[2] > 0 else -1))
 
         elif self.user_vector_type == 'none' or self.user_vector_type is None:
             return None
 
         else:
-            print "Please choose a user_vector_type between 'ratings', 'pos_ratings', 'ratings_to_interact', and 'none'"
+            print("Please choose a user_vector_type between 'ratings', 'pos_ratings', 'ratings_to_interact', and 'none'")
             return None
 
     def get_content_vector(self):
@@ -93,5 +93,5 @@ class jester_vectorize():
             return None
 
         else:
-            print "Please choose a content_vector_type between 'glove' or None"
+            print("Please choose a content_vector_type between 'glove' or None")
             return None

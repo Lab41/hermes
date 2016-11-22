@@ -1,1 +1,1 @@
-import osm
+from . import osm

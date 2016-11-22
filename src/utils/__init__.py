@@ -1,15 +1,15 @@
-import article_to_category
-import clean_categories
-import clean_links
-import content_vector_tf_idf
-import glove
-import remove_templates
-import save_load
-import wiki_categories
-import xml_to_json
-import book_crossing_etl
-import code_etl
-import jester_etl
-import lastfm_etl
-import movielens_etl
-import osm_etl
+from . import article_to_category
+from . import clean_categories
+from . import clean_links
+from . import content_vector_tf_idf
+from . import glove
+from . import remove_templates
+from . import save_load
+from . import wiki_categories
+from . import xml_to_json
+from . import book_crossing_etl
+from . import code_etl
+from . import jester_etl
+from . import lastfm_etl
+from . import movielens_etl
+from . import osm_etl

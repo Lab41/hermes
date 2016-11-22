@@ -71,10 +71,10 @@ Examples:
 
 """
 
-from cd import cd
-import blame_to_json as btj
-import git_manager as gm
-import user_to_file_mapper as ufm
+from .cd import cd
+from . import blame_to_json as btj
+from . import git_manager as gm
+from . import user_to_file_mapper as ufm
 import os
 import os.path
 import subprocess

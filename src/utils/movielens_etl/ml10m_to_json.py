@@ -2,7 +2,7 @@
 
 import argparse
 
-from movielens import ratings_to_json_10m, tags_to_json_10m, movies_to_json_10m
+from .movielens import ratings_to_json_10m, tags_to_json_10m, movies_to_json_10m
 
 # Set up command line flag handling
 parser = argparse.ArgumentParser(

@@ -56,8 +56,8 @@ axis_map = {
     "Dataset Density": "density",
 }
 
-x_axis = Select(title="X Axis", options=axis_map.keys(), value="Precision @ N")
-y_axis = Select(title="Y Axis", options=axis_map.keys(), value="Item Coverage")
+x_axis = Select(title="X Axis", options=list(axis_map.keys()), value="Precision @ N")
+y_axis = Select(title="Y Axis", options=list(axis_map.keys()), value="Item Coverage")
 num_preds = Select(title="N", value='1000', options=['All', '100', '1000'])
 alg_type = Select(title = "Recommender Type", value='All', options = ['All', 'All CF', 'All CB', 'cf_mllib', 'cf_user', 'cf_item', 'cb_vect', 'cb_kmeans'])
 
@@ -177,14 +177,14 @@ def update_dataset(attrname, old, new):
 
     #when changing the dataset reset the user vector labels
     labels_list = list(pd.unique(df2['user_vector']))
-    active_list = range(0, len(labels_list))
+    active_list = list(range(0, len(labels_list)))
 
     checkbox_button_group.labels = labels_list
     checkbox_button_group.active = active_list
 
     #also change the content vector types
     c_labels_list = list(pd.unique(df2['content_vector']))
-    c_active_list = range(0, len(c_labels_list))
+    c_active_list = list(range(0, len(c_labels_list)))
 
     checkbox_button_group_content.labels = c_labels_list
     checkbox_button_group_content.active = c_active_list

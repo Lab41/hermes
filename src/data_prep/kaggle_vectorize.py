@@ -63,51 +63,20 @@ class kaggle_vectorize():
         python_code = self.content.rdd.filter(lambda row: row.ScriptLanguageId in ('2', '8', '9'))
 
         loaded_data = python_code.map(
-            lambda (
-                DateCreated,
-                Id_,
-                IsChange,
-                LinesChangedFromFork,
-                LinesChangedFromPrevious,
-                LinesDeletedFromFork,
-                LinesDeletedFromPrevious,
-                LinesInsertedFromFork,
-                LinesInsertedFromPrevious,
-                LinesUnchangedFromFork,
-                LinesUnchangedFromPrevious,
-                ScriptContent,
-                ScriptId,
-                ScriptLanguageId,
-                TemplateScriptVersionId,
-                Title,
-                TotalLines,
-                TotalVotes,
-            ): (ScriptId, ScriptContent)
+            lambda DateCreated_Id__IsChange_LinesChangedFromFork_LinesChangedFromPrevious_LinesDeletedFromFork_LinesDeletedFromPrevious_LinesInsertedFromFork_LinesInsertedFromPrevious_LinesUnchangedFromFork_LinesUnchangedFromPrevious_ScriptContent_ScriptId_ScriptLanguageId_TemplateScriptVersionId_Title_TotalLines_TotalVotes: (DateCreated_Id__IsChange_LinesChangedFromFork_LinesChangedFromPrevious_LinesDeletedFromFork_LinesDeletedFromPrevious_LinesInsertedFromFork_LinesInsertedFromPrevious_LinesUnchangedFromFork_LinesUnchangedFromPrevious_ScriptContent_ScriptId_ScriptLanguageId_TemplateScriptVersionId_Title_TotalLines_TotalVotes[12], DateCreated_Id__IsChange_LinesChangedFromFork_LinesChangedFromPrevious_LinesDeletedFromFork_LinesDeletedFromPrevious_LinesInsertedFromFork_LinesInsertedFromPrevious_LinesUnchangedFromFork_LinesUnchangedFromPrevious_ScriptContent_ScriptId_ScriptLanguageId_TemplateScriptVersionId_Title_TotalLines_TotalVotes[11])
         )
 
         # Make a map of files to functions
         file_to_functions = loaded_data.flatMap(lambda row: run_lexer(row))
         # Map lines to functions, to join with the author data we need the script_id to be an integer
         self.lines_to_functions = file_to_functions.map(
-                lambda (script_id, (line_num, cont_type, cont)):
-                (int(float(script_id)), clean_names(cont))
+                lambda script_id_line_num_cont_type_cont:
+                (int(float(script_id_line_num_cont_type_cont[0])), clean_names(script_id_line_num_cont_type_cont[1][2]))
             )
 
     def _set_scripts_to_authors(self):
-        self.author_data = self.user_interactions.map(
-            lambda (
-                AuthorUserId,
-                CurrentScriptVersionId,
-                FirstScriptVersionId,
-                ForkParentScriptVersionId,
-                ForumTopicId,
-                Id_,
-                IsProjectLanguageTemplate,
-                ScriptProjectId,
-                TotalViews,
-                TotalVotes,
-                UrlSlug
-            ): (Id_, AuthorUserId)
+        self.author_data = self.user_interactions.rdd.map(
+            lambda AuthorUserId_CurrentScriptVersionId_FirstScriptVersionId_ForkParentScriptVersionId_ForumTopicId_Id__IsProjectLanguageTemplate_ScriptProjectId_TotalViews_TotalVotes_UrlSlug: (AuthorUserId_CurrentScriptVersionId_FirstScriptVersionId_ForkParentScriptVersionId_ForumTopicId_Id__IsProjectLanguageTemplate_ScriptProjectId_TotalViews_TotalVotes_UrlSlug[5], AuthorUserId_CurrentScriptVersionId_FirstScriptVersionId_ForkParentScriptVersionId_ForumTopicId_Id__IsProjectLanguageTemplate_ScriptProjectId_TotalViews_TotalVotes_UrlSlug[0])
         )
 
     def __join_authors_to_functions(self):
@@ -119,16 +88,16 @@ class kaggle_vectorize():
         function_map = self.sc.broadcast(deepcopy(self.function_map))
 
         script_functionid = self.lines_to_functions.map(
-                lambda (script_id, function): (script_id, function_map.value[function])
+                lambda script_id_function: (script_id_function[0], function_map.value[script_id_function[1]])
             )
 
         self.authorid_functionid = script_functionid.join(self.author_data).map(
-                lambda (script_id, (function_id, author_id)): (author_id, function_id)
+                lambda script_id_function_id_author_id: (script_id_function_id_author_id[1][1], script_id_function_id_author_id[1][0])
         )
 
     def __set_function_map(self):
         functions = self.lines_to_functions\
-            .map(lambda (line, function): function)\
+            .map(lambda line_function: line_function[1])\
             .distinct()
 
         self.function_map = {k: v for v, k in enumerate(functions.collect())}
@@ -150,8 +119,8 @@ class kaggle_vectorize():
 
             forked_scripts = self.sqlCtx.sql("select ForkParentScriptVersionId, count(*) from scripts \
                 where ForkParentScriptVersionId!='' group by ForkParentScriptVersionId")\
-                .map(lambda row: (int(float(row.ForkParentScriptVersionId)), row._c1)).filter(lambda (i,c):c>10)\
-                .map(lambda (v_id, c1): ("%.1f"%v_id, c1))
+                .map(lambda row: (int(float(row.ForkParentScriptVersionId)), row._c1)).filter(lambda i_c:i_c[1]>10)\
+                .map(lambda v_id_c1: ("%.1f"%v_id_c1[0], v_id_c1[1]))
             fields = [StructField("script_id", StringType(), True), StructField("v_count", IntegerType(), True)]
             schema = StructType(fields)
 
@@ -161,7 +130,7 @@ class kaggle_vectorize():
             recommendable = self.sqlCtx.sql("select scripts.* from scripts, recommendable_ids  where ForkParentScriptVersionId = script_id")
             recommendable.registerTempTable("recommendable")
 
-            user_info = self.sqlCtx.sql("select AuthorUserId, ForkParentScriptVersionId, 1 from recommendable group by AuthorUserId, ForkParentScriptVersionId").map(lambda (u,i,r): (int(float(u)), int(float(i)), r))
+            user_info = self.sqlCtx.sql("select AuthorUserId, ForkParentScriptVersionId, 1 from recommendable group by AuthorUserId, ForkParentScriptVersionId").map(lambda u_i_r: (int(float(u_i_r[0])), int(float(u_i_r[1])), u_i_r[2]))
 
             return user_info
 
@@ -172,7 +141,7 @@ class kaggle_vectorize():
         if self.user_vector_type == "any_interact":
             user_info = a_f\
                 .distinct()\
-                .map(lambda (user, item): (user, item, 1))
+                .map(lambda user_item: (user_item[0], user_item[1], 1))
 
             return user_info
 
@@ -180,9 +149,9 @@ class kaggle_vectorize():
         # user has used a function
         if self.user_vector_type == "num_interact":
             user_info = a_f\
-                .map(lambda (user, item): ((user, item), 1))\
+                .map(lambda user_item1: ((user_item1[0], user_item1[1]), 1))\
                 .reduceByKey(lambda v1, v2: v1+v2)\
-                .map(lambda ((user, item), count): (user, item, count))
+                .map(lambda user_item_count: (user_item_count[0][0], user_item_count[0][1], user_item_count[1]))
             return user_info
 
         # Nothing to do!
@@ -191,7 +160,7 @@ class kaggle_vectorize():
 
         # Error state
         else:
-            print "Please choose a user_vector_type from 'forked_interact', 'any_interact', 'num_interact', or None"
+            print("Please choose a user_vector_type from 'forked_interact', 'any_interact', 'num_interact', or None")
             return None
 
     def get_content_vector(self):
@@ -217,11 +186,11 @@ class kaggle_vectorize():
             function_map = self.sc.broadcast(deepcopy(self.function_map))
 
             # Starts as ((repo, file, line_num), function)
-            functions = self.sc.parallelize(self.function_map.keys())
+            functions = self.sc.parallelize(list(self.function_map.keys()))
             content_vector = functions\
                 .map(lambda function: (function_map.value[function], function_to_vector(function, model.value)))\
-                .filter(lambda (functionid, vector): vector is not None)\
-                .filter(lambda (functionid, vector): vector.any())
+                .filter(lambda functionid_vector: functionid_vector[1] is not None)\
+                .filter(lambda functionid_vector2: functionid_vector2[1].any())
 
             return content_vector
 
@@ -231,7 +200,7 @@ class kaggle_vectorize():
 
         # Error state
         else:
-            print "Please choose a content_vector_type from 'py2vec' or None"
+            print("Please choose a content_vector_type from 'py2vec' or None")
             return None
 
 

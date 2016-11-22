@@ -24,7 +24,7 @@ class Py2Vec(object):
         # Load the Py2Vec data from a file
         with open(json_file, 'r') as open_file:
             tmp_model = json.load(open_file)
-            self.__model = {k: np.array(v) for k, v in tmp_model.iteritems()}
+            self.__model = {k: np.array(v) for k, v in tmp_model.items()}
 
             for line_number, key_word in enumerate(self.__model):
                 vector = self.__model[key_word]
@@ -70,7 +70,7 @@ class Py2Vec(object):
         """
         # If you gave us a word, find the vector, otherwise if the word is not
         # in the model return None.
-        if isinstance(input_arg, basestring):
+        if isinstance(input_arg, str):
             key = input_arg.lower()
             vector = self.__model.get(key, None)
             if vector is None:

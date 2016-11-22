@@ -1,1 +1,1 @@
-import lastfm
+from . import lastfm

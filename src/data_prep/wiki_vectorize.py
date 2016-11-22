@@ -66,7 +66,7 @@ class wiki_vectorize():
         elif self.user_vector_type=='num_edits_ceil':
             user_info =  self.sqlCtx.sql("select user_id as user, article_id as item, count(1) as rating from wiki_ratings \
                 group by user_id, article_id")\
-                .map(lambda (user, article, rating): (user, article, min(rating, 5)))
+                .map(lambda user_article_rating: (user_article_rating[0], user_article_rating[1], min(user_article_rating[2], 5)))
 
             return user_info
 
@@ -74,7 +74,7 @@ class wiki_vectorize():
             return None
 
         else:
-            print "Please choose a user_vector_type between num_edits, any_interact, num_edits_ceil or none"
+            print("Please choose a user_vector_type between num_edits, any_interact, num_edits_ceil or none")
             return None
 
 
@@ -103,7 +103,7 @@ class wiki_vectorize():
                 return article_mapping
 
             else:
-                print "Please pass in a glove_model. Like: support_files['glove_model']=Glove('glove.6B.50d.txt')"
+                print("Please pass in a glove_model. Like: support_files['glove_model']=Glove('glove.6B.50d.txt')")
         elif self.content_vector_type=='category_map':
 
             if set(["high_level_categories", "category_index_graph_link", "category_idx"]).issubset(self.support_files):
@@ -124,20 +124,20 @@ class wiki_vectorize():
             else:
                 #print "To run category map you must at least have the category_list from dbPedia"
                 ##TODO work on the article_to_category function so that it can just pull in the category list from dpPedia
-                print "Please pass in the following files:"
-                print "high_level_idx: An array of the high level categories to map to e.g. ['Concepts', 'Life', 'Physical_universe', 'Society']"
-                print 'category_index_graph_link: Path to the csv of the category links as created from wiki_categories.create_linked_list()'
-                print 'category_idx: Dictionary of the categories to an index as created from wiki_categories.create_category_idx_dicts()'
-                print 'support_files = {"high_level_categories" : high_level_categories, \
+                print("Please pass in the following files:")
+                print("high_level_idx: An array of the high level categories to map to e.g. ['Concepts', 'Life', 'Physical_universe', 'Society']")
+                print('category_index_graph_link: Path to the csv of the category links as created from wiki_categories.create_linked_list()')
+                print('category_idx: Dictionary of the categories to an index as created from wiki_categories.create_category_idx_dicts()')
+                print('support_files = {"high_level_categories" : high_level_categories, \
                  "category_index_graph_link" : category_index_graph_link, \
-                 "category_idx" : category_idx}'
+                 "category_idx" : category_idx}')
                 return None
 
         elif self.content_vector_type=='none':
             return None
 
         else:
-            print "Please choose between glove, category_map or none"
+            print("Please choose between glove, category_map or none")
             return None
 
 def remove_punctuation(text):

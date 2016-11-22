@@ -52,7 +52,7 @@ class last_fm_vectorize():
 
         elif self.user_vector_type=='num_plays_log':
             user_info =  self.sqlCtx.sql("select user_id as user, artist_id as item, plays from artist_plays")\
-                .map(lambda (user, article, plays): (user, article, np.log10(plays)))
+                .map(lambda user_article_plays: (user_article_plays[0], user_article_plays[1], np.log10(user_article_plays[2])))
 
             return user_info
 
@@ -60,7 +60,7 @@ class last_fm_vectorize():
             return None
 
         else:
-            print "Please choose a user_vector_type between num_plays, any_interact, num_plays_log or none"
+            print("Please choose a user_vector_type between num_plays, any_interact, num_plays_log or none")
             return None
 
 
@@ -83,7 +83,7 @@ class last_fm_vectorize():
             #get the tags by artist
             #we will filter out any artists without any tags - there are about 1,500 of these for num_tags=150
             tag_vector = self.content.map(lambda row: (row.artist_id, row.tag_id)).groupByKey().map(lambda row: get_vect(row, ts))\
-                    .filter(lambda (artist_id, cv): sum(cv)!=0)
+                    .filter(lambda artist_id_cv: sum(artist_id_cv[1])!=0)
 
             return tag_vector
 
@@ -92,7 +92,7 @@ class last_fm_vectorize():
             return None
 
         else:
-            print "Please choose between tags or none"
+            print("Please choose between tags or none")
             return None
 
 def get_vect(row, keeper_tags):

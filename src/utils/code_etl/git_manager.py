@@ -13,7 +13,7 @@ and is removed when the with block exits even if there is an error.
 
 """
 
-from cd import cd
+from .cd import cd
 import os
 import shutil
 import subprocess

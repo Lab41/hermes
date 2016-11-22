@@ -17,7 +17,7 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
     results = {}
 
     #most of the content arrays should already filter out zero vectors, but some of the metrics will crash if they are present
-    content_array = content_array.filter(lambda (i_id, vect): all(v == 0 for v in list(vect))==False)
+    content_array = content_array.filter(lambda i_id_vect: all(v == 0 for v in list(i_id_vect[1]))==False)
 
     #because some of the algorithms we will use will only return n predictions per user all results should be analyazed for n recommendations
     n_predictions = predictions_to_n(y_predicted, number_recommended=num_predictions)
@@ -25,23 +25,28 @@ def get_perform_metrics(y_test, y_train, y_predicted, content_array, sqlCtx, num
     results['rmse'] = calculate_rmse_using_rdd(y_test, n_predictions)
     results['mae'] = calculate_mae_using_rdd(y_test,n_predictions)
     results['pred_n'] = calculate_precision_at_n(y_test, n_predictions, number_recommended=num_predictions)
+    print(results)
 
     #measures of diversity
     results['cat_diversity'] = calculate_population_category_diversity(n_predictions, content_array)
     results['ils'] = calc_ils(n_predictions, content_array, num_partitions=num_partitions)
+    print(results)
 
     #measures of coverage
     results['cat_coverage'] = calculate_catalog_coverage(y_test, y_train, n_predictions)
     results['item_coverage'] = calculate_item_coverage(y_test, y_train, content_array, n_predictions)
     results['user_coverage'] = calculate_user_coverage(y_test, y_train, n_predictions)
     results['pred_coverage'] = calculate_prediction_coverage(y_test, n_predictions)
+    print(results)
 
     #measures of serendipity returning the average user's amount of serendiptiy over the items as opposed to total average serendiptiy
     results['serendipity'] = calculate_serendipity(y_train, y_test, n_predictions, sqlCtx, rel_filter=1)[1]
     results['content_serendipity'] = calc_content_serendipity(y_test, n_predictions, content_array, sqlCtx, num_partitions)[1]
+    print(results)
 
     #measures of novelty returning the average user's amount of novelty
     results['novelty'] = calculate_novelty(y_train, y_test, n_predictions, sqlCtx)[1]
+    print(results)
 
     #relevancy statistics
     rel_stats = calc_relevant_rank_stats(y_test, n_predictions, sqlCtx)
@@ -71,7 +76,7 @@ def calculate_rmse_using_rdd(y_actual, y_predicted):
     """
 
     ratings_diff_sq = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
-        .map( lambda (_, (predictedRating, actualRating)): (predictedRating - actualRating) ** 2 ) \
+        .map( lambda __predictedRating_actualRating: (__predictedRating_actualRating[1][0] - __predictedRating_actualRating[1][1]) ** 2 ) \
 
     sum_ratings_diff_sq = ratings_diff_sq.reduce(add)
     num = ratings_diff_sq.count()
@@ -109,7 +114,7 @@ def calculate_mae_using_rdd(y_actual, y_predicted):
     """
 
     ratings_diff = ( y_predicted.map(lambda x: ((x[0], x[1]), x[2])) ).join( y_actual.map(lambda x: ((x[0], x[1]), x[2])) ) \
-        .map( lambda (_, (predictedRating, actualRating)): abs(predictedRating - actualRating) ) \
+        .map( lambda __predictedRating_actualRating4: abs(__predictedRating_actualRating4[1][0] - __predictedRating_actualRating4[1][1]) ) \
     
     sum_ratings_diff = ratings_diff.reduce(add)
     num = ratings_diff.count()
@@ -139,13 +144,13 @@ def calculate_prfs_using_rdd(y_actual, y_predicted, average='macro'):
 
     prediction_rating_pairs = y_predicted.map(lambda x: ((x[0], x[1]), x[2]))\
         .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))\
-        .map(lambda ((user, item), (prediction, rating)): (user, item, prediction, rating))
+        .map(lambda user_item_prediction_rating5: (user_item_prediction_rating5[0][0], user_item_prediction_rating5[0][1], user_item_prediction_rating5[1][0], user_item_prediction_rating5[1][1]))
 
-    true_vals = np.array(prediction_rating_pairs.map(lambda (user, item, prediction, rating): rating).collect())
-    pred_vals = np.array(prediction_rating_pairs.map(lambda (user, item, prediction, rating): prediction).collect())
+    true_vals = np.array(prediction_rating_pairs.map(lambda user_item_prediction_rating: user_item_prediction_rating[3]).collect())
+    pred_vals = np.array(prediction_rating_pairs.map(lambda user_item_prediction_rating1: user_item_prediction_rating1[2]).collect())
 
-    return precision_recall_fscore_support(map(lambda x: int(np.round(x)), true_vals),\
-                                        map(lambda x: int(np.round(x)), pred_vals), average = average)
+    return precision_recall_fscore_support([int(np.round(x)) for x in true_vals],\
+                                        [int(np.round(x)) for x in pred_vals], average = average)
 
 def calculate_precision_at_n(y_actual, y_predicted, number_recommended = 100):
     """
@@ -166,12 +171,12 @@ def calculate_precision_at_n(y_actual, y_predicted, number_recommended = 100):
 
     prediction_rating_pairs = n_predictions.map(lambda x: ((x[0], x[1]), x[2]))\
         .join(y_actual.map(lambda x: ((x[0], x[1]), x[2])))\
-        .map(lambda ((user, item), (prediction, rating)): (user, item, prediction, rating))
+        .map(lambda user_item_prediction_rating6: (user_item_prediction_rating6[0][0], user_item_prediction_rating6[0][1], user_item_prediction_rating6[1][0], user_item_prediction_rating6[1][1]))
 
-    num_ratings = prediction_rating_pairs.groupBy(lambda (u,i,p,r): u).map(lambda (u,items): (u, len(items)))\
-    .map(lambda (u, num_ratings): num_ratings)
+    num_ratings = prediction_rating_pairs.groupBy(lambda u_i_p_r: u_i_p_r[0]).map(lambda u_items: (u_items[0], len(u_items[1])))\
+    .map(lambda u_num_ratings: u_num_ratings[1])
     #the number of total users
-    n = y_actual.groupBy(lambda (u,i,r): u).count()
+    n = y_actual.groupBy(lambda u_i_r7: u_i_r7[0]).count()
     tot_num_ratings = num_ratings.reduce(add)
 
     precision_at_n = tot_num_ratings/float(n*number_recommended)
@@ -216,8 +221,8 @@ def predictions_to_n(y_predicted, number_recommended=10):
     """
 
     sorted_predictions = y_predicted.groupBy(lambda row: row[0])\
-        .map(lambda (user_id, ratings):(user_id,sort_and_cut(list(ratings),number_recommended)))\
-        .map(lambda (user, ratings): ratings).flatMap(lambda x: x)
+        .map(lambda user_id_ratings:(user_id_ratings[0],sort_and_cut(list(user_id_ratings[1]),number_recommended)))\
+        .map(lambda user_ratings: user_ratings[1]).flatMap(lambda x: x)
 
     def sort_and_cut(ratings_list, numberOfItems):
         sorted_vals = sorted(ratings_list, key=lambda ratings: ratings[2], reverse=True)
@@ -249,10 +254,10 @@ def calculate_population_category_diversity(y_predicted, content_array):
         cat_diversity:
 
     """
-    ave_coverage = content_array.map(lambda (id, array): sum(array)).mean()
+    ave_coverage = content_array.map(lambda id_array: sum(id_array[1])).mean()
     rating_array_raw = y_predicted.keyBy(lambda row: row[1]).join(content_array)\
-        .map(lambda (id, (rating, array)): array).collect()
-    rating_array = map(sum,zip(*np.array(rating_array_raw)))
+        .map(lambda id_rating_array: id_rating_array[1][1]).collect()
+    rating_array = list(map(sum,list(zip(*np.array(rating_array_raw)))))
     cat_diversity = sum([r/float(len(rating_array_raw)) for r in rating_array])*ave_coverage/float(len(rating_array))
 
     return cat_diversity
@@ -277,10 +282,10 @@ def calc_ils(y_predicted, content_array, y_train=None, y_test=None,  num_partiti
         avg_ils: the average user's Intra-List Similarity
     """
 
-    temp = y_predicted.map(lambda (u,i,p): (i, (u,p))).join(content_array)
+    temp = y_predicted.map(lambda u_i_p8: (u_i_p8[1], (u_i_p8[0],u_i_p8[2]))).join(content_array)
 
-    user_ils = temp.map(lambda (i,((u,p),c_a)): (u, (i, c_a))).groupByKey()\
-        .map(lambda (user, item_list):(calc_user_ILS(list(item_list)))).collect()
+    user_ils = temp.map(lambda i_u_p_c_a: (i_u_p_c_a[1][0][0], (i_u_p_c_a[0], i_u_p_c_a[1][1]))).groupByKey()\
+        .map(lambda user_item_list:(calc_user_ILS(list(user_item_list[1])))).collect()
 
     total_ils = sum(user_ils)
     avg_ils = total_ils/float(len(user_ils))
@@ -452,7 +457,7 @@ def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
         average_serendipity: the average user's amount of surprise over their recommended items
     """
 
-    full_corpus = y_train.union(y_test).map(lambda (u,i,r): (u,i,float(r)))
+    full_corpus = y_train.union(y_test).map(lambda u_i_r9: (u_i_r9[0],u_i_r9[1],float(u_i_r9[2])))
 
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("rating", FloatType(), True) ]
@@ -465,15 +470,15 @@ def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
 
     n = item_ranking.count()
     #determine the probability for each item in the corpus
-    item_ranking_with_prob = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, avg_rate, rank, prob_by_rank(rank, n)))
+    item_ranking_with_prob = item_ranking.rdd.map(lambda item_id_avg_rate_rank: (item_id_avg_rate_rank[0], item_id_avg_rate_rank[1], item_id_avg_rate_rank[2], prob_by_rank(item_id_avg_rate_rank[2], n)))
 
     #format the 'relevant' predictions as a queriable table
     #these are those predictions for which we have ratings above the threshold
-    y_test = y_test.filter(lambda (u,i,r): r>=rel_filter).map(lambda (u,i,r): (u,i,float(r)))
+    y_test = y_test.filter(lambda u_i_r10: u_i_r10[2]>=rel_filter).map(lambda u_i_r11: (u_i_r11[0],u_i_r11[1],float(u_i_r11[2])))
 
     predictionsAndRatings = y_predicted.map(lambda x: ((x[0], x[1]), x[2])) \
       .join(y_test.map(lambda x: ((x[0], x[1]), x[2])))
-    temp = predictionsAndRatings.map(lambda (a,b): (a[0], a[1], b[1], b[1]))
+    temp = predictionsAndRatings.map(lambda a_b: (a_b[0][0], a_b[0][1], a_b[1][1], a_b[1][1]))
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("prediction", FloatType(), True), StructField("actual", FloatType(), True) ]
     schema = StructType(fields)
@@ -493,26 +498,26 @@ def calculate_serendipity(y_train, y_test, y_predicted, sqlCtx, rel_filter=1):
     #use the number of predicted items and item rank to determine the probability an item is predicted
     user_info = sqlCtx.sql("select r.user, item, prediction, rank, num_found from user_rankings as r, user_counts as c\
         where r.user=c.user")
-    user_ranking_with_prob = user_info.map(lambda (user, item, pred, rank, num): \
-                                     (user, item, rank, num, prob_by_rank(rank, num)))
+    user_ranking_with_prob = user_info.rdd.map(lambda user_item_pred_rank_num: \
+                                     (user_item_pred_rank_num[0], user_item_pred_rank_num[1], user_item_pred_rank_num[3], user_item_pred_rank_num[4], prob_by_rank(user_item_pred_rank_num[3], user_item_pred_rank_num[4])))
 
     #now combine the two to determine (user, item_prob_diff) by item
     data = user_ranking_with_prob.keyBy(lambda p: p[1])\
         .join(item_ranking_with_prob.keyBy(lambda p:p[0]))\
-        .map(lambda (item, (a,b)): (a[0], max(a[4]-b[3],0)))\
+        .map(lambda item_a_b: (item_a_b[1][0][0], max(item_a_b[1][0][4]-item_a_b[1][1][3],0)))\
 
     #combine the item_prob_diff by user and average to get the average serendiptiy by user
     sumCount = data.combineByKey(lambda value: (value, 1),
                              lambda x, value: (x[0] + value, x[1] + 1),
                              lambda x, y: (x[0] + y[0], x[1] + y[1]))
-    serendipityByUser = sumCount.map(lambda (label, (value_sum, count)): (label, value_sum / float(count)))
+    serendipityByUser = sumCount.map(lambda label_value_sum_count: (label_value_sum_count[0], label_value_sum_count[1][0] / float(label_value_sum_count[1][1])))
 
     num = float(serendipityByUser.count())
-    average_serendipity = serendipityByUser.map(lambda (user, serendipity):serendipity).reduce(add)/num
+    average_serendipity = serendipityByUser.map(lambda user_serendipity:user_serendipity[1]).reduce(add)/num
 
     #alternatively we could average not by user first, so heavier users will be more influential
     #for now we shall return both
-    average_overall_serendipity = data.map (lambda (user, serendipity): serendipity).reduce(add)/float(data.count())
+    average_overall_serendipity = data.map (lambda user_serendipity2: user_serendipity2[1]).reduce(add)/float(data.count())
 
     return (average_overall_serendipity, average_serendipity)
 
@@ -537,7 +542,7 @@ def calculate_novelty(y_train, y_test, y_predicted, sqlCtx):
         avg_novelty: the average user's amount of novelty over their recommended items
     """
 
-    full_corpus = y_train.union(y_test).map(lambda (u,i,r): (u,i,float(r)))
+    full_corpus = y_train.union(y_test).map(lambda u_i_r12: (u_i_r12[0],u_i_r12[1],float(u_i_r12[2])))
 
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
           StructField("rating", FloatType(), True) ]
@@ -549,12 +554,12 @@ def calculate_novelty(y_train, y_test, y_predicted, sqlCtx):
         from ratings group by item order by avg_rate desc")
 
     n = item_ranking.count()
-    item_ranking_with_nov = item_ranking.map(lambda (item_id, avg_rate, rank): (item_id, (avg_rate, rank, log(max(prob_by_rank(rank, n), 1e-100), 2))))
+    item_ranking_with_nov = item_ranking.rdd.map(lambda item_id_avg_rate_rank13: (item_id_avg_rate_rank13[0], (item_id_avg_rate_rank13[1], item_id_avg_rate_rank13[2], log(max(prob_by_rank(item_id_avg_rate_rank13[2], n), 1e-100), 2))))
 
-    user_novelty = y_predicted.keyBy(lambda (u, i, p): i).join(item_ranking_with_nov).map(lambda (i,((u_p),(pop))): (u_p[0], pop[2]))\
-        .groupBy(lambda (user, pop): user).map(lambda (user, user_item_probs):(np.mean(list(user_item_probs), axis=0)[1])).collect()
+    user_novelty = y_predicted.keyBy(lambda u_i_p14: u_i_p14[1]).join(item_ranking_with_nov).map(lambda i_u_p_pop: (i_u_p_pop[1][0][0], i_u_p_pop[1][1][2]))\
+        .groupBy(lambda user_pop: user_pop[0]).map(lambda user_user_item_probs:(np.mean(list(user_user_item_probs[1]), axis=0)[1])).collect()
 
-    all_novelty = y_predicted.keyBy(lambda (u, i, p): i).join(item_ranking_with_nov).map(lambda (i,((u_p),(pop))): (pop[2])).collect()
+    all_novelty = y_predicted.keyBy(lambda u_i_p15: u_i_p15[1]).join(item_ranking_with_nov).map(lambda i_u_p_pop16: (i_u_p_pop16[1][1][2])).collect()
     avg_overall_novelty = float(np.mean(all_novelty))
 
     avg_novelty = float(np.mean(user_novelty))
@@ -611,16 +616,16 @@ def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx, num_p
     #instead of calculating the distance between the user's items and predicted items we will do a lookup to a table with this information
     #this minimizes the amount of repeated procedures
     ##TODO only look at one half of the matrix as we don't need (a,b, dist) if we have (b,a, dist). Need to modify lower section of code to do this
-    content_array_matrix = content_array.cartesian(content_array).map(lambda (a, b): (a[0], b[0], calc_cosine_distance(a[1], b[1]))).coalesce(num_partitions)
+    content_array_matrix = content_array.cartesian(content_array).map(lambda a_b17: (a_b17[0][0], a_b17[1][0], calc_cosine_distance(a_b17[0][1], a_b17[1][1]))).coalesce(num_partitions)
 
 
     #create a matrix of all predictions for each item a user has rated
-    user_prod_matrix = y_actual.keyBy(lambda (u,i,r): u).join(y_predicted.keyBy(lambda (u,i,p):u))
+    user_prod_matrix = y_actual.keyBy(lambda u_i_r18: u_i_r18[0]).join(y_predicted.keyBy(lambda u_i_p:u_i_p[0]))
 
     #determine all distances for the predicted items for a user in the format of [user, rec_item, dist]
-    user_sim = user_prod_matrix.map(lambda (u, (t, p)): ((t[1],p[1]), u))\
-            .join(content_array_matrix.map(lambda (i1, i2, dist): ((i1,i2),dist)))\
-            .map(lambda (items, user_dist): (user_dist[0], items[1], user_dist[1]))
+    user_sim = user_prod_matrix.map(lambda u_t_p: ((u_t_p[1][0][1],u_t_p[1][1][1]), u_t_p[0]))\
+            .join(content_array_matrix.map(lambda i1_i2_dist: ((i1_i2_dist[0],i1_i2_dist[1]),i1_i2_dist[2])))\
+            .map(lambda items_user_dist: (items_user_dist[1][0], items_user_dist[0][1], items_user_dist[1][1]))
 
     user_sim.cache()
 
@@ -639,7 +644,7 @@ def calc_content_serendipity(y_actual, y_predicted, content_array, sqlCtx, num_p
     user_serendip = sqlCtx.sql("select user, avg(min_dist) from user_item_sim group by user")
 
     num_users = sqlCtx.sql("select distinct(user) from user_item_sim").count()
-    avg_content_serendipity = user_serendip.map(lambda (user, sim): sim).reduce(add)/float(num_users)
+    avg_content_serendipity = user_serendip.rdd.map(lambda user_sim3: user_sim3[1]).reduce(add)/float(num_users)
 
     #alternatively we could average not by user first, so heavier users will be more influential
     #for now we shall return both
@@ -680,7 +685,7 @@ def calc_relevant_rank_stats(y_actual, y_predicted, sqlCtx):
         average_overall_content_serendipity:
     """
 
-    predictions2 = y_predicted.map(lambda (u,i,p): (u,i,float(p)))
+    predictions2 = y_predicted.map(lambda u_i_p19: (u_i_p19[0],u_i_p19[1],float(u_i_p19[2])))
 
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
       StructField("prediction", FloatType(), True) ]
@@ -697,7 +702,7 @@ def calc_relevant_rank_stats(y_actual, y_predicted, sqlCtx):
     fields = [StructField("user", LongType(),True),StructField("item", LongType(), True),\
       StructField("rating", FloatType(), True) ]
     rating_schema = StructType(fields)
-    rating_schema_preds = sqlCtx.createDataFrame(y_actual.map(lambda (u,i,r): (u,i,float(r))), rating_schema)
+    rating_schema_preds = sqlCtx.createDataFrame(y_actual.map(lambda u_i_r: (u_i_r[0],u_i_r[1],float(u_i_r[2]))), rating_schema)
     rating_schema_preds.registerTempTable("ratings")
 
     relevant_ranks = sqlCtx.sql("select p.user, r.item, p.rank from prediction_rankings p, ratings r \

@@ -154,7 +154,7 @@ if __name__ == "__main__":
             #print elem, elem.attrib
             #create a new changeset object
             c = deepcopy(CHANGESET)
-            for key, value in elem.attrib.iteritems():
+            for key, value in elem.attrib.items():
                 c[key] = value #for now all values are strings
             #print json.dumps(c)
             changeset_json_file.write(json.dumps(c) + "\n")
@@ -162,14 +162,14 @@ if __name__ == "__main__":
         elif event == 'start' and elem.tag=='node':
             #create a new node object
             n = deepcopy(OSM_OBJECT)
-            for key, value in elem.attrib.iteritems():
+            for key, value in elem.attrib.items():
                 #print key, value
                 key = key.replace(":", "_")
                 n[key] = value #for now all values are strings
             n["osm_type"] = 'Node'
             for child in elem:
                 if child.tag =='tag':
-                    k, v = child.attrib.items()
+                    k, v = list(child.attrib.items())
                     key = k[1]
                     value = v[1]
                     key = key.replace(":", "_")
@@ -185,12 +185,12 @@ if __name__ == "__main__":
             #create a new node object of type way
             n = deepcopy(OSM_OBJECT)
             nid = elem.get('id')
-            for key, value in elem.attrib.iteritems():
+            for key, value in elem.attrib.items():
                 n[key] = value #for now all values are strings
             n["osm_type"] = 'Way'
             for child in elem:
                 if child.tag =='tag':
-                    k, v = child.attrib.items()
+                    k, v = list(child.attrib.items())
                     key = k[1]
                     value = v[1]
                     key = key.replace(":", "_")
@@ -201,7 +201,7 @@ if __name__ == "__main__":
                     #these are the node references, we will create a file that is w_id, n_id, w_type, n_type
                     relation_map.write(nid + ',' + ref_id + ', way, node' + "\n")
                 else:
-                    print child.tag
+                    print(child.tag)
 
         elif event=='end' and elem.tag=='way':
             #print json.dumps(n)
@@ -212,13 +212,13 @@ if __name__ == "__main__":
             #create a new node object of type way
             n = deepcopy(OSM_OBJECT)
             nid = elem.get('id')
-            for key, value in elem.attrib.iteritems():
+            for key, value in elem.attrib.items():
                 key.replace(":", "_")
                 n[key] = value #for now all values are strings
             n["osm_type"] = 'Relation'
             for child in elem:
                 if child.tag =='tag':
-                    k, v = child.attrib.items()
+                    k, v = list(child.attrib.items())
                     key = k[1]
                     value = v[1]
                     key = key.replace(":", "_")
@@ -230,7 +230,7 @@ if __name__ == "__main__":
                     #these are the node references, we will create a file that is w_id, n_id, w_type, n_type
                     relation_map.write(nid + ',' + ref_id + ', relation, '+ r_type + "\n")
                 else:
-                    print child.tag
+                    print(child.tag)
 
         elif event=='end' and elem.tag=='way':
             #print json.dumps(n)

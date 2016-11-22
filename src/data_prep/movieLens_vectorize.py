@@ -45,7 +45,7 @@ class movieLens_vectorize():
             return user_info
 
         elif self.user_vector_type=='pos_ratings':
-            user_info = self.user_interactions.map(lambda row: (row.user_id, row.movie_id, row.rating) ).filter(lambda (u,m,r): r>3)
+            user_info = self.user_interactions.map(lambda row: (row.user_id, row.movie_id, row.rating) ).filter(lambda u_m_r: u_m_r[2]>3)
             return user_info
 
         elif self.user_vector_type=='ratings_to_interact':
@@ -56,7 +56,7 @@ class movieLens_vectorize():
             return None
 
         else:
-            print "Please choose a user_vector_type between 'ratings', 'pos_ratings', 'ratings_to_interact', and 'none'"
+            print("Please choose a user_vector_type between 'ratings', 'pos_ratings', 'ratings_to_interact', and 'none'")
             return None
 
     def get_content_vector(self):
@@ -92,18 +92,18 @@ class movieLens_vectorize():
 
                 #join the tag content and the content_array
                 joined_content = content_array.leftOuterJoin(tag_content)\
-                    .map(lambda (mid, (genre, tags)): (mid, list(genre)+tag_vect(tags, num_tags)))
+                    .map(lambda mid_genre_tags: (mid_genre_tags[0], list(mid_genre_tags[1][0])+tag_vect(mid_genre_tags[1][1], num_tags)))
 
 
                 return joined_content
             else:
-                print "Please pass in a tag RDD. Like: support_files['tag_rdd'] = sqlCtx.read.json('movielens_20m_tags.json.gz')"
+                print("Please pass in a tag RDD. Like: support_files['tag_rdd'] = sqlCtx.read.json('movielens_20m_tags.json.gz')")
 
         elif self.content_vector_type=='none':
             return None
 
         else:
-            print "Please choose a content_vector_type between 'genre', 'tags', or 'none'"
+            print("Please choose a content_vector_type between 'genre', 'tags', or 'none'")
             return None
 
 

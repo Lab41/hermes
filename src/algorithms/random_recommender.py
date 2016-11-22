@@ -23,7 +23,7 @@ def predict(user_info, num_partitions=30):
         ValueError: if all the ratings are 0.
     """
     # Get the possible ratings
-    ratings = user_info.map(lambda (user, item, rating): rating)
+    ratings = user_info.map(lambda user_item_rating: user_item_rating[2])
     ratings.cache()
     ratings_max = ratings.max()
     ratings_min = ratings.min()
@@ -38,17 +38,17 @@ def predict(user_info, num_partitions=30):
             ratings_min = 0
 
     # Get all the users and items
-    distinct_users = user_info.map(lambda (user, item, rating): user).distinct()
-    distinct_items = user_info.map(lambda (user, item, rating): item).distinct()
+    distinct_users = user_info.map(lambda user_item_rating1: user_item_rating1[0]).distinct()
+    distinct_items = user_info.map(lambda user_item_rating2: user_item_rating2[1]).distinct()
 
     # For every possible user and item pair, pick a random rating
     predictions = distinct_users\
         .cartesian(distinct_items).\
             map(
-                lambda (user, item):
-                (user, item, random.uniform(ratings_min, ratings_max))
+                lambda user_item:
+                (user_item[0], user_item[1], random.uniform(ratings_min, ratings_max))
             )\
-        .filter(lambda (user, item, rating): rating)\
+        .filter(lambda user_item_rating3: user_item_rating3[2])\
         .coalesce(num_partitions)
 
     return predictions

@@ -49,34 +49,19 @@ class git_vectorize():
 
     def __set_lines_to_functions(self):
         loaded_data = self.git_rdd.map(
-            lambda (
-                author,
-                author_mail,
-                author_time,
-                author_timezone,
-                comment,
-                commit_id,
-                committer,
-                committer_mail,
-                committer_time,
-                committer_timezone,
-                filename,
-                line,
-                line_num,
-                repo_name,
-            ):
-            ((repo_name, filename), ((author, author_mail), line_num, line))
+            lambda author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name:
+            ((author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name[13], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name[10]), ((author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name[0], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name[1]), author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name[12], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name[11]))
         )
         # Group data by file so that we can reconstruct the file
         grouped_lines = loaded_data.groupByKey()
         # Reconstruct the files from their lines so we can run them through the lexer
-        reconstructed_files = grouped_lines.map(lambda (key, lines): (key, lines_to_file(lines)))
+        reconstructed_files = grouped_lines.map(lambda key_lines: (key_lines[0], lines_to_file(key_lines[1])))
         # Make a map of files to functions
         file_to_functions = reconstructed_files.flatMap(lambda row: run_lexer(row))
         # Map lines to functions
         self.lines_to_functions = file_to_functions.map(
-                lambda ((repo, file), (line_num, cont_type, cont)):
-                ((repo, file, line_num), clean_names(cont))
+                lambda repo_file_line_num_cont_type_cont:
+                ((repo_file_line_num_cont_type_cont[0][0], repo_file_line_num_cont_type_cont[0][1], repo_file_line_num_cont_type_cont[1][0]), clean_names(repo_file_line_num_cont_type_cont[1][2]))
             )
 
     def __join_authors_to_functions(self):
@@ -90,35 +75,20 @@ class git_vectorize():
 
         self.authorid_functionid = joined_authors_and_functions\
             .map(
-                lambda (line, (author_id, function)): (author_id, function_map.value[function])
+                lambda line_author_id_function: (line_author_id_function[1][0], function_map.value[line_author_id_function[1][1]])
             )
 
     def __set_function_map(self):
         functions = self.lines_to_functions\
-            .map(lambda (line, function): function)\
+            .map(lambda line_function: line_function[1])\
             .distinct()
 
         self.function_map = {k: v for v, k in enumerate(functions.collect())}
 
     def __set_author_map(self):
         authors = self.git_rdd.map(
-            lambda (
-                author,
-                author_mail,
-                author_time,
-                author_timezone,
-                comment,
-                commit_id,
-                committer,
-                committer_mail,
-                committer_time,
-                committer_timezone,
-                filename,
-                line,
-                line_num,
-                repo_name,
-            ):
-            (author, author_mail)
+            lambda author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name3:
+            (author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name3[0], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name3[1])
         ).distinct()
 
         self.author_map = {k: v for v, k in enumerate(authors.collect())}
@@ -131,23 +101,8 @@ class git_vectorize():
         author_map = self.sc.broadcast(deepcopy(self.author_map))
 
         self.lines_to_authorid = self.git_rdd.map(
-            lambda (
-                author,
-                author_mail,
-                author_time,
-                author_timezone,
-                comment,
-                commit_id,
-                committer,
-                committer_mail,
-                committer_time,
-                committer_timezone,
-                filename,
-                line,
-                line_num,
-                repo_name,
-            ):
-            ((repo_name, filename, line_num), author_map.value[(author, author_mail)])
+            lambda author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name4:
+            ((author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name4[13], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name4[10], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name4[12]), author_map.value[(author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name4[0], author_author_mail_author_time_author_timezone_comment_commit_id_committer_committer_mail_committer_time_committer_timezone_filename_line_line_num_repo_name4[1])])
         )
 
     def get_user_vector(self):
@@ -168,7 +123,7 @@ class git_vectorize():
         if self.user_vector_type == "any_interact":
             user_info = a_f\
                 .distinct()\
-                .map(lambda (user, item): (user, item, 1))
+                .map(lambda user_item: (user_item[0], user_item[1], 1))
 
             return user_info
 
@@ -176,9 +131,9 @@ class git_vectorize():
         # user has used a function
         if self.user_vector_type == "num_interact":
             user_info = a_f\
-                .map(lambda (user, item): ((user, item), 1))\
+                .map(lambda user_item1: ((user_item1[0], user_item1[1]), 1))\
                 .reduceByKey(lambda v1, v2: v1+v2)\
-                .map(lambda ((user, item), count): (user, item, count))
+                .map(lambda user_item_count: (user_item_count[0][0], user_item_count[0][1], user_item_count[1]))
             return user_info
 
         # Nothing to do!
@@ -187,7 +142,7 @@ class git_vectorize():
 
         # Error state
         else:
-            print "Please choose a user_vector_type from 'any_interact', 'num_interact', or None"
+            print("Please choose a user_vector_type from 'any_interact', 'num_interact', or None")
             return None
 
     def get_content_vector(self):
@@ -213,11 +168,11 @@ class git_vectorize():
             function_map = self.sc.broadcast(deepcopy(self.function_map))
 
             # Starts as ((repo, file, line_num), function)
-            functions = self.sc.parallelize(self.function_map.keys())
+            functions = self.sc.parallelize(list(self.function_map.keys()))
             content_vector = functions\
                 .map(lambda function: (function_map.value[function], function_to_vector(function, model.value)))\
-                .filter(lambda (functionid, vector): vector is not None)\
-                .filter(lambda (functionid, vector): vector.any())
+                .filter(lambda functionid_vector: functionid_vector[1] is not None)\
+                .filter(lambda functionid_vector2: functionid_vector2[1].any())
 
             return content_vector
 
@@ -227,7 +182,7 @@ class git_vectorize():
 
         # Error state
         else:
-            print "Please choose a content_vector_type from 'py2vec' or None"
+            print("Please choose a content_vector_type from 'py2vec' or None")
             return None
 
 

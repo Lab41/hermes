@@ -1,1 +1,1 @@
-import bookcrossing
+from . import bookcrossing

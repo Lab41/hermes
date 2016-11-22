@@ -36,9 +36,9 @@ def get_dataset_stats(*args):
         all_ratings += rdd
 
     # Select the users, items, and ratings from the RDD
-    users = all_ratings.map(lambda (u, i, r): u).distinct()
-    items = all_ratings.map(lambda (u, i, r): i).distinct()
-    ratings = all_ratings.map(lambda (u, i, r): r)
+    users = all_ratings.map(lambda u_i_r: u_i_r[0]).distinct()
+    items = all_ratings.map(lambda u_i_r1: u_i_r1[1]).distinct()
+    ratings = all_ratings.map(lambda u_i_r2: u_i_r2[2])
 
     # Calculate and store the various statistics
     ratings_stats = ratings.stats()
