@@ -3,6 +3,8 @@ Hermes is Lab41's foray into recommender systems. It explores how to choose a re
 
 It also explores how recommender systems may assist a software developer of data scientist find new data, tools, and computer programs.
 
+The Wiki associated with this project has details on many [references](http://github.com/Lab41/hermes/wiki/References) that we utilized when implementing this framework. It also details the [datasets](http://github.com/Lab41/hermes/wiki/Datasets) used in this base framework, as well as some [resources](https://github.com/Lab41/hermes/wiki/Training-Materials) to help you get started in recommender systems and Spark.
+
 This readme will be updated as the project progresses so stay tuned!
 
 ##Blog Overviews
