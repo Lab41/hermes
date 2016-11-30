@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     # First parse the script file
     with open(args.output_directory + "/scripts.json", 'w') as f:
-        with open(args.kaggle_directory + "/Scripts.csv", 'rb') as csvfile:
+        with open(args.kaggle_directory + "/Scripts.csv", 'r') as csvfile:
             document = csv.reader(csvfile, delimiter = ',')
             next(document)
             for row in document:
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
     # Now parse the script version file
     with open(args.output_directory + "/script_versions.json", 'w') as f:
-        with open(args.kaggle_directory + "/ScriptVersions.csv", 'rb') as csvfile:
+        with open(args.kaggle_directory + "/ScriptVersions.csv", 'r') as csvfile:
             document = csv.reader(csvfile, delimiter = ',')
             next(document)
             for row in document:
