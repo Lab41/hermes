@@ -9,6 +9,7 @@ For tips on how to get started, see the wiki page: [Running Hermes](https://gith
 
 ##Blog Overviews
 There are a number of blog articles that we produced during the course of this project.  They include:
+
 |       |      |
 |-------|------|
 | [Join the Hermes Running Club](http://www.lab41.org/join-the-hermes-running-club/) | March 2016 |
