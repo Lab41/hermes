@@ -4,7 +4,7 @@
 # There will be slight differences for other datasets, primarily the data_name, user and content_vector_types variables
 
 
-sc.addPyFile('/home/abethke/hermes.zip')
+sc.addPyFile('hermes.zip')
 from src import hermes_run_script
 
 interactions = sqlCtx.read.json('datasets/scripts.json').sample(False, 0.5,41)
