@@ -2,7 +2,7 @@
 # To run simply change the filepaths to point to the correct input and output locations for your datasets
 
 # There will be slight differences for other datasets, primarily the data_name, user and content_vector_types variables
-
+# For further details on how to configure your run see https://gab41.lab41.org/join-the-hermes-running-club-3156b62e4ef5#.av8o1vm9t
 
 sc.addPyFile('hermes.zip')
 from src import hermes_run_script
