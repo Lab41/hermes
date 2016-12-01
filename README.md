@@ -5,9 +5,10 @@ It also explores how recommender systems may assist a software developer of data
 
 The Wiki associated with this project has details on many [references](http://github.com/Lab41/hermes/wiki/References) that we utilized when implementing this framework. It also details the [datasets](http://github.com/Lab41/hermes/wiki/Datasets) used in this base framework, as well as some [resources](https://github.com/Lab41/hermes/wiki/Training-Materials) to help you get started in recommender systems and Spark.
 
-This readme will be updated as the project progresses so stay tuned!
+For tips on how to get started, see the wiki page: [Running Hermes](https://github.com/Lab41/hermes/wiki/Running-Hermes).
 
 ##Blog Overviews
+There are a number of blog articles that we produced during the course of this project.  They include:
 |       |      |
 |-------|------|
 | [Join the Hermes Running Club](http://www.lab41.org/join-the-hermes-running-club/) | March 2016 |
